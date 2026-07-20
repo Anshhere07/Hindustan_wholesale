@@ -1,0 +1,223 @@
+/* ── Orders Page ──────────────────────────────────────────────────────────── */
+
+.page { display: flex; flex-direction: column; gap: var(--space-5); }
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.title {
+  font-size: var(--text-2xl);
+  font-weight: var(--font-bold);
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+}
+
+.subtitle { font-size: var(--text-sm); color: var(--text-secondary); margin-top: var(--space-1); }
+
+/* ── Tabs ─────────────────────────────────────────────────────────────────── */
+.tabsWrap {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  border-bottom: 1px solid var(--border-subtle);
+  padding-bottom: var(--space-3);
+}
+
+.tabs {
+  display: flex;
+  gap: var(--space-1);
+  overflow-x: auto;
+}
+
+.tab {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-lg);
+  border: none;
+  background: none;
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-family: var(--font-sans);
+  white-space: nowrap;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+.tab:hover { background: var(--bg-surface-alt); color: var(--text-primary); }
+
+.tab--active {
+  background: var(--color-brand-50);
+  color: var(--color-brand-700);
+  font-weight: var(--font-semibold);
+}
+
+.tabCount {
+  background: var(--color-brand-600);
+  color: #fff;
+  font-size: 10px;
+  font-weight: var(--font-bold);
+  padding: 1px 6px;
+  border-radius: var(--radius-full);
+}
+.tab:not(.tab--active) .tabCount {
+  background: var(--border-default);
+  color: var(--text-secondary);
+}
+
+/* ── Search ───────────────────────────────────────────────────────────────── */
+.searchWrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.searchIcon {
+  position: absolute;
+  left: var(--space-3);
+  color: var(--text-tertiary);
+  pointer-events: none;
+}
+
+.searchInput {
+  height: 38px;
+  width: 220px;
+  background: var(--bg-surface);
+  border: 1.5px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  padding: 0 var(--space-4) 0 32px;
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+  outline: none;
+  font-family: var(--font-sans);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+.searchInput:focus {
+  border-color: var(--color-brand-400);
+  box-shadow: 0 0 0 3px rgba(189,27,19,0.12);
+}
+.searchInput::placeholder { color: var(--text-tertiary); }
+
+/* ── Table ────────────────────────────────────────────────────────────────── */
+.tableWrap {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 700px;
+}
+
+.table thead {
+  background: var(--bg-surface-alt);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.table th {
+  padding: var(--space-3) var(--space-5);
+  text-align: left;
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+
+.tableRow {
+  border-bottom: 1px solid var(--border-subtle);
+  transition: background var(--transition-fast);
+}
+.tableRow:last-child { border-bottom: none; }
+.tableRow:hover { background: var(--bg-surface-alt); }
+
+.table td {
+  padding: var(--space-4) var(--space-5);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  vertical-align: middle;
+}
+
+.orderNum {
+  font-weight: var(--font-semibold);
+  color: var(--color-brand-600);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+}
+
+.dateCell { color: var(--text-tertiary); white-space: nowrap; }
+
+.itemsCell {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  max-width: 280px;
+}
+
+.itemThumb {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 1px solid var(--border-subtle);
+}
+
+.amount {
+  font-weight: var(--font-bold);
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.payment {
+  text-transform: capitalize;
+  color: var(--text-tertiary);
+  font-size: var(--text-xs);
+}
+
+.emptyRow {
+  text-align: center;
+  padding: var(--space-16) !important;
+  color: var(--text-tertiary);
+  font-style: italic;
+}
+
+/* ── Tracking Banner ──────────────────────────────────────────────────────── */
+.trackingBanner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  background: linear-gradient(135deg, var(--color-brand-50), #ede9fe);
+  border: 1px solid var(--color-brand-200);
+  border-radius: var(--radius-xl);
+  padding: var(--space-4) var(--space-5);
+  font-size: var(--text-sm);
+  color: var(--color-brand-700);
+}
+
+.trackingDot {
+  width: 10px; height: 10px;
+  background: var(--color-brand-500);
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
+  animation: pulse-soft 2s ease-in-out infinite;
+}
+
+@media (max-width: 768px) {
+  .tabsWrap { flex-direction: column; align-items: flex-start; }
+  .searchInput { width: 100%; }
+}
+

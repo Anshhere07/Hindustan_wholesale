@@ -1,0 +1,30 @@
+/* ── Page Shell ───────────────────────────────────────────────────────────── */
+
+.shell {
+  display: flex;
+  min-height: 100vh;
+  background: var(--bg-base);
+}
+
+.main {
+  flex: 1;
+  margin-top: var(--topnav-height);
+  min-height: calc(100vh - var(--topnav-height));
+  transition: margin-left var(--transition-normal);
+  overflow-x: hidden;
+}
+
+.main--expanded  { margin-left: var(--sidebar-width); }
+.main--collapsed { margin-left: var(--sidebar-collapsed); }
+
+.content {
+  padding: var(--space-6);
+  max-width: 100%;
+  animation: fadeIn var(--transition-normal);
+}
+
+@media (max-width: 768px) {
+  .main { margin-left: 0 !important; }
+  .content { padding: var(--space-4); }
+}
+

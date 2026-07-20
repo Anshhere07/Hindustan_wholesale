@@ -1,0 +1,157 @@
+/* ============================================================================
+   HINDUSTAN WHOLESALE — Global Design System
+   Design tokens, resets, typography, utilities
+   ============================================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap');
+
+/* ── Design Tokens ─────────────────────────────────────────────────────────── */
+:root {
+  /* Brand Colors — Royal Blue #0F4C81 */
+  --color-brand-50:  #f0f6fc;
+  --color-brand-100: #e0ecf7;
+  --color-brand-200: #c1daef;
+  --color-brand-300: #92c0e3;
+  --color-brand-400: #5fa0d5;
+  --color-brand-500: #3a82c6;
+  --color-brand-600: #2566ab;
+  --color-brand-700: #20538d;
+  --color-brand-800: #0f4c81; /* Primary */
+  --color-brand-900: #1b3958;
+
+  /* Accent — Saffron Orange #F97316 */
+  --color-accent-50:  #fff8f1;
+  --color-accent-100: #ffeedc;
+  --color-accent-200: #ffd8b8;
+  --color-accent-300: #ffbc89;
+  --color-accent-400: #fb9751;
+  --color-accent-500: #f97316; /* Secondary */
+  --color-accent-600: #ea580c;
+  --color-accent-700: #c2410c;
+
+  /* Neutrals */
+  --color-gray-50:  #f8fafc; /* Background */
+  --color-gray-100: #f1f5f9;
+  --color-gray-200: #e2e8f0;
+  --color-gray-300: #cbd5e1;
+  --color-gray-400: #94a3b8;
+  --color-gray-500: #64748b;
+  --color-gray-600: #475569;
+  --color-gray-700: #334155;
+  --color-gray-800: #1e293b;
+  --color-gray-900: #111827; /* Text */
+
+  /* Semantic Color Roles */
+  --bg-base:        var(--color-gray-50);
+  --bg-surface:     #ffffff;
+  --bg-surface-alt: #f1f5f9;
+  --bg-brand:       var(--color-brand-800);
+  --bg-brand-hover: var(--color-brand-900);
+
+  --text-primary:   var(--color-gray-900);
+  --text-secondary: var(--color-gray-600);
+  --text-inverse:   #ffffff;
+  --text-brand:     var(--color-brand-800);
+  --text-accent:    var(--color-accent-500);
+
+  --border-subtle:  #e2e8f0;
+  --border-default: #cbd5e1;
+  --border-strong:  #94a3b8;
+  --border-brand:   var(--color-brand-500);
+
+  /* Typography Scale */
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-heading: 'Poppins', var(--font-sans);
+
+  --text-xs:   0.75rem;
+  --text-sm:   0.875rem;
+  --text-base: 1rem;
+  --text-lg:   1.125rem;
+  --text-xl:   1.25rem;
+  --text-2xl:  1.5rem;
+  --text-3xl:  1.875rem;
+  --text-4xl:  2.25rem;
+  --text-5xl:  3rem;
+
+  --leading-tight:  1.25;
+  --leading-normal: 1.5;
+
+  --radius-sm:   0.25rem;
+  --radius-md:   0.5rem;
+  --radius-lg:   0.75rem;
+  --radius-xl:   1rem;
+  --radius-2xl:  1.5rem;
+  --radius-full: 9999px;
+
+  /* Layout */
+  --container-max:        1440px;
+  --content-max:          1200px;
+}
+
+/* ── CSS Reset ─────────────────────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+  color: var(--text-primary);
+  background-color: var(--bg-base);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: var(--leading-tight);
+}
+
+img, picture, video, canvas, svg {
+  display: block;
+  max-width: 100%;
+}
+
+input, button, textarea, select {
+  font: inherit;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+ul, ol {
+  list-style: none;
+}
+
+/* ── Layout Utilities ──────────────────────────────────────────────────────── */
+.container {
+  width: 100%;
+  max-width: var(--container-max);
+  margin-inline: auto;
+  padding-inline: 1.5rem;
+}
+
+.content-container {
+  width: 100%;
+  max-width: var(--content-max);
+  margin-inline: auto;
+  padding-inline: 1.5rem;
+}
+
+.text-gradient {
+  background: linear-gradient(90deg, var(--color-brand-800), var(--color-brand-500));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}

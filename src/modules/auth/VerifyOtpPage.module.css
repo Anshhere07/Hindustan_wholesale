@@ -1,0 +1,190 @@
+/* ── VerifyOtpPage ────────────────────────────────────────────────────────── */
+
+.page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-base);
+  padding: var(--space-6);
+}
+
+.formPanel {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-2xl);
+  box-shadow: var(--shadow-xl);
+  width: 100%;
+  max-width: 440px;
+  overflow: hidden;
+}
+
+.formInner {
+  padding: var(--space-10) var(--space-8);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+/* ── Back Link ────────────────────────────────────────────────────────────── */
+.backLink {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-weight: var(--font-medium);
+  align-self: flex-start;
+  transition: color var(--transition-fast);
+}
+.backLink:hover { color: var(--text-primary); }
+
+/* ── Header ───────────────────────────────────────────────────────────────── */
+.header {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.iconWrap {
+  width: 60px; height: 60px;
+  background: var(--color-brand-50);
+  color: var(--color-brand-600);
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.title {
+  font-size: var(--text-xl);
+  font-weight: var(--font-bold);
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+}
+
+.subtitle {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  line-height: 1.5;
+  max-width: 320px;
+}
+
+/* ── Form ─────────────────────────────────────────────────────────────────── */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.otpGroup {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.otpInput {
+  width: 50px;
+  height: 58px;
+  background: var(--bg-surface);
+  border: 1.5px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  font-size: var(--text-2xl);
+  font-weight: var(--font-bold);
+  color: var(--text-primary);
+  text-align: center;
+  outline: none;
+  font-family: var(--font-sans);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+.otpInput:focus {
+  border-color: var(--color-brand-500);
+  box-shadow: 0 0 0 3px rgba(189,27,19,0.15);
+}
+.otpInput:disabled {
+  background: var(--bg-surface-alt);
+  color: var(--text-tertiary);
+  cursor: not-allowed;
+}
+
+.error {
+  font-size: var(--text-sm);
+  color: var(--color-danger-600);
+  text-align: center;
+  font-weight: var(--font-medium);
+}
+
+/* ── Resend ───────────────────────────────────────────────────────────────── */
+.resendWrap {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.resendText {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+.countdown {
+  font-size: var(--text-sm);
+  color: var(--text-tertiary);
+  font-weight: var(--font-medium);
+}
+
+.resendBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  background: none;
+  border: none;
+  color: var(--color-brand-600);
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: var(--radius-md);
+  align-self: center;
+  font-family: var(--font-sans);
+  transition: color var(--transition-fast), background var(--transition-fast);
+}
+.resendBtn:hover {
+  color: var(--color-brand-700);
+  background: var(--color-brand-50);
+}
+
+/* ── Demo Notice ──────────────────────────────────────────────────────────── */
+.demoNotice {
+  background: var(--bg-surface-alt);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+/* ── Animations ───────────────────────────────────────────────────────────── */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-6px); }
+  40%, 80% { transform: translateX(6px); }
+}
+
+.shake {
+  animation: shake 0.4s ease-in-out;
+}
+
+@media (max-width: 480px) {
+  .otpInput {
+    width: 42px;
+    height: 48px;
+    font-size: var(--text-xl);
+  }
+}
+
