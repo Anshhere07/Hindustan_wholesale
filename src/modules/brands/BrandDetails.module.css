@@ -1,0 +1,169 @@
+.page {
+  background: var(--bg-surface);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.main {
+  flex: 1;
+  width: 100%;
+  margin: 0 auto;
+  padding: 40px 24px;
+}
+
+@media (min-width: 1024px) {
+  .main {
+    max-width: 60%;
+  }
+}
+
+.breadcrumb {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 24px;
+}
+.breadcrumb a {
+  color: var(--text-secondary);
+  text-decoration: none;
+}
+.breadcrumb a:hover {
+  text-decoration: underline;
+}
+
+/* ── Banner ───────────────────────────────────────────────────────────── */
+.banner {
+  background: linear-gradient(135deg, #ffffff 0%, #fffaf5 100%);
+  border: 1px solid var(--border-subtle);
+  border-radius: 16px;
+  padding: 32px;
+  display: flex;
+  align-items: center;
+  gap: 32px;
+  margin-bottom: 48px;
+}
+
+.iconWrap {
+  width: 96px;
+  height: 96px;
+  border-radius: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  font-weight: 800;
+  color: white;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.bannerInfo {
+  display: flex;
+  flex-direction: column;
+}
+
+.titleRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.brandTitle {
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+}
+
+.verifiedPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #E8F5E9;
+  color: #10B981;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.metaRow {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.metaLocation {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.metaPill {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+
+.pillBlue {
+  background: #E0F2FE;
+  color: #0284C7;
+}
+
+.pillGray {
+  background: #F3F4F6;
+  color: #4B5563;
+}
+
+/* ── Products Section ───────────────────────────────────────────────────── */
+.sectionTitle {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin-bottom: 24px;
+}
+
+.productGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+@media (max-width: 1024px) {
+  .productGrid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .productGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .banner {
+    flex-direction: column;
+    text-align: center;
+    gap: 16px;
+    padding: 24px;
+  }
+  .titleRow {
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .metaRow {
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .productGrid {
+    grid-template-columns: 1fr;
+  }
+  .brandTitle {
+    font-size: 24px;
+  }
+}

@@ -1,0 +1,410 @@
+.page {
+  background: var(--bg-surface);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.main {
+  flex: 1;
+  width: 100%;
+  margin: 0 auto;
+  padding: 40px 24px;
+}
+
+@media (min-width: 1024px) {
+  .main {
+    max-width: 60%;
+  }
+}
+
+.breadcrumb {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 24px;
+}
+.breadcrumb a {
+  color: var(--text-secondary);
+  text-decoration: none;
+}
+.breadcrumb a:hover {
+  text-decoration: underline;
+}
+
+/* ── Top Layout (Image & Details) ────────────────────────────────────────── */
+.topSection {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 48px;
+  margin-bottom: 60px;
+}
+
+/* Left: Image Gallery */
+.gallery {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.mainImage {
+  width: 100%;
+  aspect-ratio: 4/3;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 80px;
+  font-weight: 900;
+  color: rgba(255, 255, 255, 0.8);
+  position: relative;
+  overflow: hidden;
+}
+
+.mainImageBadge {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  background: white;
+  color: var(--text-primary);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 6px 12px;
+  border-radius: 999px;
+}
+
+.thumbnailStrip {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+.thumbnail {
+  aspect-ratio: 1;
+  border-radius: 12px;
+  cursor: pointer;
+  background-color: var(--bg-surface-alt);
+  opacity: 0.6;
+  transition: opacity 0.2s;
+}
+
+.thumbnail:hover, .thumbnailActive {
+  opacity: 1;
+}
+
+/* Right: Product Details */
+.details {
+  display: flex;
+  flex-direction: column;
+}
+
+.brandRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+  font-size: 13px;
+}
+
+.brandName {
+  font-weight: 700;
+  color: var(--color-brand-800);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.rating {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--text-secondary);
+}
+
+.title {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--text-primary);
+  line-height: 1.2;
+  margin-bottom: 12px;
+}
+
+.badgesRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 24px;
+  align-items: center;
+}
+
+.badgePill {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+.badgeBlue {
+  background: #E0F2FE;
+  color: #0284C7;
+}
+.badgeOrange {
+  background: #FFEDD5;
+  color: #C2410C;
+}
+.badgeLocation {
+  font-size: 12px;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Price Card */
+.priceCard {
+  background: white;
+  border: 1px solid var(--border-subtle);
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 24px;
+}
+
+.priceRow {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.mainPrice {
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--color-brand-900);
+}
+.strikePrice {
+  font-size: 16px;
+  text-decoration: line-through;
+  color: var(--text-secondary);
+}
+.discountBadge {
+  background: #F97316;
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.priceSubtext {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 24px;
+}
+
+/* Bulk Tiers */
+.sectionTitle {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 12px;
+}
+
+.bulkTiers {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.tierBox {
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  padding: 12px;
+  text-align: center;
+}
+
+.tierQty {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+.tierPrice {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+/* Variants */
+.variantsGroup {
+  margin-bottom: 24px;
+}
+.variantPills {
+  display: flex;
+  gap: 12px;
+}
+.variantPill {
+  padding: 8px 16px;
+  border-radius: 999px;
+  border: 1px solid var(--border-subtle);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  background: white;
+  cursor: pointer;
+}
+.variantPillActive {
+  background: var(--color-brand-900);
+  color: white;
+  border-color: var(--color-brand-900);
+}
+
+/* Actions */
+.actionsRow {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+.btnPrimary {
+  flex: 1;
+  background: var(--color-brand-900);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 14px;
+  font-size: 14px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+}
+.btnSecondary {
+  flex: 1;
+  background: white;
+  color: var(--text-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  padding: 14px;
+  font-size: 14px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.actionSubtext {
+  font-size: 11px;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+/* Features */
+.featuresRow {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  background: #F8FAFC;
+  padding: 16px;
+  border-radius: 12px;
+}
+.featureItem {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.featureIconRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.featureDesc {
+  font-size: 11px;
+  color: var(--text-secondary);
+  padding-left: 22px;
+  line-height: 1.3;
+}
+
+/* ── Bottom Section (Highlights & Specs) ─────────────────────────────────── */
+.bottomSection {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 48px;
+}
+
+.bottomHeader {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin-bottom: 24px;
+}
+
+/* Highlights */
+.highlightsList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.highlightItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: white;
+  border: 1px solid var(--border-subtle);
+  padding: 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--text-primary);
+}
+.highlightIcon {
+  color: #10B981;
+}
+
+/* Specifications */
+.specsTable {
+  background: white;
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.specRow {
+  display: flex;
+  justify-content: space-between;
+  padding: 16px;
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: 13px;
+}
+.specRow:last-child {
+  border-bottom: none;
+}
+.specLabel {
+  color: var(--text-secondary);
+}
+.specValue {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* ── Responsive ─────────────────────────────────────────────────────────── */
+@media (max-width: 1024px) {
+  .topSection, .bottomSection {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+  .mainImage {
+    aspect-ratio: 16/9;
+  }
+}
+
+@media (max-width: 480px) {
+  .actionsRow {
+    flex-direction: column;
+  }
+  .bulkTiers {
+    grid-template-columns: 1fr;
+  }
+  .featuresRow {
+    grid-template-columns: 1fr;
+  }
+}

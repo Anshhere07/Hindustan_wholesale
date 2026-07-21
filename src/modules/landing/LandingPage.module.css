@@ -83,27 +83,40 @@
   flex-shrink: 0;
 }
 .headerLogoIcon {
-  width: 40px; height: 40px;
-  background: var(--color-brand-800);
-  border-radius: 50%;
+  width: 52px; height: 34px;
+  background: linear-gradient(110deg, #0B2C6A 45%, #8B1028 45%);
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
+.headerLogoIcon span {
+  color: white;
+  font-weight: 900;
+  font-size: 24px;
+  font-style: italic;
+  font-family: sans-serif;
+  letter-spacing: -2px;
+  transform: skewX(-5deg);
+}
 .headerLogoTextWrap {
   display: flex;
   flex-direction: column;
+  padding-left: 14px;
+  border-left: 2px solid #8B1028;
 }
 .headerLogoText {
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--text-primary);
-  line-height: 1.2;
+  font-size: 22px;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -0.5px;
 }
 .headerLogoSubtext {
-  font-size: 10px;
-  color: var(--text-secondary);
+  font-size: 9px;
+  font-weight: 700;
+  color: #0B2C6A;
   letter-spacing: 0.05em;
+  margin-top: 4px;
 }
 
 /* Search Bar */
@@ -251,7 +264,16 @@
   white-space: nowrap;
 }
 .bottomNavLink:hover { color: var(--text-primary); }
-.viewAllLink { color: var(--color-brand-600); }
+.viewAllLink {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-brand-600);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.viewAllLink:hover {
+  text-decoration: underline;
+}
 
 .mobileMenuBtn { 
   display: none; 
@@ -264,6 +286,10 @@
   color: var(--text-primary);
 }
 
+.mobileMenuDropdown {
+  display: none; /* Display block via media query */
+}
+
 @media (min-width: 1024px) {
   .headerTopBarInner,
   .headerMiddleBarInner,
@@ -272,9 +298,10 @@
   }
 }
 
+
 /* ── Hero ─────────────────────────────────────────────────────────────────── */
 .hero {
-  background: #003F7A; /* Deep blue from reference */
+  background: var(--color-navy-800);
   padding: 80px 24px 80px;
   overflow: hidden;
 }
@@ -1108,9 +1135,8 @@
 
 /* ── Footer ───────────────────────────────────────────────────────────────── */
 .footer {
-  background: #ffffff;
+  background: var(--color-navy-900);
   padding: 60px 24px 40px;
-  border-top: 1px solid var(--border-subtle);
 }
 
 .footerInner {
@@ -1152,20 +1178,20 @@
 .footerBrandName {
   font-size: 20px;
   font-weight: 800;
-  color: var(--text-primary);
+  color: white;
   line-height: 1.2;
 }
 
 .footerBrandSlogan {
   font-size: 10px;
-  color: var(--text-tertiary);
+  color: rgba(255,255,255,0.6);
   letter-spacing: 0.05em;
   text-transform: uppercase;
 }
 
 .footerBrandDesc {
   font-size: 13px;
-  color: var(--text-secondary);
+  color: rgba(255,255,255,0.8);
   line-height: 1.6;
   margin-bottom: 24px;
   max-width: 400px;
@@ -1199,27 +1225,41 @@
 .footerLinkTitle {
   font-size: 14px;
   font-weight: 700;
-  color: var(--text-primary);
+  color: white;
   margin-bottom: 8px;
 }
 
 .footerLink {
-  color: var(--text-secondary);
+  color: rgba(255,255,255,0.7);
   font-size: 13px;
   text-decoration: none;
   transition: color 0.2s;
 }
-.footerLink:hover { color: var(--text-primary); }
+.footerLink:hover { color: white; }
 
 .footerContactRow {
   display: flex;
   align-items: center;
   gap: 8px;
-  color: var(--text-secondary);
+  color: rgba(255,255,255,0.7);
   font-size: 13px;
 }
 .footerContactIcon {
-  color: var(--color-brand-600);
+  color: var(--color-accent-500);
+  flex-shrink: 0;
+}
+
+.instagramLink {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: white;
+  text-decoration: none;
+  font-size: 13px;
+  transition: color 0.2s;
+}
+.instagramLink:hover {
+  color: #8B1028;
 }
 
 .footerBottom {
@@ -1227,13 +1267,13 @@
   justify-content: space-between;
   align-items: center;
   padding-top: 32px;
-  border-top: 1px solid var(--border-subtle);
+  border-top: 1px solid rgba(255,255,255,0.1);
   flex-wrap: wrap;
   gap: 16px;
 }
 
 .footerCopy {
-  color: var(--text-tertiary);
+  color: rgba(255,255,255,0.5);
   font-size: 12px;
 }
 
@@ -1242,12 +1282,12 @@
   gap: 24px;
 }
 .footerLegalLinks a {
-  color: var(--text-tertiary);
+  color: rgba(255,255,255,0.5);
   font-size: 12px;
   text-decoration: none;
 }
 .footerLegalLinks a:hover {
-  color: var(--text-primary);
+  color: white;
 }
 
 /* ── Desktop Constraints ─────────────────────────────────────────────────── */
@@ -1286,7 +1326,29 @@
     display: none; /* Hide complex features on mobile, maybe implement a search toggle later */
   }
   .headerMiddleBarInner {
-    padding: 12px 16px;
+    padding: 12px 12px;
+    gap: 12px;
+  }
+  .headerActions {
+    gap: 12px;
+  }
+  .headerLogo {
+    gap: 8px;
+  }
+  .headerLogoIcon {
+    width: 42px; height: 28px;
+  }
+  .headerLogoIcon span {
+    font-size: 18px;
+  }
+  .headerLogoTextWrap {
+    padding-left: 8px;
+  }
+  .headerLogoText {
+    font-size: 16px;
+  }
+  .headerLogoSubtext {
+    font-size: 7px;
   }
   .actionBtn, .registerBtn { display: none; }
   .mobileMenuBtn { display: block; }
@@ -1301,6 +1363,38 @@
   
   .heroRight {
     aspect-ratio: 1; /* Make it square on mobile */
+  }
+
+  .mobileMenuDropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    background: white;
+    border-top: 1px solid var(--border-subtle);
+    padding: 12px 16px;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    z-index: 999;
+  }
+  .mobileMenuLink {
+    padding: 12px 0;
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--text-primary);
+    text-decoration: none;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  .mobileMenuLink:last-child {
+    border-bottom: none;
+  }
+  .mobileMenuViewAllLink {
+    padding: 12px 0;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--color-brand-600);
+    text-decoration: none;
   }
 
   .heroCta {

@@ -7,56 +7,59 @@
 
 /* ── Design Tokens ─────────────────────────────────────────────────────────── */
 :root {
-  /* Brand Colors — Royal Blue #0F4C81 */
-  --color-brand-50:  #f0f6fc;
-  --color-brand-100: #e0ecf7;
-  --color-brand-200: #c1daef;
-  --color-brand-300: #92c0e3;
-  --color-brand-400: #5fa0d5;
-  --color-brand-500: #3a82c6;
-  --color-brand-600: #2566ab;
-  --color-brand-700: #20538d;
-  --color-brand-800: #0f4c81; /* Primary */
-  --color-brand-900: #1b3958;
+  /* Brand Colors — Primary Maroon #8B1028 */
+  --color-brand-50:  #fcf0f2;
+  --color-brand-100: #fad1d9;
+  --color-brand-200: #f5a6b5;
+  --color-brand-300: #ee758d;
+  --color-brand-400: #e34d69;
+  --color-brand-500: #d62b4b;
+  --color-brand-600: #b51234; /* Accent Red - CTA */
+  --color-brand-700: #a0102e;
+  --color-brand-800: #8b1028; /* Primary Maroon */
+  --color-brand-900: #6e0d20; /* Dark Maroon */
 
-  /* Accent — Saffron Orange #F97316 */
-  --color-accent-50:  #fff8f1;
-  --color-accent-100: #ffeedc;
-  --color-accent-200: #ffd8b8;
-  --color-accent-300: #ffbc89;
-  --color-accent-400: #fb9751;
-  --color-accent-500: #f97316; /* Secondary */
-  --color-accent-600: #ea580c;
-  --color-accent-700: #c2410c;
+  /* Navy Colors */
+  --color-navy-800: #0b2c6a; /* Primary Navy */
+  --color-navy-900: #081f4a; /* Dark Navy */
+
+  /* Accent Red */
+  --color-accent-500: #b51234;
+  --color-accent-600: #a0102e;
+  --color-accent-700: #8b1028;
+
+  /* State Colors */
+  --color-success-500: #2e9e4d;
+  --color-warning-500: #f4b400;
 
   /* Neutrals */
-  --color-gray-50:  #f8fafc; /* Background */
-  --color-gray-100: #f1f5f9;
-  --color-gray-200: #e2e8f0;
-  --color-gray-300: #cbd5e1;
-  --color-gray-400: #94a3b8;
-  --color-gray-500: #64748b;
-  --color-gray-600: #475569;
-  --color-gray-700: #334155;
-  --color-gray-800: #1e293b;
-  --color-gray-900: #111827; /* Text */
+  --color-gray-50:  #f8f9fb; /* Background Light Gray */
+  --color-gray-100: #f3f4f6;
+  --color-gray-200: #e5e7eb; /* Soft Gray */
+  --color-gray-300: #d1d5db;
+  --color-gray-400: #9ca3af;
+  --color-gray-500: #6b7280; /* Secondary Text Gray */
+  --color-gray-600: #4b5563;
+  --color-gray-700: #374151;
+  --color-gray-800: #1f2937; /* Primary Text Dark Gray */
+  --color-gray-900: #111827;
 
   /* Semantic Color Roles */
   --bg-base:        var(--color-gray-50);
   --bg-surface:     #ffffff;
-  --bg-surface-alt: #f1f5f9;
+  --bg-surface-alt: #f3f4f6;
   --bg-brand:       var(--color-brand-800);
   --bg-brand-hover: var(--color-brand-900);
 
-  --text-primary:   var(--color-gray-900);
-  --text-secondary: var(--color-gray-600);
+  --text-primary:   var(--color-gray-800);
+  --text-secondary: var(--color-gray-500);
   --text-inverse:   #ffffff;
   --text-brand:     var(--color-brand-800);
   --text-accent:    var(--color-accent-500);
 
-  --border-subtle:  #e2e8f0;
-  --border-default: #cbd5e1;
-  --border-strong:  #94a3b8;
+  --border-subtle:  var(--color-gray-200);
+  --border-default: var(--color-gray-300);
+  --border-strong:  var(--color-gray-400);
   --border-brand:   var(--color-brand-500);
 
   /* Typography Scale */

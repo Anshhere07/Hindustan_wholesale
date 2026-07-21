@@ -77,7 +77,7 @@ const INFO_STRIP = [
   { title: 'Order agent support', desc: 'Call · WhatsApp · in-app chat', icon: Headset },
 ];
 
-const CATEGORIES = [
+export const CATEGORIES = [
   { id: 'fmcg', name: 'FMCG & Grocery', count: '12,480 SKUs', icon: '🛒', subtext: 'Atta · Dal · Oil · Snacks', color: '#FF9800' },
   { id: 'kitchenware', name: 'Kitchenware', count: '6,210 SKUs', icon: '🍳', subtext: 'Steel · Non-stick · Storage', color: '#673AB7' },
   { id: 'apparel', name: 'Apparel & Textiles', count: '18,930 SKUs', icon: '👗', subtext: 'Sarees · Kurtis · Fabric rolls', color: '#E91E63' },
@@ -86,9 +86,13 @@ const CATEGORIES = [
   { id: 'stationery', name: 'Stationery & Office', count: '2,140 SKUs', icon: '✏️', subtext: 'Notebooks · Pens · Files', color: '#FFC107' },
   { id: 'home-decor', name: 'Home & Decor', count: '3,980 SKUs', icon: '🛋️', subtext: 'Bedsheets · Curtains · Rugs', color: '#F44336' },
   { id: 'toys', name: 'Toys & Gifting', count: '1,670 SKUs', icon: '🎁', subtext: 'Rakhi · Diwali · Festive', color: '#9C27B0' },
+  { id: 'hardware', name: 'Hardware & Tools', count: '2,890 SKUs', icon: '🔧', subtext: 'Locks · Fittings · Paint', color: '#607D8B' },
+  { id: 'packaging', name: 'Packaging', count: '1,420 SKUs', icon: '📦', subtext: 'Cartons · Poly · Tape', color: '#795548' },
+  { id: 'beauty', name: 'Beauty & Cosmetics', count: '3,050 SKUs', icon: '💄', subtext: 'Kajal · Lipstick · Sindoor', color: '#E91E63' },
+  { id: 'agri', name: 'Agri Inputs', count: '1,980 SKUs', icon: '🌾', subtext: 'Seeds · Feed · Fertilizer', color: '#8BC34A' },
 ];
 
-const DEALS = [
+export const DEALS = [
   {
     id: 1,
     brandInitials: 'SM',
@@ -227,7 +231,7 @@ const DEALS = [
   }
 ];
 
-const BRANDS = [
+export const BRANDS = [
   { name: 'Shakti Mills', location: 'Indore', initials: 'SM', color: '#f57c00' },
   { name: 'Raja Textiles', location: 'Surat', initials: 'RT', color: '#d81b60' },
   { name: 'Annapurna Foods', location: 'Jaipur', initials: 'AF', color: '#f9a825' },
@@ -243,7 +247,9 @@ const BRANDS = [
 ];
 
 // ── Public Header ─────────────────────────────────────────────────────────────
-const PublicHeader: React.FC = () => {
+export const PublicHeader: React.FC = () => {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
+
   return (
     <div className={styles.headerWrapper}>
       {/* Top Bar */}
@@ -253,7 +259,7 @@ const PublicHeader: React.FC = () => {
             🇮🇳 Serving retailers across 720+ Indian cities
           </div>
           <div className={styles.topBarRight}>
-            <a href="tel:1800123456" className={styles.topBarLink}>📞 1800-123-456</a>
+            <a href="tel:+917307646585" className={styles.topBarLink}>📞 +91 7307646585</a>
             <Link href={ROUTES.AUTH.REGISTER} className={styles.topBarLink}>Become a seller</Link>
           </div>
         </div>
@@ -264,11 +270,14 @@ const PublicHeader: React.FC = () => {
         <div className={styles.headerMiddleBarInner}>
           <Link href="/" className={styles.headerLogo}>
             <div className={styles.headerLogoIcon}>
-              <span style={{ color: 'white', fontWeight: 800, fontSize: 16 }}>HW</span>
+              <span>HW</span>
             </div>
             <div className={styles.headerLogoTextWrap}>
-              <span className={styles.headerLogoText}>Hindustan Wholesale</span>
-              <span className={styles.headerLogoSubtext}>FACTORY SE SEEDHE DUKAAN TAK</span>
+              <div className={styles.headerLogoText}>
+                <span style={{ color: '#0B2C6A' }}>HINDUSTAN</span><br/>
+                <span style={{ color: '#8B1028' }}>WHOLESALE</span>
+              </div>
+              <span className={styles.headerLogoSubtext}>&mdash; India&apos;s Trusted Wholesale Partner &mdash;</span>
             </div>
           </Link>
 
@@ -294,7 +303,7 @@ const PublicHeader: React.FC = () => {
               <ShoppingCart size={22} />
               <span className={styles.cartBadge}>0</span>
             </div>
-            <button className={styles.mobileMenuBtn}>
+            <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className={styles.mobileMenuBtn}>
               <Menu size={24} />
             </button>
           </div>
@@ -304,21 +313,39 @@ const PublicHeader: React.FC = () => {
       {/* Bottom Bar */}
       <div className={styles.headerBottomBar}>
         <div className={styles.headerBottomBarInner}>
-          <div className={styles.allCategories}>
+          <Link href="/categories" className={styles.allCategories} style={{ textDecoration: 'none' }}>
             <Menu size={16} />
             <span>All categories</span>
             <ChevronRight size={14} style={{ transform: 'rotate(90deg)' }} />
-          </div>
+          </Link>
           <div className={styles.bottomNavLinks}>
-            {CATEGORIES.map(c => (
-              <Link key={c.id} href="#" className={styles.bottomNavLink}>{c.name}</Link>
-            ))}
-            <Link href="#" className={`${styles.bottomNavLink} ${styles.viewAllLink}`}>
-              View all &rarr;
-            </Link>
+            <Link href="/categories" className={styles.bottomNavLink}>FMCG & Grocery</Link>
+            <Link href="/categories" className={styles.bottomNavLink}>Kitchenware</Link>
+            <Link href="/categories" className={styles.bottomNavLink}>Apparel & Textiles</Link>
+            <Link href="/categories" className={styles.bottomNavLink}>Electronics</Link>
+            <Link href="/categories" className={styles.bottomNavLink}>Personal Care</Link>
+            <Link href="/categories" className={styles.bottomNavLink}>Stationery & Office</Link>
+            <Link href="/categories" className={styles.bottomNavLink}>Home & Decor</Link>
+            <Link href="/categories" className={styles.bottomNavLink}>Toys & Gifting</Link>
+            <Link href="/categories" className={styles.viewAllLink}>View all &rarr;</Link>
           </div>
         </div>
       </div>
+
+      {/* Mobile Menu Dropdown */}
+      {isMobileMenuOpen && (
+        <div className={styles.mobileMenuDropdown} onClick={() => setIsMobileMenuOpen(false)}>
+          <Link href="/categories" className={styles.mobileMenuLink}>FMCG & Grocery</Link>
+          <Link href="/categories" className={styles.mobileMenuLink}>Kitchenware</Link>
+          <Link href="/categories" className={styles.mobileMenuLink}>Apparel & Textiles</Link>
+          <Link href="/categories" className={styles.mobileMenuLink}>Electronics</Link>
+          <Link href="/categories" className={styles.mobileMenuLink}>Personal Care</Link>
+          <Link href="/categories" className={styles.mobileMenuLink}>Stationery & Office</Link>
+          <Link href="/categories" className={styles.mobileMenuLink}>Home & Decor</Link>
+          <Link href="/categories" className={styles.mobileMenuLink}>Toys & Gifting</Link>
+          <Link href="/categories" className={styles.mobileMenuViewAllLink}>View all &rarr;</Link>
+        </div>
+      )}
     </div>
   );
 };
@@ -421,14 +448,14 @@ const LandingPage: React.FC = () => {
               <h2 className={styles.sectionTitle}>Wholesale ranges built<br />for every Indian dukaan</h2>
               <p className={styles.sectionSubtitle}>From kirana staples to festive gifting — 60,000+ SKUs across 12 verticals, priced at MOQ.</p>
             </div>
-            <Link href="#" className={styles.categoryAllBtn}>
+            <Link href="/categories" className={styles.categoryAllBtn}>
               All categories &rarr;
             </Link>
           </div>
           
           <div className={styles.categoriesGrid}>
             {CATEGORIES.map((cat) => (
-              <Link key={cat.id} href="#" className={styles.categoryCard}>
+              <Link key={cat.id} href={`/categories/${cat.id}`} className={styles.categoryCard}>
                 <div className={styles.categoryIconWrap} style={{ background: cat.color }}>
                   {cat.icon}
                 </div>
@@ -455,13 +482,13 @@ const LandingPage: React.FC = () => {
               <h2 className={styles.sectionTitle}>Handpicked wholesale deals for you</h2>
               <p className={styles.sectionSubtitle}>Curated by our category managers based on retailer demand and margin.</p>
             </div>
-            <Link href="#" className={styles.categoryAllBtn}>
+            <Link href="/categories" className={styles.categoryAllBtn}>
               Explore more &rarr;
             </Link>
           </div>
           <div className={styles.dealsGrid}>
             {DEALS.map((deal) => (
-              <div key={deal.id} className={styles.dealCard}>
+              <Link key={deal.id} href={`/products/${deal.id}`} className={styles.dealCard} style={{ textDecoration: 'none', color: 'inherit' }}>
                 <div className={styles.dealImageWrap} style={{ background: deal.bgColor }}>
                   {deal.badgeLeft && <div className={styles.dealBadgeLeft}>{deal.badgeLeft}</div>}
                   {deal.badgeRight && <div className={styles.dealBadgeRight}>{deal.badgeRight}</div>}
@@ -493,7 +520,7 @@ const LandingPage: React.FC = () => {
                     </div>
                   </div>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         </div>
@@ -508,13 +535,13 @@ const LandingPage: React.FC = () => {
               <h2 className={styles.sectionTitle}>India&apos;s most-loved wholesale brands</h2>
               <p className={styles.sectionSubtitle}>Every brand is GST-registered, PAN-verified and physically inspected before onboarding.</p>
             </div>
-            <Link href="#" className={styles.categoryAllBtn}>
+            <Link href="/brands" className={styles.categoryAllBtn}>
               All brands &rarr;
             </Link>
           </div>
           <div className={styles.brandsGrid}>
             {BRANDS.map((brand) => (
-              <Link key={brand.name} href="#" className={styles.brandCard}>
+              <Link key={brand.name} href={`/brands/${brand.initials}`} className={styles.brandCard} style={{ textDecoration: 'none', color: 'inherit' }}>
                 <div className={styles.brandIconWrap} style={{ background: brand.color }}>
                   {brand.initials}
                 </div>
@@ -543,7 +570,7 @@ const LandingPage: React.FC = () => {
           </div>
           <div className={styles.dealsGrid}>
             {DEALS.slice(0, 4).map((deal) => (
-              <div key={deal.id + '-trending'} className={styles.dealCard}>
+              <Link key={deal.id + '-trending'} href={`/products/${deal.id}`} className={styles.dealCard} style={{ textDecoration: 'none', color: 'inherit' }}>
                 <div className={styles.dealImageWrap} style={{ background: deal.bgColor }}>
                   {deal.badgeLeft && <div className={styles.dealBadgeLeft}>{deal.badgeLeft}</div>}
                   {deal.badgeRight && <div className={styles.dealBadgeRight}>{deal.badgeRight}</div>}
@@ -575,7 +602,7 @@ const LandingPage: React.FC = () => {
                     </div>
                   </div>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         </div>
@@ -648,7 +675,7 @@ const LandingPage: React.FC = () => {
                 We handle discovery, checkout, payments, invoicing, logistics and support.
                 You focus on quality and manufacturing.
               </p>
-              <Button size="lg" className={styles.sellerBannerBtn}>Apply to become a seller &rarr;</Button>
+              <Link href={ROUTES.AUTH.LOGIN} className={styles.sellerBannerBtn} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none' }}>Apply to become a seller &rarr;</Link>
             </div>
             <div className={styles.sellerBannerRight}>
               <div className={styles.sellerStatCard}>
@@ -672,18 +699,27 @@ const LandingPage: React.FC = () => {
         </div>
       </section>
 
-      {/* ── Footer ────────────────────────────────────────────────────────── */}
-      <footer className={styles.footer}>
-        <div className={styles.footerInner}>
-          <div className={styles.footerTop}>
+      <PublicFooter />
+    </div>
+  );
+};
+
+export const PublicFooter: React.FC = () => {
+  return (
+    <footer className={styles.footer}>
+      <div className={styles.footerInner}>
+        <div className={styles.footerTop}>
             <div className={styles.footerBrandCol}>
-              <div className={styles.footerBrandHeader}>
-                <div className={styles.footerLogoIcon}>
-                  HW
+              <div className={styles.footerBrandHeader} style={{ background: 'white', padding: '16px 24px', borderRadius: '12px', display: 'inline-flex', alignItems: 'center', gap: '16px' }}>
+                <div className={styles.headerLogoIcon}>
+                  <span>HW</span>
                 </div>
-                <div className={styles.footerBrandTextWrap}>
-                  <div className={styles.footerBrandName}>Hindustan Wholesale</div>
-                  <div className={styles.footerBrandSlogan}>FACTORY SE SEEDHE DUKAAN TAK</div>
+                <div className={styles.headerLogoTextWrap}>
+                  <div className={styles.headerLogoText}>
+                    <span style={{ color: '#0B2C6A' }}>HINDUSTAN</span><br/>
+                    <span style={{ color: '#8B1028' }}>WHOLESALE</span>
+                  </div>
+                  <div className={styles.headerLogoSubtext}>&mdash; India&apos;s Trusted Wholesale Partner &mdash;</div>
                 </div>
               </div>
               <p className={styles.footerBrandDesc}>
@@ -698,10 +734,10 @@ const LandingPage: React.FC = () => {
 
             <div className={styles.footerLinkCol}>
               <h4 className={styles.footerLinkTitle}>Marketplace</h4>
-              <Link href="#" className={styles.footerLink}>Home</Link>
-              <Link href="#" className={styles.footerLink}>All categories</Link>
-              <Link href="#" className={styles.footerLink}>Brands</Link>
-              <Link href="#" className={styles.footerLink}>Become a seller</Link>
+              <Link href="/" className={styles.footerLink}>Home</Link>
+              <Link href="/categories" className={styles.footerLink}>All categories</Link>
+              <Link href="#brands" className={styles.footerLink}>Brands</Link>
+              <Link href="/seller-onboarding" className={styles.footerLink}>Become a seller</Link>
             </div>
 
             <div className={styles.footerLinkCol}>
@@ -716,15 +752,20 @@ const LandingPage: React.FC = () => {
               <h4 className={styles.footerLinkTitle}>Support</h4>
               <div className={styles.footerContactRow}>
                 <Phone size={14} className={styles.footerContactIcon} />
-                <span>1800-123-456 (toll-free)</span>
+                <span>+91 9999039088</span>
               </div>
               <div className={styles.footerContactRow}>
                 <Mail size={14} className={styles.footerContactIcon} />
-                <span>care@hindustanwholesale.in</span>
+                <span>hindustanwholesale54@gmail.com</span>
               </div>
               <div className={styles.footerContactRow}>
                 <MapPin size={14} className={styles.footerContactIcon} />
-                <span>Bengaluru · Delhi · Mumbai</span>
+                <span>5th We work Horizon center, Golf Course Rd, Sector 43, Gurugram 122009</span>
+              </div>
+              <div style={{ marginTop: '16px' }}>
+                <a href="https://www.instagram.com/hindustan__wholesale?igsh=dHF0cnhiMzM0ZXJ4&utm_source=qr" target="_blank" rel="noopener noreferrer" className={styles.instagramLink}>
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
+                </a>
               </div>
             </div>
           </div>
@@ -741,7 +782,6 @@ const LandingPage: React.FC = () => {
           </div>
         </div>
       </footer>
-    </div>
   );
 };
 
