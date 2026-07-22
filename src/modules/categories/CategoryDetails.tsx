@@ -81,7 +81,7 @@ const CategoryDetails: React.FC<CategoryDetailsProps> = ({ categoryId }) => {
   const displayCategory = category || { id: 'automobile', name: 'Automobile', color: 'var(--color-navy-800)', icon: <CarFront size={32} /> };
 
   // Get deals for this category, or just show all if none mapped
-  const dealIds = CATEGORY_DEALS_MAP[category.id] || [];
+  const dealIds = CATEGORY_DEALS_MAP[displayCategory.id] || [];
   let categoryDeals = DEALS.filter(d => dealIds.includes(d.id));
   
   // To match the image for FMCG exactly, let's inject a mock deal if it's FMCG
