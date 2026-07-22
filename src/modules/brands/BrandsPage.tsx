@@ -6,21 +6,7 @@ import { CheckCircle, Shield } from 'lucide-react';
 import styles from './BrandsPage.module.css';
 import { PublicHeader, PublicFooter, BRANDS } from '../landing/LandingPage';
 
-// Static category mapping to perfectly match the reference design
-const BRAND_CATEGORIES: Record<string, string> = {
-  'SM': 'FMCG & Grocery',
-  'RT': 'Apparel & Textiles',
-  'AF': 'FMCG & Grocery',
-  'SK': 'Kitchenware',
-  'VE': 'Electronics',
-  'HV': 'Personal Care',
-  'WT': 'Stationery & Office',
-  'GD': 'Home & Decor',
-  'UG': 'Toys & Gifting',
-  'LH': 'Hardware & Tools',
-  'PM': 'Packaging',
-  'RC': 'Beauty & Cosmetics',
-};
+// Removed static category mapping since all brands are Automobile now
 
 const BrandsPage: React.FC = () => {
   return (
@@ -40,14 +26,14 @@ const BrandsPage: React.FC = () => {
 
         <div className={styles.grid}>
           {BRANDS.map(brand => (
-            <Link href={`/brands/${brand.initials}`} key={brand.initials} className={styles.card} style={{ textDecoration: 'none' }}>
+            <Link href={`/brands/${brand.name.toLowerCase().replace(/ /g, '-')}`} key={brand.name} className={styles.card} style={{ textDecoration: 'none' }}>
               
               <div className={styles.cardTop}>
                 <div 
                   className={styles.iconWrap}
-                  style={{ background: brand.color }}
+                  style={{ background: '#FFF', border: '1px solid var(--border-subtle)', overflow: 'hidden' }}
                 >
-                  {brand.initials}
+                  <img src={brand.logo} alt={brand.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                 </div>
                 <div className={styles.brandInfo}>
                   <div className={styles.brandName}>
@@ -61,7 +47,7 @@ const BrandsPage: React.FC = () => {
 
               <div className={styles.cardBottom}>
                 <span className={styles.categoryPill}>
-                  {BRAND_CATEGORIES[brand.initials] || 'Uncategorized'}
+                  Automobile
                 </span>
                 <span className={styles.shopLink}>
                   View &rarr;

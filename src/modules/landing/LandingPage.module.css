@@ -252,8 +252,7 @@
   align-items: center;
   gap: 24px;
   padding-left: 24px;
-  overflow-x: auto;
-  scrollbar-width: none;
+  overflow: visible;
 }
 .bottomNavLinks::-webkit-scrollbar { display: none; }
 .bottomNavLink {
@@ -262,8 +261,12 @@
   color: var(--text-secondary);
   text-decoration: none;
   white-space: nowrap;
+  cursor: pointer;
 }
-.bottomNavLink:hover { color: var(--text-primary); }
+.bottomNavLink::-webkit-details-marker {
+  display: none;
+}
+.bottomNavLink:hover { color: var(--color-brand-600); }
 .viewAllLink {
   font-size: 13px;
   font-weight: 600;
@@ -273,6 +276,50 @@
 }
 .viewAllLink:hover {
   text-decoration: underline;
+}
+
+.navDropdownItem {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 100%;
+}
+.navDropdownMenu {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  background: white;
+  border: 1px solid var(--border-subtle);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+  padding: 8px 0;
+  min-width: 180px;
+  z-index: 200;
+}
+.navDropdownMenuOpen {
+  display: flex;
+  flex-direction: column;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  background: white;
+  border: 1px solid var(--border-subtle);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+  padding: 8px 0;
+  min-width: 180px;
+  z-index: 200;
+}
+.navDropdownLink {
+  padding: 8px 16px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  text-decoration: none;
+}
+.navDropdownLink:hover {
+  background: var(--bg-surface-alt);
+  color: var(--text-primary);
 }
 
 .mobileMenuBtn { 
@@ -347,7 +394,7 @@
 }
 
 .heroTitleOrange {
-  color: var(--color-accent-500); /* Orange text */
+  color: #FF9933; /* Saffron text */
 }
 
 .heroSubtitle {
@@ -366,7 +413,7 @@
 }
 
 .heroBtnPrimary {
-  background: var(--color-accent-500);
+  background: #ff800d;
   color: white;
   padding: 12px 24px;
   border-radius: 8px;
@@ -381,7 +428,7 @@
   cursor: pointer;
 }
 .heroBtnPrimary:hover {
-  background: var(--color-accent-600);
+  background: #c2410c;
 }
 
 .heroBtnSecondary {
@@ -456,8 +503,8 @@
 
 .heroOverlayIcon {
   width: 40px; height: 40px;
-  background: #e6f4ea;
-  color: #137333;
+  background: #fff4ed;
+  color: var(--color-accent-500);
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -550,8 +597,8 @@
 }
 .infoStripIcon {
   width: 40px; height: 40px;
-  background: #e1effe;
-  color: var(--color-brand-600);
+  background: #fff4ed;
+  color: var(--color-accent-500);
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -886,8 +933,8 @@
 }
 
 .brandIconWrap {
-  width: 56px; 
-  height: 56px;
+  width: 72px; 
+  height: 72px;
   color: white;
   border-radius: 12px;
   display: flex;
@@ -1247,6 +1294,10 @@
 .footerContactIcon {
   color: var(--color-accent-500);
   flex-shrink: 0;
+  transition: color 0.2s;
+}
+.footerContactRow:hover .footerContactIcon {
+  color: #FF9933;
 }
 
 .instagramLink {
@@ -1259,7 +1310,7 @@
   transition: color 0.2s;
 }
 .instagramLink:hover {
-  color: #8B1028;
+  color: #FF9933;
 }
 
 .footerBottom {
@@ -1394,6 +1445,19 @@
     font-size: 15px;
     font-weight: 600;
     color: var(--color-brand-600);
+    text-decoration: none;
+  }
+  .mobileMenuSection {
+    padding: 12px 0 4px;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+  .mobileMenuSubLink {
+    padding: 8px 0 8px 16px;
+    font-size: 14px;
+    font-weight: 400;
+    color: var(--text-secondary);
     text-decoration: none;
   }
 

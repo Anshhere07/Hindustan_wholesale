@@ -12,24 +12,11 @@ interface BrandDetailsProps {
   brandId: string;
 }
 
-// Reuse category mapping from BrandsPage for consistency
-const BRAND_CATEGORIES: Record<string, string> = {
-  'SM': 'FMCG & Grocery',
-  'RT': 'Apparel & Textiles',
-  'AF': 'FMCG & Grocery',
-  'SK': 'Kitchenware',
-  'VE': 'Electronics',
-  'HV': 'Personal Care',
-  'WT': 'Stationery & Office',
-  'GD': 'Home & Decor',
-  'UG': 'Toys & Gifting',
-  'LH': 'Hardware & Tools',
-  'PM': 'Packaging',
-  'RC': 'Beauty & Cosmetics',
-};
+// Removed static mapping since all brands are Automobile now
+// We can just use 'Automobile' for categoryName
 
 const BrandDetails: React.FC<BrandDetailsProps> = ({ brandId }) => {
-  const brand = BRANDS.find(b => b.initials === brandId);
+  const brand = BRANDS.find(b => b.name.toLowerCase().replace(/ /g, '-') === brandId);
 
   if (!brand) {
     return notFound();
@@ -37,10 +24,10 @@ const BrandDetails: React.FC<BrandDetailsProps> = ({ brandId }) => {
 
   // Find deals associated with this brand
   const brandDeals = DEALS.filter(deal => deal.brandName === brand.name);
-  const categoryName = BRAND_CATEGORIES[brand.initials] || 'Uncategorized';
+  const categoryName = 'Automobile';
   
-  // Dummy GSTIN generation based on initials to match the image format
-  const mockGSTIN = `27${brand.initials}CDE1234F1Z5`;
+  // Dummy GSTIN generation based on first two chars
+  const mockGSTIN = `27${brand.name.substring(0, 2).toUpperCase()}CDE1234F1Z5`;
 
   return (
     <div className={styles.page}>
@@ -55,10 +42,9 @@ const BrandDetails: React.FC<BrandDetailsProps> = ({ brandId }) => {
           <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{brand.name}</span>
         </div>
 
-        {/* Brand Banner */}
         <div className={styles.banner}>
-          <div className={styles.iconWrap} style={{ background: brand.color }}>
-            {brand.initials}
+          <div className={styles.iconWrap} style={{ background: '#FFF', border: '1px solid var(--border-subtle)', overflow: 'hidden' }}>
+            <img src={brand.logo} alt={brand.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
           </div>
           
           <div className={styles.bannerInfo}>

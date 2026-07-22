@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
   ArrowRight, CheckCircle, TrendingUp, Shield, Zap,
-  Package, Truck, Award, ChevronRight, Building2, Menu, Image as ImageIcon,
+  Package, Truck, Award, ChevronRight, ChevronDown, Building2, Menu, Image as ImageIcon,
   Search, User, ShoppingCart, Wallet, Headset, Star, MapPin, IndianRupee, Store,
   Phone, Mail, FileText
 } from 'lucide-react';
@@ -78,18 +78,8 @@ const INFO_STRIP = [
 ];
 
 export const CATEGORIES = [
-  { id: 'fmcg', name: 'FMCG & Grocery', count: '12,480 SKUs', icon: '🛒', subtext: 'Atta · Dal · Oil · Snacks', color: '#FF9800' },
-  { id: 'kitchenware', name: 'Kitchenware', count: '6,210 SKUs', icon: '🍳', subtext: 'Steel · Non-stick · Storage', color: '#673AB7' },
-  { id: 'apparel', name: 'Apparel & Textiles', count: '18,930 SKUs', icon: '👗', subtext: 'Sarees · Kurtis · Fabric rolls', color: '#E91E63' },
-  { id: 'electronics', name: 'Electronics', count: '4,820 SKUs', icon: '🔌', subtext: 'Chargers · Bulbs · Accessories', color: '#2196F3' },
-  { id: 'personal-care', name: 'Personal Care', count: '5,310 SKUs', icon: '🧴', subtext: 'Soap · Shampoo · Oral', color: '#4CAF50' },
-  { id: 'stationery', name: 'Stationery & Office', count: '2,140 SKUs', icon: '✏️', subtext: 'Notebooks · Pens · Files', color: '#FFC107' },
-  { id: 'home-decor', name: 'Home & Decor', count: '3,980 SKUs', icon: '🛋️', subtext: 'Bedsheets · Curtains · Rugs', color: '#F44336' },
-  { id: 'toys', name: 'Toys & Gifting', count: '1,670 SKUs', icon: '🎁', subtext: 'Rakhi · Diwali · Festive', color: '#9C27B0' },
-  { id: 'hardware', name: 'Hardware & Tools', count: '2,890 SKUs', icon: '🔧', subtext: 'Locks · Fittings · Paint', color: '#607D8B' },
-  { id: 'packaging', name: 'Packaging', count: '1,420 SKUs', icon: '📦', subtext: 'Cartons · Poly · Tape', color: '#795548' },
-  { id: 'beauty', name: 'Beauty & Cosmetics', count: '3,050 SKUs', icon: '💄', subtext: 'Kajal · Lipstick · Sindoor', color: '#E91E63' },
-  { id: 'agri', name: 'Agri Inputs', count: '1,980 SKUs', icon: '🌾', subtext: 'Seeds · Feed · Fertilizer', color: '#8BC34A' },
+  { id: 'automobile', name: 'Automobile', count: '5,000 SKUs', icon: '🚗', subtext: '1-wheeler · 2-wheeler · 3-wheeler · Agriculture', color: '#E91E63' },
+  { id: 'clothing', name: 'Clothing', count: '18,930 SKUs', icon: '👗', subtext: 'Sarees · Kurtis · Fabric rolls', color: '#2196F3' },
 ];
 
 export const DEALS = [
@@ -232,23 +222,33 @@ export const DEALS = [
 ];
 
 export const BRANDS = [
-  { name: 'Shakti Mills', location: 'Indore', initials: 'SM', color: '#f57c00' },
-  { name: 'Raja Textiles', location: 'Surat', initials: 'RT', color: '#d81b60' },
-  { name: 'Annapurna Foods', location: 'Jaipur', initials: 'AF', color: '#f9a825' },
-  { name: 'Steelo Kitchen', location: 'Rajkot', initials: 'SK', color: '#37474f' },
-  { name: 'Voltek Electricals', location: 'Delhi', initials: 'VE', color: '#2962ff' },
-  { name: 'Herbal Veda', location: 'Haridwar', initials: 'HV', color: '#00897b' },
-  { name: 'Wrytek Stationery', location: 'Ludhiana', initials: 'WT', color: '#ffb300' },
-  { name: 'Gharana Decor', location: 'Panipat', initials: 'GD', color: '#e53935' },
-  { name: 'Utsav Gifting', location: 'Moradabad', initials: 'UG', color: '#7c4dff' },
-  { name: 'Loha Hardware', location: 'Aligarh', initials: 'LH', color: '#546e7a' },
-  { name: 'PackMax', location: 'Mumbai', initials: 'PM', color: '#ef6c00' },
-  { name: 'Roopvati Cosmetics', location: 'Kanpur', initials: 'RC', color: '#d500f9' },
+  { name: 'Hero MotoCorp', location: 'New Delhi', logo: '/brands/hero.png' },
+  { name: 'Honda', location: 'Gurugram', logo: '/brands/honda.png' },
+  { name: 'TVS', location: 'Chennai', logo: '/brands/tvs.png' },
+  { name: 'Bajaj', location: 'Pune', logo: '/brands/bajaj.png' },
+  { name: 'Royal Enfield', location: 'Chennai', logo: '/brands/royal_enfield.png' },
+  { name: 'Ola Electric', location: 'Bengaluru', logo: '/brands/ola_electric.png' },
+  { name: 'Ather', location: 'Bengaluru', logo: '/brands/ather.png' },
+  { name: 'Suzuki', location: 'New Delhi', logo: '/brands/suzuki.png' },
+  { name: 'Yamaha', location: 'Chennai', logo: '/brands/yamaha.png' },
+  { name: 'LML', location: 'Kanpur', logo: '/brands/lml.png' },
+  { name: 'ASK', location: 'Gurugram', logo: '/brands/ask.png' },
+  { name: 'Endurance', location: 'Aurangabad', logo: '/brands/endurance.png' },
+  { name: 'Lumax', location: 'Gurugram', logo: '/brands/lumax.png' },
+  { name: 'Varroc', location: 'Aurangabad', logo: '/brands/varroc.png' },
+  { name: 'Spark Minda', location: 'Gurugram', logo: '/brands/spark_minda.png' },
+  { name: 'Pricol', location: 'Coimbatore', logo: '/brands/pricol.png' },
+  { name: 'Rico', location: 'Gurugram', logo: '/brands/rico.png' },
+  { name: 'Suprajit', location: 'Bengaluru', logo: '/brands/suprajit.png' },
+  { name: 'Rinder', location: 'Pune', logo: '/brands/rinder.png' },
+  { name: 'Pavna', location: 'Aligarh', logo: '/brands/pavna.png' },
+  { name: 'Minda', location: 'Manesar', logo: '/brands/minda.png' },
 ];
 
 // ── Public Header ─────────────────────────────────────────────────────────────
 export const PublicHeader: React.FC = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
+  const [isDesktopMenuOpen, setIsDesktopMenuOpen] = React.useState(false);
 
   return (
     <div className={styles.headerWrapper}>
@@ -260,7 +260,7 @@ export const PublicHeader: React.FC = () => {
           </div>
           <div className={styles.topBarRight}>
             <a href="tel:+917307646585" className={styles.topBarLink}>📞 +91 7307646585</a>
-            <Link href={ROUTES.AUTH.REGISTER} className={styles.topBarLink}>Become a seller</Link>
+            <Link href={ROUTES.AUTH.LOGIN} className={styles.topBarLink}>Become a retailer</Link>
           </div>
         </div>
       </div>
@@ -274,10 +274,10 @@ export const PublicHeader: React.FC = () => {
             </div>
             <div className={styles.headerLogoTextWrap}>
               <div className={styles.headerLogoText}>
-                <span style={{ color: '#0B2C6A' }}>HINDUSTAN</span><br/>
+                <span style={{ color: '#A21A32' }}>HINDUSTAN</span><br/>
                 <span style={{ color: '#8B1028' }}>WHOLESALE</span>
               </div>
-              <span className={styles.headerLogoSubtext}>&mdash; India&apos;s Trusted Wholesale Partner &mdash;</span>
+              <span className={styles.headerLogoSubtext}>&mdash; Sahi Kharidari, Zyada Munafa &mdash;</span>
             </div>
           </Link>
 
@@ -313,21 +313,34 @@ export const PublicHeader: React.FC = () => {
       {/* Bottom Bar */}
       <div className={styles.headerBottomBar}>
         <div className={styles.headerBottomBarInner}>
-          <Link href="/categories" className={styles.allCategories} style={{ textDecoration: 'none' }}>
+          <a href="/categories" className={styles.allCategories} style={{ textDecoration: 'none' }}>
             <Menu size={16} />
             <span>All categories</span>
             <ChevronRight size={14} style={{ transform: 'rotate(90deg)' }} />
-          </Link>
+          </a>
           <div className={styles.bottomNavLinks}>
-            <Link href="/categories" className={styles.bottomNavLink}>FMCG & Grocery</Link>
-            <Link href="/categories" className={styles.bottomNavLink}>Kitchenware</Link>
-            <Link href="/categories" className={styles.bottomNavLink}>Apparel & Textiles</Link>
-            <Link href="/categories" className={styles.bottomNavLink}>Electronics</Link>
-            <Link href="/categories" className={styles.bottomNavLink}>Personal Care</Link>
-            <Link href="/categories" className={styles.bottomNavLink}>Stationery & Office</Link>
-            <Link href="/categories" className={styles.bottomNavLink}>Home & Decor</Link>
-            <Link href="/categories" className={styles.bottomNavLink}>Toys & Gifting</Link>
-            <Link href="/categories" className={styles.viewAllLink}>View all &rarr;</Link>
+            <div className={styles.navDropdownItem}>
+              <div 
+                className={styles.bottomNavLink} 
+                style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsDesktopMenuOpen(!isDesktopMenuOpen);
+                }}
+              >
+                Automobile <ChevronDown size={14}/>
+              </div>
+              {isDesktopMenuOpen && (
+                <div className={styles.navDropdownMenuOpen}>
+                  <Link href="/categories/automobile/1-wheeler" className={styles.navDropdownLink} onClick={() => setIsDesktopMenuOpen(false)}>1-wheeler</Link>
+                  <Link href="/categories/automobile/2-wheeler" className={styles.navDropdownLink} onClick={() => setIsDesktopMenuOpen(false)}>2-wheeler</Link>
+                  <Link href="/categories/automobile/3-wheeler" className={styles.navDropdownLink} onClick={() => setIsDesktopMenuOpen(false)}>3-wheeler</Link>
+                  <Link href="/categories/automobile/4-wheeler" className={styles.navDropdownLink} onClick={() => setIsDesktopMenuOpen(false)}>4-wheeler</Link>
+                  <Link href="/categories/automobile/agriculture" className={styles.navDropdownLink} onClick={() => setIsDesktopMenuOpen(false)}>Agriculture wheeler</Link>
+                </div>
+              )}
+            </div>
+            <Link href="/categories/clothing" className={styles.bottomNavLink}>Clothing</Link>
           </div>
         </div>
       </div>
@@ -335,15 +348,14 @@ export const PublicHeader: React.FC = () => {
       {/* Mobile Menu Dropdown */}
       {isMobileMenuOpen && (
         <div className={styles.mobileMenuDropdown} onClick={() => setIsMobileMenuOpen(false)}>
-          <Link href="/categories" className={styles.mobileMenuLink}>FMCG & Grocery</Link>
-          <Link href="/categories" className={styles.mobileMenuLink}>Kitchenware</Link>
-          <Link href="/categories" className={styles.mobileMenuLink}>Apparel & Textiles</Link>
-          <Link href="/categories" className={styles.mobileMenuLink}>Electronics</Link>
-          <Link href="/categories" className={styles.mobileMenuLink}>Personal Care</Link>
-          <Link href="/categories" className={styles.mobileMenuLink}>Stationery & Office</Link>
-          <Link href="/categories" className={styles.mobileMenuLink}>Home & Decor</Link>
-          <Link href="/categories" className={styles.mobileMenuLink}>Toys & Gifting</Link>
-          <Link href="/categories" className={styles.mobileMenuViewAllLink}>View all &rarr;</Link>
+          <div className={styles.mobileMenuSection}>Automobile</div>
+          <Link href="/categories/automobile/1-wheeler" className={styles.mobileMenuSubLink}>1-wheeler</Link>
+          <Link href="/categories/automobile/2-wheeler" className={styles.mobileMenuSubLink}>2-wheeler</Link>
+          <Link href="/categories/automobile/3-wheeler" className={styles.mobileMenuSubLink}>3-wheeler</Link>
+          <Link href="/categories/automobile/4-wheeler" className={styles.mobileMenuSubLink}>4-wheeler</Link>
+          <Link href="/categories/automobile/agriculture" className={styles.mobileMenuSubLink}>Agriculture wheeler</Link>
+          <div style={{ height: '1px', background: 'var(--border-subtle)', margin: '8px 0' }} />
+          <Link href="/categories/clothing" className={styles.mobileMenuLink}>Clothing</Link>
         </div>
       )}
     </div>
@@ -541,9 +553,9 @@ const LandingPage: React.FC = () => {
           </div>
           <div className={styles.brandsGrid}>
             {BRANDS.map((brand) => (
-              <Link key={brand.name} href={`/brands/${brand.initials}`} className={styles.brandCard} style={{ textDecoration: 'none', color: 'inherit' }}>
-                <div className={styles.brandIconWrap} style={{ background: brand.color }}>
-                  {brand.initials}
+              <Link key={brand.name} href={`/brands/${brand.name.toLowerCase().replace(/ /g, '-')}`} className={styles.brandCard} style={{ textDecoration: 'none', color: 'inherit' }}>
+                <div className={styles.brandIconWrap} style={{ background: '#FFFFFF', border: '1px solid var(--border-subtle)', overflow: 'hidden' }}>
+                  <img src={brand.logo} alt={brand.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                 </div>
                 <div className={styles.brandCardInfo}>
                   <div className={styles.brandName}>{brand.name}</div>
@@ -675,7 +687,7 @@ const LandingPage: React.FC = () => {
                 We handle discovery, checkout, payments, invoicing, logistics and support.
                 You focus on quality and manufacturing.
               </p>
-              <Link href={ROUTES.AUTH.LOGIN} className={styles.sellerBannerBtn} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none' }}>Apply to become a seller &rarr;</Link>
+              <Link href={ROUTES.AUTH.LOGIN} className={styles.sellerBannerBtn} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none' }}>Apply to become a Retailer &rarr;</Link>
             </div>
             <div className={styles.sellerBannerRight}>
               <div className={styles.sellerStatCard}>
@@ -716,10 +728,10 @@ export const PublicFooter: React.FC = () => {
                 </div>
                 <div className={styles.headerLogoTextWrap}>
                   <div className={styles.headerLogoText}>
-                    <span style={{ color: '#0B2C6A' }}>HINDUSTAN</span><br/>
+                    <span style={{ color: '#A21A32' }}>HINDUSTAN</span><br/>
                     <span style={{ color: '#8B1028' }}>WHOLESALE</span>
                   </div>
-                  <div className={styles.headerLogoSubtext}>&mdash; India&apos;s Trusted Wholesale Partner &mdash;</div>
+                  <div className={styles.headerLogoSubtext}>&mdash; Sahi Kharidari, Zyada Munafa &mdash;</div>
                 </div>
               </div>
               <p className={styles.footerBrandDesc}>
@@ -736,8 +748,8 @@ export const PublicFooter: React.FC = () => {
               <h4 className={styles.footerLinkTitle}>Marketplace</h4>
               <Link href="/" className={styles.footerLink}>Home</Link>
               <Link href="/categories" className={styles.footerLink}>All categories</Link>
-              <Link href="#brands" className={styles.footerLink}>Brands</Link>
-              <Link href="/seller-onboarding" className={styles.footerLink}>Become a seller</Link>
+              <Link href="/brands" className={styles.footerLink}>Brands</Link>
+              <Link href="/auth/register" className={styles.footerLink}>Become a seller</Link>
             </div>
 
             <div className={styles.footerLinkCol}>

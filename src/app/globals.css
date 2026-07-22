@@ -19,14 +19,14 @@
   --color-brand-800: #8b1028; /* Primary Maroon */
   --color-brand-900: #6e0d20; /* Dark Maroon */
 
-  /* Navy Colors */
-  --color-navy-800: #0b2c6a; /* Primary Navy */
-  --color-navy-900: #081f4a; /* Dark Navy */
+  /* Navy Colors - Replaced with #a21a32 */
+  --color-navy-800: #a21a32; /* Primary Custom */
+  --color-navy-900: #851328; /* Dark Custom */
 
   /* Accent Red */
-  --color-accent-500: #b51234;
-  --color-accent-600: #a0102e;
-  --color-accent-700: #8b1028;
+  --color-accent-500: #c2410c;
+  --color-accent-600: #9a3412;
+  --color-accent-700: #7c2d12;
 
   /* State Colors */
   --color-success-500: #2e9e4d;

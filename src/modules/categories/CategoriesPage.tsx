@@ -7,18 +7,8 @@ import styles from './CategoriesPage.module.css';
 import { PublicHeader, PublicFooter, CATEGORIES } from '../landing/LandingPage';
 
 const HINDI_MAP: Record<string, string> = {
-  'fmcg': 'किराना',
-  'kitchenware': 'रसोई',
-  'apparel': 'कपड़ा',
-  'electronics': 'इलेक्ट्रॉनिक्स',
-  'personal-care': 'देखभाल',
-  'stationery': 'स्टेशनरी',
-  'home-decor': 'घर सजावट',
-  'toys': 'खिलौने',
-  'hardware': 'हार्डवेयर',
-  'packaging': 'पैकेजिंग',
-  'beauty': 'सौंदर्य',
-  'agri': 'कृषि',
+  'automobile': 'ऑटोमोबाइल',
+  'clothing': 'कपड़े',
 };
 
 const CategoriesPage: React.FC = () => {
