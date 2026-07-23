@@ -1480,8 +1480,8 @@
   .featuresGrid { grid-template-columns: 1fr; }
   .hiwGrid { grid-template-columns: 1fr; }
   .categoriesGrid { grid-template-columns: 1fr; }
-  .dealsGrid { grid-template-columns: 1fr; }
-  .brandsGrid { grid-template-columns: repeat(2, 1fr); }
+  .dealsGrid { grid-template-columns: repeat(2, 1fr); }
+  .brandsGrid { grid-template-columns: repeat(3, 1fr); }
 
   .sellerBanner {
     flex-direction: column;
@@ -1499,7 +1499,13 @@
 }
 
 @media (max-width: 480px) {
-  .brandsGrid { grid-template-columns: 1fr; }
+  .brandsGrid { grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .brandCard { padding: 12px 8px; gap: 8px; }
+  .brandIconWrap { width: 48px; height: 48px; }
+  .brandName { font-size: 13px; }
+  .brandLocation { font-size: 11px; }
+  
+  .dealsGrid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
   
   .dealPriceRow {
     flex-direction: column;

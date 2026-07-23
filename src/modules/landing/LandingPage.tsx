@@ -78,7 +78,7 @@ const INFO_STRIP = [
 ];
 
 export const CATEGORIES = [
-  { id: 'automobile', name: 'Automobile', count: '5,000 SKUs', icon: '🚗', subtext: '1-wheeler · 2-wheeler · 3-wheeler · Agriculture', color: '#E91E63' },
+  { id: 'automobile', name: 'Automobile', count: '5,000 SKUs', icon: '🚗', subtext: '2-wheeler · 3-wheeler · Agriculture', color: '#E91E63' },
   { id: 'clothing', name: 'Clothing', count: '18,930 SKUs', icon: '👗', subtext: 'Sarees · Kurtis · Fabric rolls', color: '#2196F3' },
 ];
 
@@ -225,23 +225,23 @@ export const BRANDS = [
   { name: 'Hero MotoCorp', location: 'New Delhi', logo: '/brands/hero.png' },
   { name: 'Honda', location: 'Gurugram', logo: '/brands/honda.png' },
   { name: 'TVS', location: 'Chennai', logo: '/brands/tvs.png' },
-  { name: 'Bajaj', location: 'Pune', logo: '/brands/bajaj.png' },
+  { name: 'Bajaj', location: 'Pune', logo: '/brands/bajaj.svg' },
   { name: 'Royal Enfield', location: 'Chennai', logo: '/brands/royal_enfield.png' },
   { name: 'Ola Electric', location: 'Bengaluru', logo: '/brands/ola_electric.png' },
-  { name: 'Ather', location: 'Bengaluru', logo: '/brands/ather.png' },
-  { name: 'Suzuki', location: 'New Delhi', logo: '/brands/suzuki.png' },
+  { name: 'Castrol', location: 'Mumbai', logo: '/brands/castrol.svg' },
+  { name: 'NBC', location: 'Jaipur', logo: '/brands/nbc.svg' },
   { name: 'Yamaha', location: 'Chennai', logo: '/brands/yamaha.png' },
-  { name: 'LML', location: 'Kanpur', logo: '/brands/lml.png' },
+  { name: 'TATA', location: 'Mumbai', logo: '/brands/tata.svg' },
   { name: 'ASK', location: 'Gurugram', logo: '/brands/ask.png' },
-  { name: 'Endurance', location: 'Aurangabad', logo: '/brands/endurance.png' },
+  { name: 'Endurance', location: 'Aurangabad', logo: '/brands/endurance.svg' },
   { name: 'Lumax', location: 'Gurugram', logo: '/brands/lumax.png' },
   { name: 'Varroc', location: 'Aurangabad', logo: '/brands/varroc.png' },
   { name: 'Spark Minda', location: 'Gurugram', logo: '/brands/spark_minda.png' },
   { name: 'Pricol', location: 'Coimbatore', logo: '/brands/pricol.png' },
-  { name: 'Rico', location: 'Gurugram', logo: '/brands/rico.png' },
-  { name: 'Suprajit', location: 'Bengaluru', logo: '/brands/suprajit.png' },
-  { name: 'Rinder', location: 'Pune', logo: '/brands/rinder.png' },
-  { name: 'Pavna', location: 'Aligarh', logo: '/brands/pavna.png' },
+  { name: 'Emtex', location: 'Gurugram', logo: '/brands/emtex.svg' },
+  { name: 'BOSCH', location: 'Bengaluru', logo: '/brands/bosch.svg' },
+  { name: 'Eicher', location: 'Pune', logo: '/brands/eicher.svg' },
+  { name: 'BG Falcon', location: 'Aligarh', logo: '/brands/bg_falcon.svg' },
   { name: 'Minda', location: 'Manesar', logo: '/brands/minda.png' },
 ];
 
@@ -332,7 +332,7 @@ export const PublicHeader: React.FC = () => {
               </div>
               {isDesktopMenuOpen && (
                 <div className={styles.navDropdownMenuOpen}>
-                  <Link href="/categories/automobile/1-wheeler" className={styles.navDropdownLink} onClick={() => setIsDesktopMenuOpen(false)}>1-wheeler</Link>
+
                   <Link href="/categories/automobile/2-wheeler" className={styles.navDropdownLink} onClick={() => setIsDesktopMenuOpen(false)}>2-wheeler</Link>
                   <Link href="/categories/automobile/3-wheeler" className={styles.navDropdownLink} onClick={() => setIsDesktopMenuOpen(false)}>3-wheeler</Link>
                   <Link href="/categories/automobile/4-wheeler" className={styles.navDropdownLink} onClick={() => setIsDesktopMenuOpen(false)}>4-wheeler</Link>
@@ -349,7 +349,7 @@ export const PublicHeader: React.FC = () => {
       {isMobileMenuOpen && (
         <div className={styles.mobileMenuDropdown} onClick={() => setIsMobileMenuOpen(false)}>
           <div className={styles.mobileMenuSection}>Automobile</div>
-          <Link href="/categories/automobile/1-wheeler" className={styles.mobileMenuSubLink}>1-wheeler</Link>
+
           <Link href="/categories/automobile/2-wheeler" className={styles.mobileMenuSubLink}>2-wheeler</Link>
           <Link href="/categories/automobile/3-wheeler" className={styles.mobileMenuSubLink}>3-wheeler</Link>
           <Link href="/categories/automobile/4-wheeler" className={styles.mobileMenuSubLink}>4-wheeler</Link>
@@ -391,9 +391,7 @@ const LandingPage: React.FC = () => {
                 Start buying — free registration
                 <ArrowRight size={18} />
               </Link>
-              <Link href={ROUTES.AUTH.REGISTER} className={styles.heroBtnSecondary}>
-                Sell on Hindustan Wholesale
-              </Link>
+
             </div>
 
             <div className={styles.heroStats}>
@@ -485,58 +483,7 @@ const LandingPage: React.FC = () => {
         </div>
       </section>
 
-      {/* ── Deals ───────────────────────────────────────────────────────────── */}
-      <section id="deals" className={styles.section} style={{ background: '#FFFFFF' }}>
-        <div className={styles.sectionInner}>
-          <div className={styles.categorySectionHeader}>
-            <div className={styles.categoryHeaderLeft}>
-              <span className={styles.sectionEyebrowPill}>FEATURED</span>
-              <h2 className={styles.sectionTitle}>Handpicked wholesale deals for you</h2>
-              <p className={styles.sectionSubtitle}>Curated by our category managers based on retailer demand and margin.</p>
-            </div>
-            <Link href="/categories" className={styles.categoryAllBtn}>
-              Explore more &rarr;
-            </Link>
-          </div>
-          <div className={styles.dealsGrid}>
-            {DEALS.map((deal) => (
-              <Link key={deal.id} href={`/products/${deal.id}`} className={styles.dealCard} style={{ textDecoration: 'none', color: 'inherit' }}>
-                <div className={styles.dealImageWrap} style={{ background: deal.bgColor }}>
-                  {deal.badgeLeft && <div className={styles.dealBadgeLeft}>{deal.badgeLeft}</div>}
-                  {deal.badgeRight && <div className={styles.dealBadgeRight}>{deal.badgeRight}</div>}
-                  <div className={styles.dealBrandInitials}>{deal.brandInitials}</div>
-                </div>
-                <div className={styles.dealContent}>
-                  <div className={styles.dealBrandRow}>
-                    <span className={styles.dealBrandName}>{deal.brandName}</span>
-                    <CheckCircle size={14} className={styles.dealBrandVerified} />
-                  </div>
-                  <div className={styles.dealProductName}>{deal.productName}</div>
-                  <div className={styles.dealPriceRow}>
-                    <span className={styles.dealPrice}>{deal.price}</span>
-                    <span className={styles.dealOriginalPrice}>{deal.originalPrice}</span>
-                    <span className={styles.dealUnit}>{deal.unit}</span>
-                  </div>
-                  <div className={styles.dealTagsRow}>
-                    <span className={styles.dealTagMoq}>{deal.moq}</span>
-                    <span className={styles.dealTagHsn}>{deal.hsn}</span>
-                  </div>
-                  <div className={styles.dealFooter}>
-                    <div className={styles.dealRatingRow}>
-                      <Star size={12} fill="#F59E0B" color="#F59E0B" />
-                      <span className={styles.dealRatingText}>{deal.rating} · {deal.reviews}</span>
-                    </div>
-                    <div className={styles.dealLocationRow}>
-                      <MapPin size={12} />
-                      <span className={styles.dealLocationText}>{deal.location}</span>
-                    </div>
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </div>
-      </section>
+
 
       {/* ── Brands ────────────────────────────────────────────────────────── */}
       <section id="brands" className={styles.section} style={{ background: '#F8FAFC' }}>

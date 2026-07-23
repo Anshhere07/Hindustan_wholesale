@@ -71,7 +71,6 @@ const CategoryDetails: React.FC<CategoryDetailsProps> = ({ categoryId }) => {
   }
 
   const AUTOMOBILE_SUBCATEGORIES = [
-    { id: '1-wheeler', name: '1-wheeler', icon: '🚲', count: '120+ Brands' },
     { id: '2-wheeler', name: '2-wheeler', icon: '🏍️', count: '450+ Brands' },
     { id: '3-wheeler', name: '3-wheeler', icon: '🛺', count: '80+ Brands' },
     { id: '4-wheeler', name: '4-wheeler', icon: '🚗', count: '600+ Brands' },
