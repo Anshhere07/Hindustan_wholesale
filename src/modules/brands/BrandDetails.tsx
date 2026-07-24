@@ -56,14 +56,8 @@ const BrandDetails: React.FC<BrandDetailsProps> = ({ brandId }) => {
             </div>
             
             <div className={styles.metaRow}>
-              <span className={styles.metaLocation}>
-                <MapPin size={14} /> {brand.location}
-              </span>
               <span className={`${styles.metaPill} ${styles.pillBlue}`}>
                 {categoryName}
-              </span>
-              <span className={`${styles.metaPill} ${styles.pillGray}`}>
-                GSTIN {mockGSTIN}
               </span>
             </div>
           </div>

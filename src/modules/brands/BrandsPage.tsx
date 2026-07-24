@@ -20,7 +20,7 @@ const BrandsPage: React.FC = () => {
           </span>
           <h1 className={styles.title}>India&apos;s most-loved wholesale brands</h1>
           <p className={styles.subtitle}>
-            Every brand is GSTIN + PAN verified, KYC-checked and physically inspected by our category team.
+            Every brand is KYC-checked and physically inspected by our category team.
           </p>
         </div>
 
@@ -38,9 +38,6 @@ const BrandsPage: React.FC = () => {
                 <div className={styles.brandInfo}>
                   <div className={styles.brandName}>
                     {brand.name} <CheckCircle size={12} color="#10B981" />
-                  </div>
-                  <div className={styles.brandLocation}>
-                    {brand.location}
                   </div>
                 </div>
               </div>

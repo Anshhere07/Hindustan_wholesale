@@ -12,6 +12,7 @@ import styles from './LandingPage.module.css';
 import Button from '@/components/ui/Button';
 import { ROUTES } from '@/lib/constants/routes';
 
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Landing Page — public marketing page
 // ─────────────────────────────────────────────────────────────────────────────
@@ -241,7 +242,7 @@ export const BRANDS = [
   { name: 'Emtex', location: 'Gurugram', logo: '/brands/emtex.svg' },
   { name: 'BOSCH', location: 'Bengaluru', logo: '/brands/bosch.svg' },
   { name: 'Eicher', location: 'Pune', logo: '/brands/eicher.svg' },
-  { name: 'BG Falcon', location: 'Aligarh', logo: '/brands/bg_falcon.svg' },
+  { name: 'BG Falcon ( Uttar Pradesh )', location: 'Aligarh', logo: '/brands/bg_falcon.svg' },
   { name: 'Minda', location: 'Manesar', logo: '/brands/minda.png' },
 ];
 
@@ -274,7 +275,7 @@ export const PublicHeader: React.FC = () => {
             </div>
             <div className={styles.headerLogoTextWrap}>
               <div className={styles.headerLogoText}>
-                <span style={{ color: '#A21A32' }}>HINDUSTAN</span><br/>
+                <span style={{ color: '#A21A32' }}>HINDUSTAN</span><br />
                 <span style={{ color: '#8B1028' }}>WHOLESALE</span>
               </div>
               <span className={styles.headerLogoSubtext}>&mdash; Sahi Kharidari, Zyada Munafa &mdash;</span>
@@ -283,9 +284,9 @@ export const PublicHeader: React.FC = () => {
 
           <div className={styles.headerSearch}>
             <Search size={18} className={styles.searchIcon} />
-            <input 
-              type="text" 
-              placeholder="Search products, brands, HSN codes..." 
+            <input
+              type="text"
+              placeholder="Search products, brands, HSN codes..."
               className={styles.searchInput}
             />
             <button className={styles.searchBtn}>Search</button>
@@ -320,15 +321,15 @@ export const PublicHeader: React.FC = () => {
           </a>
           <div className={styles.bottomNavLinks}>
             <div className={styles.navDropdownItem}>
-              <div 
-                className={styles.bottomNavLink} 
+              <div
+                className={styles.bottomNavLink}
                 style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}
                 onClick={(e) => {
                   e.stopPropagation();
                   setIsDesktopMenuOpen(!isDesktopMenuOpen);
                 }}
               >
-                Automobile <ChevronDown size={14}/>
+                Automobile <ChevronDown size={14} />
               </div>
               {isDesktopMenuOpen && (
                 <div className={styles.navDropdownMenuOpen}>
@@ -411,10 +412,10 @@ const LandingPage: React.FC = () => {
           </div>
 
           <div className={styles.heroRight}>
-            <img 
-              src="https://images.unsplash.com/photo-1556740738-b6a63e27c4df?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80" 
-              alt="Wholesale marketplace" 
-              className={styles.heroImage} 
+            <img
+              src="https://images.unsplash.com/photo-1556740738-b6a63e27c4df?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80"
+              alt="Wholesale marketplace"
+              className={styles.heroImage}
             />
             <div className={styles.heroOverlayBadge}>
               <div className={styles.heroOverlayIcon}>
@@ -456,13 +457,13 @@ const LandingPage: React.FC = () => {
             <div className={styles.categoryHeaderLeft}>
               <span className={styles.sectionEyebrowPill}>SHOP BY CATEGORY</span>
               <h2 className={styles.sectionTitle}>Wholesale ranges built<br />for every Indian dukaan</h2>
-              <p className={styles.sectionSubtitle}>From kirana staples to festive gifting — 60,000+ SKUs across 12 verticals, priced at MOQ.</p>
+              <p className={styles.sectionSubtitle}>From engine oils to essential auto parts — 5,000+ SKUs across all vehicle types, priced at MOQ.</p>
             </div>
             <Link href="/categories" className={styles.categoryAllBtn}>
               All categories &rarr;
             </Link>
           </div>
-          
+
           <div className={styles.categoriesGrid}>
             {CATEGORIES.map((cat) => (
               <Link key={cat.id} href={`/categories/${cat.id}`} className={styles.categoryCard}>
@@ -506,7 +507,6 @@ const LandingPage: React.FC = () => {
                 </div>
                 <div className={styles.brandCardInfo}>
                   <div className={styles.brandName}>{brand.name}</div>
-                  <div className={styles.brandLocation}>{brand.location}</div>
                 </div>
               </Link>
             ))}
@@ -572,7 +572,7 @@ const LandingPage: React.FC = () => {
         <div className={styles.sectionInner}>
           <div className={styles.featuresContainer}>
             <span className={styles.featuresEyebrow}>WHY HINDUSTAN WHOLESALE</span>
-            <h2 className={styles.featuresMainTitle}>Enterprise-grade wholesale,<br/>made ridiculously simple.</h2>
+            <h2 className={styles.featuresMainTitle}>Enterprise-grade wholesale,<br />made ridiculously simple.</h2>
             <p className={styles.featuresSubtitle}>Six things that make us the retailer&apos;s default choice for bulk sourcing.</p>
             <div className={styles.featuresGrid}>
               {FEATURES.map((feat) => {
@@ -668,79 +668,79 @@ export const PublicFooter: React.FC = () => {
     <footer className={styles.footer}>
       <div className={styles.footerInner}>
         <div className={styles.footerTop}>
-            <div className={styles.footerBrandCol}>
-              <div className={styles.footerBrandHeader} style={{ background: 'white', padding: '16px 24px', borderRadius: '12px', display: 'inline-flex', alignItems: 'center', gap: '16px' }}>
-                <div className={styles.headerLogoIcon}>
-                  <span>HW</span>
+          <div className={styles.footerBrandCol}>
+            <div className={styles.footerBrandHeader} style={{ background: 'white', padding: '16px 24px', borderRadius: '12px', display: 'inline-flex', alignItems: 'center', gap: '16px' }}>
+              <div className={styles.headerLogoIcon}>
+                <span>HW</span>
+              </div>
+              <div className={styles.headerLogoTextWrap}>
+                <div className={styles.headerLogoText}>
+                  <span style={{ color: '#A21A32' }}>HINDUSTAN</span><br />
+                  <span style={{ color: '#8B1028' }}>WHOLESALE</span>
                 </div>
-                <div className={styles.headerLogoTextWrap}>
-                  <div className={styles.headerLogoText}>
-                    <span style={{ color: '#A21A32' }}>HINDUSTAN</span><br/>
-                    <span style={{ color: '#8B1028' }}>WHOLESALE</span>
-                  </div>
-                  <div className={styles.headerLogoSubtext}>&mdash; Sahi Kharidari, Zyada Munafa &mdash;</div>
-                </div>
-              </div>
-              <p className={styles.footerBrandDesc}>
-                India&apos;s trusted managed B2B wholesale marketplace connecting verified sellers with retailers across Bharat.
-              </p>
-              <div className={styles.footerTrustBadges}>
-                <span className={`${styles.trustBadge} ${styles.trustBadgeGreen}`}><Shield size={12} /> Verified sellers</span>
-                <span className={`${styles.trustBadge} ${styles.trustBadgeBlue}`}><FileText size={12} /> GST-compliant invoices</span>
-                <span className={`${styles.trustBadge} ${styles.trustBadgeOrange}`}><Truck size={12} /> Pan-India logistics</span>
+                <div className={styles.headerLogoSubtext}>&mdash; Sahi Kharidari, Zyada Munafa &mdash;</div>
               </div>
             </div>
-
-            <div className={styles.footerLinkCol}>
-              <h4 className={styles.footerLinkTitle}>Marketplace</h4>
-              <Link href="/" className={styles.footerLink}>Home</Link>
-              <Link href="/categories" className={styles.footerLink}>All categories</Link>
-              <Link href="/brands" className={styles.footerLink}>Brands</Link>
-              <Link href="/auth/register" className={styles.footerLink}>Become a seller</Link>
-            </div>
-
-            <div className={styles.footerLinkCol}>
-              <h4 className={styles.footerLinkTitle}>Company</h4>
-              <Link href="#" className={styles.footerLink}>About us</Link>
-              <Link href="#" className={styles.footerLink}>Contact</Link>
-              <Link href="#" className={styles.footerLink}>Careers</Link>
-              <Link href="#" className={styles.footerLink}>Press</Link>
-            </div>
-
-            <div className={styles.footerLinkCol}>
-              <h4 className={styles.footerLinkTitle}>Support</h4>
-              <div className={styles.footerContactRow}>
-                <Phone size={14} className={styles.footerContactIcon} />
-                <span>+91 9999039088</span>
-              </div>
-              <div className={styles.footerContactRow}>
-                <Mail size={14} className={styles.footerContactIcon} />
-                <span>hindustanwholesale54@gmail.com</span>
-              </div>
-              <div className={styles.footerContactRow}>
-                <MapPin size={14} className={styles.footerContactIcon} />
-                <span>5th We work Horizon center, Golf Course Rd, Sector 43, Gurugram 122009</span>
-              </div>
-              <div style={{ marginTop: '16px' }}>
-                <a href="https://www.instagram.com/hindustan__wholesale?igsh=dHF0cnhiMzM0ZXJ4&utm_source=qr" target="_blank" rel="noopener noreferrer" className={styles.instagramLink}>
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
-                </a>
-              </div>
+            <p className={styles.footerBrandDesc}>
+              India&apos;s trusted managed B2B wholesale marketplace connecting verified sellers with retailers across Bharat.
+            </p>
+            <div className={styles.footerTrustBadges}>
+              <span className={`${styles.trustBadge} ${styles.trustBadgeGreen}`}><Shield size={12} /> Verified sellers</span>
+              <span className={`${styles.trustBadge} ${styles.trustBadgeBlue}`}><FileText size={12} /> GST-compliant invoices</span>
+              <span className={`${styles.trustBadge} ${styles.trustBadgeOrange}`}><Truck size={12} /> Pan-India logistics</span>
             </div>
           </div>
 
-          <div className={styles.footerBottom}>
-            <div className={styles.footerCopy}>
-              © 2026 Hindustan Wholesale Pvt. Ltd. · CIN: U74999KA2025PTC000000 · GSTIN: 29ABCDE1234F1Z5
+          <div className={styles.footerLinkCol}>
+            <h4 className={styles.footerLinkTitle}>Marketplace</h4>
+            <Link href="/" className={styles.footerLink}>Home</Link>
+            <Link href="/categories" className={styles.footerLink}>All categories</Link>
+            <Link href="/brands" className={styles.footerLink}>Brands</Link>
+            <Link href="/auth/register" className={styles.footerLink}>Become a seller</Link>
+          </div>
+
+          <div className={styles.footerLinkCol}>
+            <h4 className={styles.footerLinkTitle}>Company</h4>
+            <Link href="#" className={styles.footerLink}>About us</Link>
+            <Link href="#" className={styles.footerLink}>Contact</Link>
+            <Link href="#" className={styles.footerLink}>Careers</Link>
+            <Link href="#" className={styles.footerLink}>Press</Link>
+          </div>
+
+          <div className={styles.footerLinkCol}>
+            <h4 className={styles.footerLinkTitle}>Support</h4>
+            <div className={styles.footerContactRow}>
+              <Phone size={14} className={styles.footerContactIcon} />
+              <span>+91 9999039088</span>
             </div>
-            <div className={styles.footerLegalLinks}>
-              <Link href="#">Terms</Link>
-              <Link href="#">Privacy</Link>
-              <Link href="#">Refunds</Link>
+            <div className={styles.footerContactRow}>
+              <Mail size={14} className={styles.footerContactIcon} />
+              <span>hindustanwholesale54@gmail.com</span>
+            </div>
+            <div className={styles.footerContactRow}>
+              <MapPin size={14} className={styles.footerContactIcon} />
+              <span>5th We work Horizon center, Golf Course Rd, Sector 43, Gurugram 122009</span>
+            </div>
+            <div style={{ marginTop: '16px' }}>
+              <a href="https://www.instagram.com/hindustan__wholesale?igsh=dHF0cnhiMzM0ZXJ4&utm_source=qr" target="_blank" rel="noopener noreferrer" className={styles.instagramLink}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
+              </a>
             </div>
           </div>
         </div>
-      </footer>
+
+        <div className={styles.footerBottom}>
+          <div className={styles.footerCopy}>
+            © 2026 Hindustan Wholesale Pvt. Ltd. · CIN: U46909UP2026PTC249825 · GSTIN: 09AAICH7948B1ZC
+          </div>
+          <div className={styles.footerLegalLinks}>
+            <Link href="#">Terms</Link>
+            <Link href="#">Privacy</Link>
+            <Link href="#">Refunds</Link>
+          </div>
+        </div>
+      </div>
+    </footer>
   );
 };
 
