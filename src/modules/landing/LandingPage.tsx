@@ -260,7 +260,9 @@ export const PublicHeader: React.FC = () => {
             🇮🇳 Serving retailers across 720+ Indian cities
           </div>
           <div className={styles.topBarRight}>
-            <a href="tel:+917307646585" className={styles.topBarLink}>📞 +91 7307646585</a>
+            <a href="tel:+918800232363" className={styles.orderByCallBtnHeader}>
+              <Phone size={13} /> Order by Call
+            </a>
             <Link href={ROUTES.AUTH.LOGIN} className={styles.topBarLink}>Become a retailer</Link>
           </div>
         </div>
@@ -701,7 +703,7 @@ export const PublicFooter: React.FC = () => {
 
           <div className={styles.footerLinkCol}>
             <h4 className={styles.footerLinkTitle}>Company</h4>
-            <Link href="#" className={styles.footerLink}>About us</Link>
+            <Link href="/about" className={styles.footerLink}>About us</Link>
             <Link href="#" className={styles.footerLink}>Contact</Link>
             <Link href="#" className={styles.footerLink}>Careers</Link>
             <Link href="#" className={styles.footerLink}>Press</Link>
@@ -709,10 +711,9 @@ export const PublicFooter: React.FC = () => {
 
           <div className={styles.footerLinkCol}>
             <h4 className={styles.footerLinkTitle}>Support</h4>
-            <div className={styles.footerContactRow}>
-              <Phone size={14} className={styles.footerContactIcon} />
-              <span>+91 9999039088</span>
-            </div>
+            <a href="tel:+918800232363" className={styles.orderByCallBtnFooter}>
+              <Phone size={14} /> Order by Call
+            </a>
             <div className={styles.footerContactRow}>
               <Mail size={14} className={styles.footerContactIcon} />
               <span>hindustanwholesale54@gmail.com</span>

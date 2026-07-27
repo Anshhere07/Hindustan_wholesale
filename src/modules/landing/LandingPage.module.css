@@ -58,6 +58,29 @@
 }
 .topBarLink:hover { text-decoration: underline; }
 
+.orderByCallBtnHeader {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #ff800d;
+  color: white;
+  padding: 4px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(255, 128, 13, 0.35);
+  cursor: pointer;
+}
+.orderByCallBtnHeader:hover {
+  background: #e67300;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(255, 128, 13, 0.45);
+  color: white;
+  text-decoration: none;
+}
+
 /* Middle Bar */
 .headerMiddleBar {
   background: white;
@@ -1290,6 +1313,32 @@
   gap: 8px;
   color: rgba(255,255,255,0.7);
   font-size: 13px;
+}
+
+.orderByCallBtnFooter {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: #ff800d;
+  color: white;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  margin-bottom: 12px;
+  width: fit-content;
+  box-shadow: 0 4px 14px rgba(255, 128, 13, 0.25);
+  cursor: pointer;
+}
+.orderByCallBtnFooter:hover {
+  background: #e67300;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(255, 128, 13, 0.35);
+  color: white;
+  text-decoration: none;
 }
 .footerContactIcon {
   color: var(--color-accent-500);
