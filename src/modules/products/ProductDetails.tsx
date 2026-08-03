@@ -1,36 +1,83 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { Star, MapPin, CheckCircle, Shield, Truck, CreditCard, RotateCcw, Check, Lock } from 'lucide-react';
+import { Star, MapPin, CheckCircle, Shield, Truck, CreditCard, RotateCcw, Check, Lock, ShoppingCart } from 'lucide-react';
 import styles from './ProductDetails.module.css';
 import { PublicHeader, PublicFooter, DEALS, CATEGORIES } from '../landing/LandingPage';
+import { getProductById, getProductBySlug } from '@/lib/firebase/collections/products';
+import type { Product } from '@/types/product.types';
+import { useCartStore } from '@/stores/cart.store';
+import { useUIStore } from '@/stores/ui.store';
 
 interface ProductDetailsProps {
   productId: string;
 }
 
 const ProductDetails: React.FC<ProductDetailsProps> = ({ productId }) => {
-  const deal = DEALS.find(d => d.id.toString() === productId);
+  const [product, setProduct] = useState<Product | null>(null);
+  const [loading, setLoading] = useState(true);
+  const { addItem } = useCartStore();
+  const { addNotification } = useUIStore();
 
-  if (!deal) {
-    return notFound();
-  }
+  useEffect(() => {
+    async function loadProduct() {
+      try {
+        let p = await getProductById(productId);
+        if (!p) {
+          p = await getProductBySlug(productId);
+        }
+        if (p) setProduct(p);
+      } catch (err) {
+        console.error('Failed to load product from Firestore:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadProduct();
+  }, [productId]);
 
-  // Attempt to map category based on deal ID (similar logic used before)
-  let categoryName = 'Category';
-  let categoryId = 'categories';
-  if ([1].includes(deal.id)) { categoryName = 'FMCG & Grocery'; categoryId = 'fmcg'; }
-  else if ([2].includes(deal.id)) { categoryName = 'Apparel & Textiles'; categoryId = 'apparel'; }
-  else if ([3].includes(deal.id)) { categoryName = 'Electronics'; categoryId = 'electronics'; }
-  else if ([4].includes(deal.id)) { categoryName = 'Kitchenware'; categoryId = 'kitchenware'; }
-  else if ([5].includes(deal.id)) { categoryName = 'Personal Care'; categoryId = 'personal-care'; }
-  
-  // Clean price to calculate bulk tiers roughly
-  const numericPrice = parseInt(deal.price.replace(/[^\d]/g, '')) || 398;
-  const tier2Price = Math.floor(numericPrice * 0.967); // roughly 3% off
-  const tier3Price = Math.floor(numericPrice * 0.934); // roughly 6% off
+  const deal = DEALS.find(d => d.id.toString() === productId || d.productName.toLowerCase().includes(productId.toLowerCase()));
+
+  const displayTitle = product?.name || deal?.productName || 'Wholesale Auto Part';
+  const displayPrice = product ? `₹${product.basePrice.toLocaleString('en-IN')}` : (deal?.price || '₹4,800');
+  const displayOriginalPrice = product ? `₹${Math.round(product.basePrice * 1.25).toLocaleString('en-IN')}` : (deal?.originalPrice || '₹6,000');
+  const displayMoq = product ? `MOQ ${product.moq} ${product.unit}s` : (deal?.moq || 'MOQ 4 sets');
+  const displayBrand = product?.brand || deal?.brandName || 'Authorized Distributor';
+  const displayCategory = product?.categoryName || 'Auto Parts';
+  const displayLocation = product ? 'Mumbai, MH' : (deal?.location || 'Delhi, IN');
+
+  const handleAddToCart = () => {
+    if (product) {
+      addItem({
+        productId: product.id,
+        productName: product.name,
+        productSku: product.sku,
+        productImageUrl: product.images[0]?.url || '',
+        sellerId: product.sellerId,
+        sellerName: product.sellerName,
+        quantity: product.moq,
+        unitPrice: product.basePrice,
+        currency: product.currency,
+        unit: product.unit,
+        moq: product.moq,
+        stock: product.stock,
+        gstRate: product.gstRate || 18,
+      });
+      addNotification({
+        type: 'success',
+        title: 'Added to Cart',
+        message: `${product.name} (Qty: ${product.moq}) added to your cart.`,
+      });
+    } else {
+      addNotification({
+        type: 'info',
+        title: 'Sample Product',
+        message: 'Product added to procurement list.',
+      });
+    }
+  };
 
   return (
     <div className={styles.page}>
@@ -40,23 +87,21 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ productId }) => {
         <div className={styles.breadcrumb}>
           <Link href="/">Home</Link>
           <span style={{ margin: '0 8px' }}>/</span>
-          <Link href={`/categories/${categoryId}`}>{categoryName}</Link>
+          <Link href={`/categories/${product?.categoryId || 'auto-parts'}`}>{displayCategory}</Link>
           <span style={{ margin: '0 8px' }}>/</span>
-          <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{deal.productName}</span>
+          <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{displayTitle}</span>
         </div>
 
         <div className={styles.topSection}>
           {/* Left Column: Images */}
           <div className={styles.gallery}>
-            <div className={styles.mainImage} style={{ background: deal.bgColor }}>
+            <div className={styles.mainImage} style={{ background: deal?.bgColor || 'var(--color-primary-50)' }}>
               <span className={styles.mainImageBadge}>BESTSELLER</span>
-              {deal.brandInitials}
+              {product?.brand?.slice(0, 2) || deal?.brandInitials || 'HW'}
             </div>
             <div className={styles.thumbnailStrip}>
-              <div className={`${styles.thumbnail} ${styles.thumbnailActive}`} style={{ background: deal.bgColor }}></div>
-              <div className={styles.thumbnail} style={{ background: deal.bgColor }}></div>
-              <div className={styles.thumbnail} style={{ background: deal.bgColor, opacity: 0.4 }}></div>
-              <div className={styles.thumbnail} style={{ background: deal.bgColor, opacity: 0.8 }}></div>
+              <div className={`${styles.thumbnail} ${styles.thumbnailActive}`} style={{ background: deal?.bgColor || 'var(--color-primary-50)' }}></div>
+              <div className={styles.thumbnail} style={{ background: deal?.bgColor || 'var(--color-primary-50)' }}></div>
             </div>
           </div>
 
@@ -64,52 +109,59 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ productId }) => {
           <div className={styles.details}>
             <div className={styles.brandRow}>
               <span className={styles.brandName}>
-                {deal.brandName} <CheckCircle size={14} color="#10B981" />
+                {displayBrand} <CheckCircle size={14} color="#10B981" />
               </span>
               <span className={styles.rating}>
                 <Star size={12} fill="#F59E0B" color="#F59E0B" />
-                {deal.rating} ({deal.reviews})
+                {product?.rating || deal?.rating || 4.8} ({product?.reviewCount || deal?.reviews || 120})
               </span>
             </div>
 
-            <h1 className={styles.title}>{deal.productName}</h1>
+            <h1 className={styles.title}>{displayTitle}</h1>
 
             <div className={styles.badgesRow}>
-              <span className={`${styles.badgePill} ${styles.badgeBlue}`}>{deal.hsn.split('·')[0].trim()}</span>
-              <span className={`${styles.badgePill} ${styles.badgeBlue}`}>{deal.hsn.split('·')[1]?.trim() || 'GST 5%'}</span>
-              <span className={`${styles.badgePill} ${styles.badgeOrange}`}>{deal.moq}</span>
+              <span className={`${styles.badgePill} ${styles.badgeBlue}`}>{deal?.hsn?.split('·')[0].trim() || 'HSN 8708'}</span>
+              <span className={`${styles.badgePill} ${styles.badgeBlue}`}>{deal?.hsn?.split('·')[1]?.trim() || `GST ${product?.gstRate || 18}%`}</span>
+              <span className={`${styles.badgePill} ${styles.badgeOrange}`}>{displayMoq}</span>
               <span className={styles.badgeLocation}>
                 <MapPin size={12} />
-                Ships from {deal.location}, IN
+                Ships from {displayLocation}
               </span>
             </div>
 
             <div className={styles.priceCard}>
               <div className={styles.priceRow}>
-                <span className={styles.mainPrice}>{deal.price}</span>
-                <span className={styles.strikePrice}>{deal.originalPrice}</span>
-                {deal.badgeRight && (
+                <span className={styles.mainPrice}>{displayPrice}</span>
+                <span className={styles.strikePrice}>{displayOriginalPrice}</span>
+                {deal?.badgeRight && (
                   <span className={styles.discountBadge}>{deal.badgeRight.toUpperCase()}</span>
                 )}
               </div>
               <p className={styles.priceSubtext}>
-                Wholesale price {deal.unit.replace('/', 'per ')} · exclusive of 0% GST · retailer margin ~21%
+                Wholesale price / {product?.unit || 'set'} · exclusive of GST · retailer margin ~21%
               </p>
 
               <div className={styles.sectionTitle}>BULK PRICE TIERS</div>
               <div className={styles.bulkTiers}>
-                <div className={styles.tierBox}>
-                  <div className={styles.tierQty}>20+ {deal.unit.replace('/ ', '')}</div>
-                  <div className={styles.tierPrice}>₹{numericPrice.toLocaleString()}</div>
-                </div>
-                <div className={styles.tierBox}>
-                  <div className={styles.tierQty}>50+ {deal.unit.replace('/ ', '')}</div>
-                  <div className={styles.tierPrice}>₹{tier2Price.toLocaleString()}</div>
-                </div>
-                <div className={styles.tierBox}>
-                  <div className={styles.tierQty}>150+ {deal.unit.replace('/ ', '')}</div>
-                  <div className={styles.tierPrice}>₹{tier3Price.toLocaleString()}</div>
-                </div>
+                {product?.priceTiers && product.priceTiers.length > 0 ? (
+                  product.priceTiers.map((tier, idx) => (
+                    <div key={idx} className={styles.tierBox}>
+                      <div className={styles.tierQty}>{tier.minQty}+ {product.unit}s</div>
+                      <div className={styles.tierPrice}>₹{tier.price.toLocaleString('en-IN')}</div>
+                    </div>
+                  ))
+                ) : (
+                  <>
+                    <div className={styles.tierBox}>
+                      <div className={styles.tierQty}>20+ units</div>
+                      <div className={styles.tierPrice}>{displayPrice}</div>
+                    </div>
+                    <div className={styles.tierBox}>
+                      <div className={styles.tierQty}>50+ units</div>
+                      <div className={styles.tierPrice}>₹{Math.floor((product?.basePrice || 4800) * 0.95).toLocaleString('en-IN')}</div>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
 
@@ -123,8 +175,8 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ productId }) => {
             </div>
 
             <div className={styles.actionsRow}>
-              <button className={styles.btnPrimary}>
-                <Lock size={16} /> Sign in to place order
+              <button className={styles.btnPrimary} onClick={handleAddToCart}>
+                <ShoppingCart size={16} /> Add to Cart
               </button>
               <button className={styles.btnSecondary}>
                 Add to wishlist
@@ -183,32 +235,32 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ productId }) => {
             <h3 className={styles.bottomHeader}>Specifications</h3>
             <div className={styles.specsTable}>
               <div className={styles.specRow}>
-                <span className={styles.specLabel}>HSN Code</span>
-                <span className={styles.specValue}>{deal.hsn.split('·')[0].replace('HSN', '').trim()}</span>
+                <span className={styles.specLabel}>HSN / Part No.</span>
+                <span className={styles.specValue}>{product?.partNumber || deal?.hsn?.split('·')[0]?.replace('HSN', '')?.trim() || '8708-9900'}</span>
               </div>
               <div className={styles.specRow}>
                 <span className={styles.specLabel}>GST Rate</span>
-                <span className={styles.specValue}>{deal.hsn.split('·')[1]?.replace('GST', '').trim() || '0%'}</span>
+                <span className={styles.specValue}>{product ? `${product.gstRate}%` : (deal?.hsn?.split('·')[1]?.replace('GST', '')?.trim() || '18%')}</span>
               </div>
               <div className={styles.specRow}>
                 <span className={styles.specLabel}>MOQ</span>
-                <span className={styles.specValue}>{deal.moq.replace('MOQ', '').trim()}</span>
+                <span className={styles.specValue}>{displayMoq}</span>
               </div>
               <div className={styles.specRow}>
                 <span className={styles.specLabel}>Stock available</span>
-                <span className={styles.specValue}>8,400 units</span>
+                <span className={styles.specValue}>{product ? `${product.stock.toLocaleString('en-IN')} units` : '8,400 units'}</span>
               </div>
               <div className={styles.specRow}>
-                <span className={styles.specLabel}>Origin</span>
-                <span className={styles.specValue}>{deal.location}, IN</span>
+                <span className={styles.specLabel}>Origin / Ships From</span>
+                <span className={styles.specValue}>{displayLocation}</span>
               </div>
               <div className={styles.specRow}>
                 <span className={styles.specLabel}>Category</span>
-                <span className={styles.specValue}>{categoryName}</span>
+                <span className={styles.specValue}>{displayCategory}</span>
               </div>
               <div className={styles.specRow}>
                 <span className={styles.specLabel}>Brand</span>
-                <span className={styles.specValue}>{deal.brandName}</span>
+                <span className={styles.specValue}>{displayBrand}</span>
               </div>
             </div>
           </div>

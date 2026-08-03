@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus, Search, Edit2, Trash2, Eye, Package, MoreVertical } from 'lucide-react';
 import Link from 'next/link';
 import styles from './SellerListings.module.css';
@@ -9,6 +9,9 @@ import Badge from '@/components/ui/Badge';
 import { MOCK_PRODUCTS } from '@/lib/api/mock-data';
 import { formatCurrency } from '@/lib/utils/format';
 import { ROUTES } from '@/lib/constants/routes';
+import { getProducts, getSellerProducts } from '@/lib/firebase/collections/products';
+import { useAuthStore } from '@/stores/auth.store';
+import type { ProductListItem } from '@/types/product.types';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Seller Listings — product management table with CRUD actions
@@ -17,8 +20,29 @@ import { ROUTES } from '@/lib/constants/routes';
 const SellerListings: React.FC = () => {
   const [search, setSearch] = useState('');
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
+  const [products, setProducts] = useState<ProductListItem[]>(MOCK_PRODUCTS);
+  const { user } = useAuthStore();
 
-  const filtered = MOCK_PRODUCTS.filter((p) =>
+  useEffect(() => {
+    async function loadSellerProducts() {
+      try {
+        let res: ProductListItem[] = [];
+        if (user?.id) {
+          res = await getSellerProducts(user.id);
+        }
+        if (res.length === 0) {
+          const allRes = await getProducts({}, 50);
+          res = allRes.products;
+        }
+        if (res.length > 0) setProducts(res);
+      } catch (err) {
+        console.error('Failed to load seller products from Firestore:', err);
+      }
+    }
+    loadSellerProducts();
+  }, [user]);
+
+  const filtered = products.filter((p) =>
     !search || p.name.toLowerCase().includes(search.toLowerCase()) || p.sku.toLowerCase().includes(search.toLowerCase())
   );
 

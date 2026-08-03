@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Grid3X3, List, SlidersHorizontal, Search, X, Star, ChevronDown } from 'lucide-react';
 import styles from './CatalogPage.module.css';
 import ProductCard from '@/components/shared/ProductCard';
@@ -8,7 +8,9 @@ import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import { cn } from '@/lib/utils/cn';
 import { MOCK_PRODUCTS, MOCK_CATEGORIES } from '@/lib/api/mock-data';
-import type { ProductFilter } from '@/types/product.types';
+import type { ProductFilter, ProductListItem, Category } from '@/types/product.types';
+import { getProducts } from '@/lib/firebase/collections/products';
+import { getAllCategories } from '@/lib/firebase/collections/categories';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Catalog Page — search, filter, sort, grid/list toggle
@@ -35,6 +37,31 @@ const CatalogPage: React.FC = () => {
     categories: true, brands: true, price: true, moq: false,
   });
 
+  const [dbProducts, setDbProducts] = useState<ProductListItem[]>([]);
+  const [dbCategories, setDbCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const [catData, prodRes] = await Promise.all([
+          getAllCategories(),
+          getProducts(filters, 50)
+        ]);
+        if (catData.length > 0) setDbCategories(catData);
+        if (prodRes.products.length > 0) setDbProducts(prodRes.products);
+      } catch (err) {
+        console.error('Failed to load Firestore catalog:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadData();
+  }, []);
+
+  const categoriesList = dbCategories.length > 0 ? dbCategories : MOCK_CATEGORIES;
+  const rawProducts = dbProducts.length > 0 ? dbProducts : MOCK_PRODUCTS;
+
   const toggleFilter = (key: string) =>
     setExpandedFilters((p) => ({ ...p, [key]: !p[key] }));
 
@@ -46,9 +73,9 @@ const CatalogPage: React.FC = () => {
   const activeFilterCount = Object.values(filters).filter(Boolean).length + (search ? 1 : 0);
 
   const filteredProducts = useMemo(() => {
-    let products = [...MOCK_PRODUCTS];
+    let products = [...rawProducts];
     if (search) products = products.filter((p) => p.name.toLowerCase().includes(search.toLowerCase()) || p.brand?.toLowerCase().includes(search.toLowerCase()));
-    if (filters.categoryId) products = products.filter((p) => p.categoryName.toLowerCase().includes(filters.categoryId!.toLowerCase()));
+    if (filters.categoryId) products = products.filter((p) => p.categoryName.toLowerCase().includes(filters.categoryId!.toLowerCase()) || p.categoryId === filters.categoryId);
     if (filters.brand?.length) products = products.filter((p) => p.brand && filters.brand!.includes(p.brand));
     if (filters.minPrice) products = products.filter((p) => p.basePrice >= filters.minPrice!);
     if (filters.maxPrice) products = products.filter((p) => p.basePrice <= filters.maxPrice!);
@@ -58,7 +85,7 @@ const CatalogPage: React.FC = () => {
     if (sort === 'rating') products.sort((a, b) => b.rating - a.rating);
     if (sort === 'moq_asc') products.sort((a, b) => a.moq - b.moq);
     return products;
-  }, [search, filters, sort]);
+  }, [search, filters, sort, rawProducts]);
 
   return (
     <div className={styles.page}>
@@ -162,17 +189,17 @@ const CatalogPage: React.FC = () => {
               expanded={expandedFilters.categories}
               onToggle={() => toggleFilter('categories')}
             >
-              {MOCK_CATEGORIES.map((cat) => (
+              {categoriesList.map((cat) => (
                 <label key={cat.id} className={styles.filterLabel}>
                   <input
                     type="radio"
                     name="category"
                     className={styles.filterInput}
-                    checked={filters.categoryId === cat.slug}
+                    checked={filters.categoryId === cat.slug || filters.categoryId === cat.id}
                     onChange={() => updateFilter('categoryId', cat.slug)}
                   />
                   <span className={styles.filterText}>{cat.name}</span>
-                  <span className={styles.filterCount}>{cat.productCount.toLocaleString('en-IN')}</span>
+                  <span className={styles.filterCount}>{(cat.productCount ?? 0).toLocaleString('en-IN')}</span>
                 </label>
               ))}
             </FilterGroup>

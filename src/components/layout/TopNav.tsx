@@ -19,6 +19,8 @@ import { ROUTES } from '@/lib/constants/routes';
 // Top Navigation Bar — search, notifications, user menu, theme toggle
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { resolveSearchRoute } from '@/lib/utils/searchRouter';
+
 const TopNav: React.FC = () => {
   const { theme, toggleTheme, sidebarCollapsed, toggleMobileMenu, mobileMenuOpen, addNotification } = useUIStore();
   const { user, logout } = useAuthStore();
@@ -31,7 +33,8 @@ const TopNav: React.FC = () => {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
-      router.push(`${ROUTES.BUYER.CATALOG}?search=${encodeURIComponent(searchQuery.trim())}`);
+      const targetUrl = resolveSearchRoute(searchQuery);
+      router.push(targetUrl);
       setSearchQuery('');
     }
   };

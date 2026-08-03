@@ -1,0 +1,203 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Helper Functions
+    // ─────────────────────────────────────────────────────────────────────────
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function uid() {
+      return request.auth.uid;
+    }
+
+    function isOwner(docUid) {
+      return isSignedIn() && uid() == docUid;
+    }
+
+    // Fetch role from users collection — used for role-based checks
+    function userRole() {
+      return get(/databases/$(database)/documents/users/$(uid())).data.role;
+    }
+
+    function isBuyer()  { return isSignedIn() && userRole() == 'buyer';  }
+    function isSeller() { return isSignedIn() && userRole() == 'seller'; }
+    function isAdmin()  { return isSignedIn() && userRole() == 'admin';  }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // users — core identity document (1 per Firebase Auth user)
+    // ─────────────────────────────────────────────────────────────────────────
+
+    match /users/{userId} {
+      // A user can read their own document; admin can read anyone's
+      allow read: if isOwner(userId) || isAdmin();
+
+      // Only the user themselves can create their document on registration
+      allow create: if isOwner(userId)
+        && request.resource.data.keys().hasAll(['email', 'role', 'status', 'firstName', 'lastName'])
+        && request.resource.data.role in ['buyer', 'seller'];  // admin role can only be set by admin
+
+      // User can update their own profile; admin can update any user
+      allow update: if isOwner(userId) || isAdmin();
+
+      // Only admin can delete users (and only soft-delete via status field in practice)
+      allow delete: if isAdmin();
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // buyer_profiles — extended buyer business info + KYC
+    // ─────────────────────────────────────────────────────────────────────────
+
+    match /buyer_profiles/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create, update: if isOwner(userId) && isBuyer();
+      allow delete: if isAdmin();
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // seller_profiles — extended seller business info + KYC + approval
+    // ─────────────────────────────────────────────────────────────────────────
+
+    match /seller_profiles/{userId} {
+      // Sellers can be read by buyers (to see who they're buying from) + admin
+      allow read: if isOwner(userId) || isAdmin() || isBuyer();
+
+      allow create: if isOwner(userId) && isSeller();
+
+      // Sellers can update their own profile EXCEPT approvalStatus (only admin)
+      allow update: if (isOwner(userId) && isSeller()
+          && !('approvalStatus' in request.resource.data.diff(resource.data).affectedKeys()))
+        || isAdmin();
+
+      allow delete: if isAdmin();
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // categories — product taxonomy
+    // ─────────────────────────────────────────────────────────────────────────
+
+    match /categories/{categoryId} {
+      allow read: if true;           // public — anyone can browse categories
+      allow write: if isAdmin();
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // products — the core catalog
+    // ─────────────────────────────────────────────────────────────────────────
+
+    match /products/{productId} {
+      // Active products are public; inactive/pending only visible to owner or admin
+      allow read: if resource.data.status == 'active'
+        || isOwner(resource.data.sellerId)
+        || isAdmin();
+
+      // Sellers can create products for themselves only
+      allow create: if isSeller()
+        && request.resource.data.sellerId == uid()
+        && request.resource.data.keys().hasAll(['name', 'sku', 'basePrice', 'sellerId', 'categoryId'])
+        && request.resource.data.status in ['active', 'inactive', 'pending'];
+
+      // Sellers edit their own products; admins can edit any
+      allow update: if (isSeller() && resource.data.sellerId == uid()
+          && !('sellerId' in request.resource.data.diff(resource.data).affectedKeys()))  // cannot reassign seller
+        || isAdmin();
+
+      // Only admin can delete products
+      allow delete: if isAdmin();
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // orders — order ledger (immutable, never deleted)
+    // ─────────────────────────────────────────────────────────────────────────
+
+    match /orders/{orderId} {
+      // Buyer who placed it, any seller whose UID is in sellerIds[], or admin
+      allow read: if isSignedIn() && (
+        resource.data.buyerId == uid()
+        || uid() in resource.data.sellerIds
+        || isAdmin()
+      );
+
+      // Only buyers can place orders
+      allow create: if isBuyer()
+        && request.resource.data.buyerId == uid()
+        && request.resource.data.keys().hasAll(['orderNumber', 'buyerId', 'items', 'status']);
+
+      // Status updates: admin (any), seller (own items, limited fields), buyer (cancel only)
+      allow update: if isAdmin()
+        || (isSeller() && uid() in resource.data.sellerIds)
+        || (isBuyer() && resource.data.buyerId == uid()
+            && request.resource.data.status == 'cancelled'
+            && resource.data.status in ['pending_confirmation', 'confirmed']);
+
+      // Orders are NEVER deleted
+      allow delete: if false;
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // counters — used for sequential order number generation
+    // ─────────────────────────────────────────────────────────────────────────
+
+    match /counters/{docId} {
+      allow read: if isSignedIn();
+      allow write: if isBuyer() || isAdmin();  // placeOrder transaction writes here
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // rfqs — Request for Quotation
+    // ─────────────────────────────────────────────────────────────────────────
+
+    match /rfqs/{rfqId} {
+      allow read: if isSignedIn() && (
+        resource.data.buyerId == uid()
+        || isSeller()
+        || isAdmin()
+      );
+      allow create: if isBuyer() && request.resource.data.buyerId == uid();
+      allow update: if isSignedIn() && (
+        resource.data.buyerId == uid()
+        || isSeller()
+        || isAdmin()
+      );
+      allow delete: if isAdmin();
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // carts — one cart document per buyer
+    // ─────────────────────────────────────────────────────────────────────────
+
+    match /carts/{userId} {
+      allow read, write: if isOwner(userId) && isBuyer();
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // wishlists — one wishlist document per buyer
+    // ─────────────────────────────────────────────────────────────────────────
+
+    match /wishlists/{userId} {
+      allow read, write: if isOwner(userId) && isBuyer();
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // analytics_snapshots — pre-aggregated stats (written only by Cloud Functions)
+    // ─────────────────────────────────────────────────────────────────────────
+
+    match /analytics_snapshots/{snapshotId} {
+      allow read: if isAdmin()
+        || (isSeller() && resource.data.entityId == uid());
+      allow write: if false;   // only Cloud Functions (service account) write here
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // platform_settings — admin-configurable global config
+    // ─────────────────────────────────────────────────────────────────────────
+
+    match /platform_settings/{docId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+  }
+}

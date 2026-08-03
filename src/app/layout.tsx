@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import StoreHydration from '@/components/StoreHydration';
+import FirebaseProvider from '@/components/FirebaseProvider';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Root Layout — applies font, theme attribute, and global styles
@@ -40,8 +41,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="icon" href="/favicon.ico" sizes="any" />
       </head>
       <body>
-        <StoreHydration />
-        {children}
+        <FirebaseProvider>
+          <StoreHydration />
+          {children}
+        </FirebaseProvider>
       </body>
     </html>
   );

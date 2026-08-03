@@ -7,47 +7,45 @@
 
 /* ── Design Tokens ─────────────────────────────────────────────────────────── */
 :root {
-  /* Brand Colors — Primary Maroon #8B1028 */
-  --color-brand-50:  #fcf0f2;
-  --color-brand-100: #fad1d9;
-  --color-brand-200: #f5a6b5;
-  --color-brand-300: #ee758d;
-  --color-brand-400: #e34d69;
-  --color-brand-500: #d62b4b;
-  --color-brand-600: #b51234; /* Accent Red - CTA */
-  --color-brand-700: #a0102e;
-  --color-brand-800: #8b1028; /* Primary Maroon */
-  --color-brand-900: #6e0d20; /* Dark Maroon */
-
-  /* Navy Colors - Replaced with #a21a32 */
-  --color-navy-800: #a21a32; /* Primary Custom */
-  --color-navy-900: #851328; /* Dark Custom */
-
-  /* Accent Red */
-  --color-accent-500: #c2410c;
-  --color-accent-600: #9a3412;
-  --color-accent-700: #7c2d12;
+  /* Brand Colors — Hindustan Wheels Deep Maroon #8B0000 & Accent Red #C8102E */
+  --color-brand-50:  #fff1f2;
+  --color-brand-100: #ffe4e6;
+  --color-brand-200: #fecdd3;
+  --color-brand-300: #fda4af;
+  --color-brand-400: #fb7185;
+  --color-brand-500: #e11d48;
+  --color-brand-600: #c8102e; /* CTA Accent Crimson */
+  --color-brand-700: #a00c24;
+  --color-brand-800: #8b0000; /* Primary Brand Maroon */
+  --color-brand-900: #5c0000; /* Deep Dark Maroon */
+  --color-navy-800:  #8b0000; /* Deep Brand Hero Background */
+  --color-navy-900:  #3b0000; /* Rich Footer Background */
+  --color-accent-500: #c8102e; /* Accent Button / Badge */
+  --color-accent-600: #a00c24; /* Accent Hover */
+  --color-brand-gold: #d4af37; /* Premium Gold Accent */
+  --color-brand-gold-light: #fef9c3;
 
   /* State Colors */
-  --color-success-500: #2e9e4d;
-  --color-warning-500: #f4b400;
+  --color-success-500: #10b981;
+  --color-warning-500: #f59e0b;
+  --color-danger-600: #dc2626;
 
   /* Neutrals */
-  --color-gray-50:  #f8f9fb; /* Background Light Gray */
-  --color-gray-100: #f3f4f6;
-  --color-gray-200: #e5e7eb; /* Soft Gray */
-  --color-gray-300: #d1d5db;
-  --color-gray-400: #9ca3af;
-  --color-gray-500: #6b7280; /* Secondary Text Gray */
-  --color-gray-600: #4b5563;
-  --color-gray-700: #374151;
-  --color-gray-800: #1f2937; /* Primary Text Dark Gray */
-  --color-gray-900: #111827;
+  --color-gray-50:  #f8fafc; /* Page Background Light */
+  --color-gray-100: #f1f5f9;
+  --color-gray-200: #e2e8f0; /* Subtle Border */
+  --color-gray-300: #cbd5e1;
+  --color-gray-400: #94a3b8;
+  --color-gray-500: #64748b; /* Secondary Text */
+  --color-gray-600: #475569;
+  --color-gray-700: #334155;
+  --color-gray-800: #1e293b; /* Primary Dark Text */
+  --color-gray-900: #0f172a;
 
-  /* Semantic Color Roles */
+  /* Semantic Roles */
   --bg-base:        var(--color-gray-50);
   --bg-surface:     #ffffff;
-  --bg-surface-alt: #f3f4f6;
+  --bg-surface-alt: #f8fafc;
   --bg-brand:       var(--color-brand-800);
   --bg-brand-hover: var(--color-brand-900);
 
@@ -55,12 +53,29 @@
   --text-secondary: var(--color-gray-500);
   --text-inverse:   #ffffff;
   --text-brand:     var(--color-brand-800);
-  --text-accent:    var(--color-accent-500);
+  --text-accent:    var(--color-brand-600);
 
-  --border-subtle:  var(--color-gray-200);
-  --border-default: var(--color-gray-300);
-  --border-strong:  var(--color-gray-400);
-  --border-brand:   var(--color-brand-500);
+  --border-subtle:  #e2e8f0;
+  --border-default: #cbd5e1;
+  --border-strong:  #94a3b8;
+  --border-brand:   var(--color-brand-800);
+
+  /* Elevation Shadows */
+  --shadow-sm:  0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md:  0 4px 6px -1px rgba(139, 0, 0, 0.08), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
+  --shadow-lg:  0 10px 15px -3px rgba(139, 0, 0, 0.10), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --shadow-xl:  0 20px 25px -5px rgba(139, 0, 0, 0.12), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+
+  /* Spacing Scale */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
 
   /* Typography Scale */
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -79,16 +94,19 @@
   --leading-tight:  1.25;
   --leading-normal: 1.5;
 
-  --radius-sm:   0.25rem;
+  --radius-sm:   0.375rem;
   --radius-md:   0.5rem;
   --radius-lg:   0.75rem;
   --radius-xl:   1rem;
-  --radius-2xl:  1.5rem;
+  --radius-2xl:  1.25rem;
   --radius-full: 9999px;
 
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+
   /* Layout */
-  --container-max:        1440px;
-  --content-max:          1200px;
+  --container-max: 1440px;
+  --content-max:   1200px;
 }
 
 /* ── CSS Reset ─────────────────────────────────────────────────────────────── */

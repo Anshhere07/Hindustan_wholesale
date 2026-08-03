@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
   Users, Store, ShoppingBag, DollarSign, TrendingUp,
@@ -17,12 +17,17 @@ import Button from '@/components/ui/Button';
 import { formatCurrency, formatDate } from '@/lib/utils/format';
 import { MOCK_SELLER_REVENUE, MOCK_ORDERS } from '@/lib/api/mock-data';
 import { ROUTES } from '@/lib/constants/routes';
+import { getAllOrders } from '@/lib/firebase/collections/orders';
+import { getPendingSellers, approveSeller, rejectSeller } from '@/lib/firebase/collections/seller-profiles';
+import type { Order } from '@/types/order.types';
+import type { SellerProfile } from '@/types/user.types';
+import { useAuthStore } from '@/stores/auth.store';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Admin Dashboard — platform-wide overview, seller approvals, revenue
 // ─────────────────────────────────────────────────────────────────────────────
 
-const PENDING_SELLERS = [
+const PENDING_SELLERS_MOCK = [
   { id: 's-1', name: 'Kapoor Spares Pvt. Ltd.', category: 'Engine Parts', city: 'Ludhiana', applied: '2026-07-12', gst: '03AABCK1234A1Z5' },
   { id: 's-2', name: 'South Auto Components', category: 'Electrical', city: 'Chennai', applied: '2026-07-11', gst: '33AABCS5678B1Z1' },
   { id: 's-3', name: 'RK Tyre Distributors', category: 'Tyres & Wheels', city: 'Jaipur', applied: '2026-07-10', gst: '08AABRK9012C1Z8' },
@@ -36,6 +41,43 @@ const PLATFORM_REVENUE = MOCK_SELLER_REVENUE.map((m) => ({
 }));
 
 const AdminDashboard: React.FC = () => {
+  const { user } = useAuthStore();
+  const [orders, setOrders] = useState<Order[]>(MOCK_ORDERS);
+  const [pendingSellers, setPendingSellers] = useState<SellerProfile[]>([]);
+
+  useEffect(() => {
+    async function loadAdminData() {
+      try {
+        const [ordRes, sellerRes] = await Promise.all([
+          getAllOrders(10),
+          getPendingSellers()
+        ]);
+        if (ordRes.length > 0) setOrders(ordRes);
+        setPendingSellers(sellerRes);
+      } catch (err) {
+        console.error('Failed to load AdminDashboard data from Firestore:', err);
+      }
+    }
+    loadAdminData();
+  }, []);
+
+  const handleApprove = async (sellerUid: string) => {
+    try {
+      await approveSeller(sellerUid, user?.id || 'ADMIN');
+      setPendingSellers((p) => p.filter((s) => s.userId !== sellerUid));
+    } catch (err) {
+      console.error('Failed to approve seller:', err);
+    }
+  };
+
+  const handleReject = async (sellerUid: string) => {
+    try {
+      await rejectSeller(sellerUid, 'KYC documentation insufficient');
+      setPendingSellers((p) => p.filter((s) => s.userId !== sellerUid));
+    } catch (err) {
+      console.error('Failed to reject seller:', err);
+    }
+  };
   const totalGmv = PLATFORM_REVENUE.reduce((s, m) => s + m.gmv, 0);
   const totalCommission = PLATFORM_REVENUE.reduce((s, m) => s + m.commission, 0);
 
@@ -165,7 +207,7 @@ const AdminDashboard: React.FC = () => {
         <div className={styles.cardHeader}>
           <div>
             <h2 className={styles.sectionTitle}>Pending Seller Approvals</h2>
-            <p className={styles.sectionSub}>{PENDING_SELLERS.length} sellers awaiting KYC verification</p>
+            <p className={styles.sectionSub}>{pendingSellers.length > 0 ? pendingSellers.length : PENDING_SELLERS_MOCK.length} sellers awaiting KYC verification</p>
           </div>
           <Link href={ROUTES.ADMIN.SELLERS} className={styles.viewAll}>
             View all <ArrowUpRight size={13} />
@@ -179,27 +221,41 @@ const AdminDashboard: React.FC = () => {
                 <th scope="col">Category</th>
                 <th scope="col">Location</th>
                 <th scope="col">GST Number</th>
-                <th scope="col">Applied</th>
                 <th scope="col">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {PENDING_SELLERS.map((seller) => (
-                <tr key={seller.id} className={styles.tableRow}>
-                  <td className={styles.sellerName}>{seller.name}</td>
-                  <td><Badge variant="primary" size="sm">{seller.category}</Badge></td>
-                  <td className={styles.city}>{seller.city}</td>
-                  <td><span className={styles.gst}>{seller.gst}</span></td>
-                  <td className={styles.date}>{formatDate(seller.applied)}</td>
-                  <td>
-                    <div className={styles.approvalActions}>
-                      <Button variant="primary" size="xs" leftIcon={<CheckCircle size={12} />}>Approve</Button>
-                      <Button variant="danger" size="xs">Reject</Button>
-                      <Button variant="ghost" size="xs">Review</Button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+              {pendingSellers.length > 0 ? (
+                pendingSellers.map((seller) => (
+                  <tr key={seller.userId} className={styles.tableRow}>
+                    <td className={styles.sellerName}>{seller.businessName}</td>
+                    <td><Badge variant="primary" size="sm">{seller.categories?.[0] || 'Auto Parts'}</Badge></td>
+                    <td className={styles.city}>{seller.warehouseAddresses?.[0]?.city || 'India'}</td>
+                    <td><span className={styles.gst}>{seller.gstNumber}</span></td>
+                    <td>
+                      <div className={styles.approvalActions}>
+                        <Button variant="primary" size="xs" leftIcon={<CheckCircle size={12} />} onClick={() => handleApprove(seller.userId)}>Approve</Button>
+                        <Button variant="danger" size="xs" onClick={() => handleReject(seller.userId)}>Reject</Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                PENDING_SELLERS_MOCK.map((seller) => (
+                  <tr key={seller.id} className={styles.tableRow}>
+                    <td className={styles.sellerName}>{seller.name}</td>
+                    <td><Badge variant="primary" size="sm">{seller.category}</Badge></td>
+                    <td className={styles.city}>{seller.city}</td>
+                    <td><span className={styles.gst}>{seller.gst}</span></td>
+                    <td>
+                      <div className={styles.approvalActions}>
+                        <Button variant="primary" size="xs" leftIcon={<CheckCircle size={12} />}>Approve</Button>
+                        <Button variant="danger" size="xs">Reject</Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
@@ -217,7 +273,7 @@ const AdminDashboard: React.FC = () => {
           </Link>
         </div>
         <div className={styles.ordersList}>
-          {MOCK_ORDERS.map((order) => (
+          {orders.map((order) => (
             <div key={order.id} className={styles.orderRow}>
               <div className={styles.orderInfo}>
                 <p className={styles.orderNum}>{order.orderNumber}</p>

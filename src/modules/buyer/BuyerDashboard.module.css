@@ -2,29 +2,47 @@
 
 .page { display: flex; flex-direction: column; gap: var(--space-6); }
 
-/* ── Welcome ──────────────────────────────────────────────────────────────── */
+/* ── Welcome Hero Banner ─────────────────────────────────────────────────── */
 .welcome {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-4);
   flex-wrap: wrap;
+  background: linear-gradient(135deg, #7a0000 0%, #4a0000 100%);
+  color: #ffffff;
+  padding: 28px 32px;
+  border-radius: var(--radius-2xl);
+  box-shadow: 0 12px 24px -6px rgba(122, 0, 0, 0.3), 0 0 0 1px rgba(212, 175, 55, 0.3);
+  position: relative;
+  overflow: hidden;
+}
+
+.welcome::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -10%;
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(circle, rgba(212, 175, 55, 0.15) 0%, transparent 70%);
+  pointer-events: none;
 }
 
 .greeting {
-  font-size: var(--text-2xl);
-  font-weight: var(--font-bold);
-  color: var(--text-primary);
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: #ffffff;
   letter-spacing: -0.02em;
 }
 
 .subGreeting {
   font-size: var(--text-sm);
-  color: var(--text-secondary);
+  color: rgba(255, 255, 255, 0.8);
   margin-top: var(--space-1);
 }
 
-.welcomeActions { display: flex; gap: var(--space-3); }
+.welcomeActions { display: flex; gap: var(--space-3); z-index: 1; }
 
 /* ── Stats Grid ───────────────────────────────────────────────────────────── */
 .statsGrid {
@@ -45,8 +63,8 @@
   background: var(--bg-surface);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-xl);
-  padding: var(--space-5);
-  box-shadow: var(--shadow-sm);
+  padding: var(--space-6);
+  box-shadow: var(--shadow-md);
 }
 
 .chartHeader {
@@ -57,9 +75,13 @@
 }
 
 .totalSpend {
-  font-size: var(--text-lg);
-  font-weight: var(--font-bold);
-  color: var(--color-brand-600);
+  font-size: var(--text-base);
+  font-weight: 700;
+  color: var(--color-brand-800);
+  background: var(--color-brand-50);
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--color-brand-100);
 }
 
 .chartWrap { margin-top: var(--space-2); }

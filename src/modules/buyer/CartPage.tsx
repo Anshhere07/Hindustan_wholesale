@@ -7,30 +7,54 @@ import styles from './CartPage.module.css';
 import Button from '@/components/ui/Button';
 import { useCartStore } from '@/stores/cart.store';
 import { useUIStore } from '@/stores/ui.store';
+import { useAuthStore } from '@/stores/auth.store';
 import { formatCurrency } from '@/lib/utils/format';
 import { ROUTES } from '@/lib/constants/routes';
+import { placeOrder } from '@/lib/firebase/collections/orders';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Cart Page — line items, quantity controls, GST breakdown, checkout
 // ─────────────────────────────────────────────────────────────────────────────
 
 const CartPage: React.FC = () => {
-  const { items, subtotal, totalGst, grandTotal, itemCount, updateQuantity, removeItem, clearCart } = useCartStore();
+  const cartStore = useCartStore();
+  const { items, subtotal, totalGst, grandTotal, itemCount, updateQuantity, removeItem, clearCart } = cartStore;
   const { addNotification } = useUIStore();
+  const { user } = useAuthStore();
   const [coupon, setCoupon] = useState('');
   const [isCheckingOut, setIsCheckingOut] = useState(false);
 
   const handleCheckout = async () => {
     setIsCheckingOut(true);
-    await new Promise((r) => setTimeout(r, 1200));
-    addNotification({
-      type: 'success',
-      title: 'Order Placed Successfully!',
-      message: `Order HW-2026-00004 confirmed. ₹${grandTotal.toLocaleString('en-IN')} will be invoiced.`,
-      duration: 6000,
-    });
-    clearCart();
-    setIsCheckingOut(false);
+    try {
+      const buyerId = user?.id || 'ANONYMOUS_BUYER';
+      const buyerName = user ? `${user.firstName} ${user.lastName}` : 'Guest Retailer';
+      const orderId = await placeOrder(
+        cartStore,
+        buyerId,
+        buyerName,
+        undefined,
+        { id: 'addr-1', line1: '123 Industrial Area', city: 'New Delhi', state: 'Delhi', pincode: '110020', country: 'India' },
+        { id: 'addr-1', line1: '123 Industrial Area', city: 'New Delhi', state: 'Delhi', pincode: '110020', country: 'India' },
+        'credit_line'
+      );
+      addNotification({
+        type: 'success',
+        title: 'Order Placed Successfully!',
+        message: `Order saved in Firestore (ID: ${orderId}). ₹${grandTotal.toLocaleString('en-IN')} will be invoiced.`,
+        duration: 6000,
+      });
+      clearCart();
+    } catch (err: any) {
+      console.error('Failed to place order in Firestore:', err);
+      addNotification({
+        type: 'error',
+        title: 'Checkout Error',
+        message: err.message || 'Failed to place order',
+      });
+    } finally {
+      setIsCheckingOut(false);
+    }
   };
 
   if (items.length === 0) {

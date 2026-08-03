@@ -23,6 +23,7 @@ export interface User {
 export interface BuyerProfile {
   userId: ID;
   companyName: string;
+  businessName?: string;
   gstNumber?: string;
   panNumber?: string;
   businessType: 'proprietorship' | 'partnership' | 'pvt_ltd' | 'llp' | 'other';

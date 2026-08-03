@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Search, Filter, Download, Eye } from 'lucide-react';
 import styles from './OrdersPage.module.css';
@@ -9,7 +9,9 @@ import Button from '@/components/ui/Button';
 import { MOCK_ORDERS } from '@/lib/api/mock-data';
 import { formatCurrency, formatDate } from '@/lib/utils/format';
 import { ROUTES } from '@/lib/constants/routes';
-import type { OrderStatus } from '@/types/order.types';
+import type { OrderStatus, Order } from '@/types/order.types';
+import { getBuyerOrders, getAllOrders } from '@/lib/firebase/collections/orders';
+import { useAuthStore } from '@/stores/auth.store';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Orders Page — filterable order history with status tabs
@@ -26,8 +28,28 @@ const STATUS_TABS: { label: string; value: OrderStatus | 'all' }[] = [
 const OrdersPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<OrderStatus | 'all'>('all');
   const [search, setSearch] = useState('');
+  const [orders, setOrders] = useState<Order[]>(MOCK_ORDERS);
+  const { user } = useAuthStore();
 
-  const filtered = MOCK_ORDERS.filter((o) => {
+  useEffect(() => {
+    async function loadOrders() {
+      try {
+        let res: Order[] = [];
+        if (user?.id) {
+          res = await getBuyerOrders(user.id);
+        }
+        if (res.length === 0) {
+          res = await getAllOrders(50);
+        }
+        if (res.length > 0) setOrders(res);
+      } catch (err) {
+        console.error('Failed to load orders from Firestore:', err);
+      }
+    }
+    loadOrders();
+  }, [user]);
+
+  const filtered = orders.filter((o) => {
     const matchesTab = activeTab === 'all' || o.status === activeTab;
     const matchesSearch = !search || o.orderNumber.toLowerCase().includes(search.toLowerCase());
     return matchesTab && matchesSearch;
@@ -39,7 +61,7 @@ const OrdersPage: React.FC = () => {
       <div className={styles.header}>
         <div>
           <h1 className={styles.title}>My Orders</h1>
-          <p className={styles.subtitle}>{MOCK_ORDERS.length} total orders</p>
+          <p className={styles.subtitle}>{orders.length} total orders</p>
         </div>
         <Button variant="secondary" size="sm" leftIcon={<Download size={14} />}>
           Export CSV
@@ -51,8 +73,8 @@ const OrdersPage: React.FC = () => {
         <div className={styles.tabs} role="tablist" aria-label="Filter orders by status">
           {STATUS_TABS.map((tab) => {
             const count = tab.value === 'all'
-              ? MOCK_ORDERS.length
-              : MOCK_ORDERS.filter((o) => o.status === tab.value).length;
+              ? orders.length
+              : orders.filter((o) => o.status === tab.value).length;
             return (
               <button
                 key={tab.value}

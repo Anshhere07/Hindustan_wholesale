@@ -62,7 +62,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: #ff800d;
+  background: #0B2C6A;
   color: white;
   padding: 4px 14px;
   border-radius: 20px;
@@ -70,13 +70,13 @@
   font-weight: 700;
   text-decoration: none;
   transition: all 0.2s ease;
-  box-shadow: 0 2px 8px rgba(255, 128, 13, 0.35);
+  box-shadow: 0 2px 8px rgba(11, 44, 106, 0.35);
   cursor: pointer;
 }
 .orderByCallBtnHeader:hover {
-  background: #e67300;
+  background: #092254;
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(255, 128, 13, 0.45);
+  box-shadow: 0 4px 12px rgba(11, 44, 106, 0.45);
   color: white;
   text-decoration: none;
 }
@@ -371,7 +371,7 @@
 
 /* ── Hero ─────────────────────────────────────────────────────────────────── */
 .hero {
-  background: var(--color-navy-800);
+  background: linear-gradient(135deg, #8B0000 0%, #5C0000 100%);
   padding: 80px 24px 80px;
   overflow: hidden;
 }
@@ -417,7 +417,7 @@
 }
 
 .heroTitleOrange {
-  color: #FF9933; /* Saffron text */
+  color: #60A5FA; /* Electric blue text highlight */
 }
 
 .heroSubtitle {
@@ -436,7 +436,7 @@
 }
 
 .heroBtnPrimary {
-  background: #ff800d;
+  background: #0B2C6A;
   color: white;
   padding: 12px 24px;
   border-radius: 8px;
@@ -449,9 +449,10 @@
   transition: background 0.2s;
   border: none;
   cursor: pointer;
+  box-shadow: 0 4px 14px rgba(11, 44, 106, 0.4);
 }
 .heroBtnPrimary:hover {
-  background: #c2410c;
+  background: #092254;
 }
 
 .heroBtnSecondary {
@@ -1161,7 +1162,7 @@
   line-height: 1.5;
 }
 .sellerBannerBtn {
-  background-color: #ea580c !important;
+  background-color: #092254 !important;
   color: white !important;
   border: none !important;
   font-weight: 700 !important;
@@ -1172,11 +1173,12 @@
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
+  box-shadow: 0 4px 14px rgba(9, 34, 84, 0.4);
 }
 .sellerBannerBtn:hover {
-  background-color: #c2410c !important;
+  background-color: #06183D !important;
   transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(234, 88, 12, 0.3);
+  box-shadow: 0 8px 24px rgba(9, 34, 84, 0.5);
 }
 .sellerBannerRight {
   display: grid;
@@ -1205,7 +1207,7 @@
 
 /* ── Footer ───────────────────────────────────────────────────────────────── */
 .footer {
-  background: var(--color-navy-900);
+  background: #890000;
   padding: 60px 24px 40px;
 }
 
@@ -1230,7 +1232,7 @@
 .footerLogoIcon {
   width: 48px;
   height: 48px;
-  background: var(--color-brand-800);
+  background: #0B2C6A;
   color: white;
   border-radius: 50%;
   display: flex;
@@ -1284,7 +1286,7 @@
 }
 .trustBadgeGreen { background: #dcfce7; color: #16a34a; }
 .trustBadgeBlue { background: #e0f2fe; color: #0284c7; }
-.trustBadgeOrange { background: #ffedd5; color: #ea580c; }
+.trustBadgeOrange { background: #eff6ff; color: #1d4ed8; }
 
 .footerLinkCol {
   display: flex;
@@ -1320,7 +1322,7 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  background: #ff800d;
+  background: #0B2C6A;
   color: white;
   padding: 8px 16px;
   border-radius: 8px;
@@ -1330,23 +1332,23 @@
   transition: all 0.2s ease;
   margin-bottom: 12px;
   width: fit-content;
-  box-shadow: 0 4px 14px rgba(255, 128, 13, 0.25);
+  box-shadow: 0 4px 14px rgba(11, 44, 106, 0.35);
   cursor: pointer;
 }
 .orderByCallBtnFooter:hover {
-  background: #e67300;
+  background: #092254;
   transform: translateY(-2px);
-  box-shadow: 0 6px 18px rgba(255, 128, 13, 0.35);
+  box-shadow: 0 6px 18px rgba(11, 44, 106, 0.45);
   color: white;
   text-decoration: none;
 }
 .footerContactIcon {
-  color: var(--color-accent-500);
+  color: #60A5FA;
   flex-shrink: 0;
   transition: color 0.2s;
 }
 .footerContactRow:hover .footerContactIcon {
-  color: #FF9933;
+  color: #93C5FD;
 }
 
 .instagramLink {
@@ -1359,7 +1361,7 @@
   transition: color 0.2s;
 }
 .instagramLink:hover {
-  color: #FF9933;
+  color: #60A5FA;
 }
 
 .footerBottom {
@@ -1419,11 +1421,32 @@
   .brandsGrid { grid-template-columns: repeat(3, 1fr); }
 }
 
+@media (max-width: 1024px) {
+  .headerMiddleBarInner {
+    width: 100%;
+    padding: 12px 16px;
+    gap: 16px;
+  }
+  .headerSearch {
+    max-width: 100%;
+    flex: 1;
+    min-width: 160px;
+  }
+}
+
 @media (max-width: 768px) {
   .headerTopBar,
-  .headerSearch,
   .headerBottomBar {
-    display: none; /* Hide complex features on mobile, maybe implement a search toggle later */
+    display: none;
+  }
+  .headerSearch {
+    max-width: 100%;
+    height: 36px;
+    font-size: 13px;
+  }
+  .searchBtn {
+    padding: 0 14px;
+    font-size: 12px;
   }
   .headerMiddleBarInner {
     padding: 12px 12px;

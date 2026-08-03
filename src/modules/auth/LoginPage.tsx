@@ -17,19 +17,41 @@ const LoginPage: React.FC = () => {
   const [mobile, setMobile] = useState('');
   const [email, setEmail] = useState('');
 
-  const { loginAsBuyer, loginAsSeller } = useAuthStore();
+  const { sendOtp, isLoading } = useAuthStore();
   const { addNotification } = useUIStore();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (activeRole === 'retailer') {
-      loginAsBuyer();
-      addNotification({ type: 'success', title: 'Welcome Retailer!' });
-      window.location.href = ROUTES.BUYER.DASHBOARD;
-    } else {
-      loginAsSeller();
-      addNotification({ type: 'success', title: 'Welcome Seller!' });
-      window.location.href = ROUTES.SELLER.DASHBOARD;
+    if (!email) return;
+    try {
+      // 1. Trigger Mail OTP dispatch via API route
+      const res = await fetch('/api/auth/send-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to send OTP email');
+      }
+
+      if (typeof window !== 'undefined') {
+        window.localStorage.setItem('hw-otp-email', email);
+      }
+
+      addNotification({
+        type: 'success',
+        title: '6-Digit OTP Code Sent!',
+        message: `We've sent a 6-digit verification code to ${email}. Please check your inbox.`,
+      });
+      window.location.href = `${ROUTES.AUTH.VERIFY_OTP}?email=${encodeURIComponent(email)}&role=${activeRole}`;
+    } catch (err: any) {
+      addNotification({
+        type: 'error',
+        title: 'Authentication Error',
+        message: err.message || 'Failed to send OTP code',
+      });
     }
   };
 

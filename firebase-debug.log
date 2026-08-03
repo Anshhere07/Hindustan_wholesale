@@ -1,0 +1,27 @@
+[debug] [2026-07-29T10:19:43.690Z] ----------------------------------------------------------------------
+[debug] [2026-07-29T10:19:43.692Z] Command:       C:\Program Files\nodejs\node.exe E:\Hindustan_Wheels-master-20260729T062451Z-1-001\Hindustan_Wheels-master\node_modules\firebase-tools\lib\bin\firebase.js login:ci --no-localhost --interactive
+[debug] [2026-07-29T10:19:43.692Z] CLI Version:   15.24.0
+[debug] [2026-07-29T10:19:43.692Z] Platform:      win32
+[debug] [2026-07-29T10:19:43.692Z] Node Version:  v26.3.1
+[debug] [2026-07-29T10:19:43.692Z] Detected Agent: antigravity
+[debug] [2026-07-29T10:19:43.692Z] Time:          Wed Jul 29 2026 15:49:43 GMT+0530 (India Standard Time)
+[debug] [2026-07-29T10:19:43.692Z] ----------------------------------------------------------------------
+[debug] 
+[warn] !  Authenticating with a `login:ci` token is deprecated and will be removed in a future major version of `firebase-tools`. Instead, use a service account key with `GOOGLE_APPLICATION_CREDENTIALS`: https://cloud.google.com/docs/authentication/getting-started 
+[debug] [2026-07-29T10:19:43.880Z] >>> [apiv2][query] POST https://auth.firebase.tools/attest [none]
+[debug] [2026-07-29T10:19:43.880Z] >>> [apiv2][body] POST https://auth.firebase.tools/attest {"session_id":"b049e16b-2564-449f-a219-b4782bf0ec04"}
+[debug] [2026-07-29T10:19:44.579Z] <<< [apiv2][status] POST https://auth.firebase.tools/attest 200
+[debug] [2026-07-29T10:19:44.580Z] <<< [apiv2][body] POST https://auth.firebase.tools/attest {"token":"telFkbWgkqHrKIUnnuJlgSdVqxhcyHtMzkgXkrKsY7M"}
+[info] 
+[info] To sign in to the Firebase CLI:
+[info] 
+[info] 1. Take note of your session ID:
+[info] 
+[info]    B049E
+[info] 
+[info] 2. Visit the URL below on any device and follow the instructions to get your code:
+[info] 
+[info]    https://auth.firebase.tools/login?code_challenge=Bylr8sPEN7kY_lWcYtk51wE1LAD3Z9WhyxEaYpaMXjQ&session=b049e16b-2564-449f-a219-b4782bf0ec04&attest=telFkbWgkqHrKIUnnuJlgSdVqxhcyHtMzkgXkrKsY7M
+[info] 
+[info] 3. Paste or enter the authorization code below once you have it:
+[info] 

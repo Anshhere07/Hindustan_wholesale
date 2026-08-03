@@ -1,0 +1,244 @@
+/* ── Press Release Page Styles (Hindustan Wholesale) ──────────────────────── */
+
+.page {
+  min-height: 100vh;
+  background: #F8FAFC;
+  display: flex;
+  flex-direction: column;
+  color: #1E293B;
+  font-family: var(--font-sans, 'Inter', sans-serif);
+}
+
+.mainContent {
+  flex: 1;
+  width: 100%;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 48px 24px 80px;
+}
+
+@media (max-width: 640px) {
+  .mainContent {
+    padding: 24px 16px 48px;
+  }
+}
+
+/* Header Badge & Meta */
+.pressHeader {
+  margin-bottom: 32px;
+}
+
+.pressCategoryBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #EFF6FF;
+  color: #092254;
+  border: 1px solid #BFDBFE;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  margin-bottom: 16px;
+}
+
+.pressTitle {
+  font-size: clamp(24px, 3.5vw, 38px);
+  font-weight: 800;
+  color: #092254;
+  margin: 0 0 16px;
+  line-height: 1.25;
+  font-family: var(--font-heading, sans-serif);
+  letter-spacing: -0.02em;
+}
+
+.pressMetaRow {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 13px;
+  color: #64748B;
+  flex-wrap: wrap;
+  padding-bottom: 24px;
+  border-bottom: 1px solid #E2E8F0;
+}
+
+.pressMetaItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 500;
+}
+
+/* Article Container Card */
+.articleCard {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 24px;
+  padding: 40px 36px;
+  box-shadow: 0 10px 35px rgba(0, 0, 0, 0.03);
+}
+
+@media (max-width: 640px) {
+  .articleCard {
+    padding: 24px 18px;
+    border-radius: 16px;
+  }
+}
+
+.leadParagraph {
+  font-size: clamp(16px, 1.8vw, 18px);
+  color: #1E293B;
+  font-weight: 500;
+  line-height: 1.7;
+  margin-bottom: 24px;
+}
+
+.mottoBox {
+  background: linear-gradient(135deg, #092254 0%, #06183D 100%);
+  color: white;
+  border-radius: 16px;
+  padding: 24px 28px;
+  margin: 32px 0;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  box-shadow: 0 8px 24px rgba(9, 34, 84, 0.15);
+}
+
+@media (max-width: 640px) {
+  .mottoBox {
+    padding: 18px 20px;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+.mottoText {
+  font-size: clamp(16px, 2vw, 20px);
+  font-weight: 800;
+  margin: 0;
+  color: #FFFFFF;
+  letter-spacing: -0.01em;
+}
+
+.mottoSubtitle {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.85);
+  margin-top: 4px;
+}
+
+/* Body Content Headings & Text */
+.sectionTitle {
+  font-size: clamp(20px, 2.5vw, 24px);
+  font-weight: 800;
+  color: #092254;
+  margin: 36px 0 16px;
+  letter-spacing: -0.01em;
+}
+
+.bodyText {
+  font-size: 15px;
+  color: #475569;
+  line-height: 1.75;
+  margin: 0 0 20px;
+}
+
+/* Principles List Grid */
+.principlesGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  margin: 24px 0 36px;
+}
+
+.principleCard {
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 14px;
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #092254;
+  transition: all 0.2s ease;
+}
+
+.principleCard:hover {
+  background: #EFF6FF;
+  border-color: #BFDBFE;
+  transform: translateY(-2px);
+}
+
+.principleIcon {
+  color: #10B981;
+  flex-shrink: 0;
+}
+
+/* Founder Quote Box */
+.founderQuoteBox {
+  border-left: 4px solid #890000;
+  background: #FEF2F2;
+  border-radius: 0 16px 16px 0;
+  padding: 28px 32px;
+  margin: 36px 0;
+}
+
+@media (max-width: 640px) {
+  .founderQuoteBox {
+    padding: 20px 20px;
+  }
+}
+
+.quoteText {
+  font-size: clamp(15px, 1.8vw, 17px);
+  font-style: italic;
+  color: #1E293B;
+  line-height: 1.7;
+  margin: 0 0 16px;
+}
+
+.quoteAuthor {
+  font-size: 15px;
+  font-weight: 800;
+  color: #890000;
+}
+
+.quoteRole {
+  font-size: 13px;
+  color: #64748B;
+  font-weight: 500;
+}
+
+/* About Box */
+.aboutBox {
+  background: #F1F5F9;
+  border-radius: 16px;
+  padding: 28px 32px;
+  margin-top: 40px;
+  border: 1px solid #E2E8F0;
+}
+
+@media (max-width: 640px) {
+  .aboutBox {
+    padding: 20px 20px;
+  }
+}
+
+.aboutTitle {
+  font-size: 18px;
+  font-weight: 800;
+  color: #092254;
+  margin: 0 0 10px;
+}
+
+.aboutText {
+  font-size: 14px;
+  color: #475569;
+  line-height: 1.65;
+  margin: 0;
+}

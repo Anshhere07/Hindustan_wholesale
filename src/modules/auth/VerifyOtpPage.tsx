@@ -55,12 +55,10 @@ const VerifyOtpPage: React.FC = () => {
     if (e.key === 'Backspace') {
       const newOtp = [...otp];
       if (!newOtp[index] && index > 0) {
-        // Shift focus to previous input on backspace if current is empty
         newOtp[index - 1] = '';
         setOtp(newOtp);
         inputRefs.current[index - 1]?.focus();
       } else {
-        // Clear current input
         newOtp[index] = '';
         setOtp(newOtp);
       }
@@ -94,19 +92,35 @@ const VerifyOtpPage: React.FC = () => {
     setIsLoading(true);
     setError(null);
 
-    // Simulate OTP verification logic
-    await new Promise((r) => setTimeout(r, 1200));
+    try {
+      const email = typeof window !== 'undefined' ? (window.localStorage.getItem('hw-otp-email') || 'user@hindustanwheels.com') : '';
+      
+      // Call API route to verify OTP
+      const res = await fetch('/api/auth/verify-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, otp: fullCode }),
+      });
+      const data = await res.json();
 
-    if (fullCode === '123456' || fullCode === '000000') {
+      if (!res.ok) {
+        throw new Error(data.error || 'Invalid verification code');
+      }
+
       addNotification({
         type: 'success',
-        title: 'Device Verified',
-        message: 'Business identity authentication active.',
+        title: 'OTP Verified',
+        message: 'Mail OTP verification successful.',
       });
-      router.push(ROUTES.BUYER.DASHBOARD); // Default successful redirect
-    } else {
+
+      if (email.includes('seller')) {
+        router.push(ROUTES.SELLER.DASHBOARD);
+      } else {
+        router.push(ROUTES.BUYER.DASHBOARD);
+      }
+    } catch (err: any) {
       setIsLoading(false);
-      setError('Invalid verification code. Use "123456" for demo.');
+      setError(err.message || 'Invalid verification code');
       triggerShake();
       setOtp(Array(6).fill(''));
       inputRefs.current[0]?.focus();
@@ -118,14 +132,26 @@ const VerifyOtpPage: React.FC = () => {
     setTimeout(() => setShake(false), 500);
   };
 
-  const handleResend = () => {
+  const handleResend = async () => {
     setCountdown(30);
     setOtp(Array(6).fill(''));
     inputRefs.current[0]?.focus();
+
+    const email = typeof window !== 'undefined' ? (window.localStorage.getItem('hw-otp-email') || '') : '';
+    if (email) {
+      try {
+        await fetch('/api/auth/send-otp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email }),
+        });
+      } catch (e) {}
+    }
+
     addNotification({
       type: 'info',
       title: 'Code Sent',
-      message: 'A new 6-digit code has been sent to your registered device.',
+      message: 'A new 6-digit verification code has been sent to your email.',
     });
   };
 
@@ -145,9 +171,9 @@ const VerifyOtpPage: React.FC = () => {
             <div className={styles.iconWrap}>
               <ShieldCheck size={28} />
             </div>
-            <h1 className={styles.title}>Two-Factor Verification</h1>
+            <h1 className={styles.title}>Email OTP Verification</h1>
             <p className={styles.subtitle}>
-              We sent a 6-digit authentication code to your registered device. Enter the code below to sign in.
+              We sent a 6-digit authentication code to your registered email.
             </p>
           </div>
 
@@ -211,11 +237,6 @@ const VerifyOtpPage: React.FC = () => {
                 <RefreshCw size={14} /> Resend OTP Code
               </button>
             )}
-          </div>
-
-          {/* Demo notice */}
-          <div className={styles.demoNotice}>
-            <p>💡 <strong>Demo Mode:</strong> Use code <strong>123456</strong> or <strong>000000</strong> to pass.</p>
           </div>
         </div>
       </div>

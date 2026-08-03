@@ -55,7 +55,9 @@ export interface Product {
   slug: string;
   description: string;
   shortDescription?: string;
-  category: Category;
+  category?: Category;
+  categoryId: string;
+  categoryName: string;
   sellerId: ID;
   sellerName: string;
   sellerRating: number;
@@ -105,6 +107,7 @@ export interface ProductListItem
   > {
   primaryImage: ProductImage;
   categoryName: string;
+  categoryId?: string;
 }
 
 export interface ProductFilter {

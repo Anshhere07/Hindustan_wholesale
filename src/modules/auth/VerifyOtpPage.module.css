@@ -1,21 +1,19 @@
-/* ── VerifyOtpPage ────────────────────────────────────────────────────────── */
-
 .page {
   min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--bg-base);
+  background: radial-gradient(circle at 50% 20%, #fdf2f4 0%, #f8fafc 100%);
   padding: var(--space-6);
 }
 
 .formPanel {
   background: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
+  border: 1px solid rgba(139, 0, 0, 0.12);
   border-radius: var(--radius-2xl);
-  box-shadow: var(--shadow-xl);
+  box-shadow: 0 20px 40px -15px rgba(139, 0, 0, 0.15), 0 0 0 1px rgba(212, 175, 55, 0.2);
   width: 100%;
-  max-width: 440px;
+  max-width: 460px;
   overflow: hidden;
 }
 
@@ -32,13 +30,13 @@
   align-items: center;
   gap: var(--space-2);
   font-size: var(--text-sm);
-  color: var(--text-secondary);
+  color: var(--color-gray-600);
   text-decoration: none;
-  font-weight: var(--font-medium);
+  font-weight: 500;
   align-self: flex-start;
   transition: color var(--transition-fast);
 }
-.backLink:hover { color: var(--text-primary); }
+.backLink:hover { color: var(--color-brand-800); }
 
 /* ── Header ───────────────────────────────────────────────────────────────── */
 .header {
@@ -50,63 +48,65 @@
 }
 
 .iconWrap {
-  width: 60px; height: 60px;
-  background: var(--color-brand-50);
-  color: var(--color-brand-600);
+  width: 64px; height: 64px;
+  background: linear-gradient(135deg, #8b0000 0%, #a00c24 100%);
+  color: #ffffff;
   border-radius: var(--radius-full);
   display: flex;
   align-items: center;
   justify-content: center;
+  box-shadow: 0 8px 16px -4px rgba(139, 0, 0, 0.3);
 }
 
 .title {
-  font-size: var(--text-xl);
-  font-weight: var(--font-bold);
-  color: var(--text-primary);
+  font-size: var(--text-2xl);
+  font-weight: 700;
+  color: var(--color-gray-900);
   letter-spacing: -0.02em;
 }
 
 .subtitle {
   font-size: var(--text-sm);
-  color: var(--text-secondary);
+  color: var(--color-gray-500);
   line-height: 1.5;
-  max-width: 320px;
+  max-width: 340px;
 }
 
 /* ── Form ─────────────────────────────────────────────────────────────────── */
 .form {
   display: flex;
   flex-direction: column;
-  gap: var(--space-5);
+  gap: var(--space-6);
 }
 
 .otpGroup {
   display: flex;
   justify-content: space-between;
-  gap: var(--space-2);
+  gap: var(--space-3);
 }
 
 .otpInput {
-  width: 50px;
-  height: 58px;
+  width: 52px;
+  height: 62px;
   background: var(--bg-surface);
-  border: 1.5px solid var(--border-default);
-  border-radius: var(--radius-lg);
-  font-size: var(--text-2xl);
-  font-weight: var(--font-bold);
-  color: var(--text-primary);
+  border: 2px solid var(--color-gray-200);
+  border-radius: var(--radius-xl);
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--color-brand-800);
   text-align: center;
   outline: none;
   font-family: var(--font-sans);
-  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  transition: all var(--transition-fast);
 }
 .otpInput:focus {
-  border-color: var(--color-brand-500);
-  box-shadow: 0 0 0 3px rgba(189,27,19,0.15);
+  border-color: var(--color-brand-800);
+  box-shadow: 0 0 0 4px rgba(139, 0, 0, 0.15);
+  transform: translateY(-2px);
 }
 .otpInput:disabled {
   background: var(--bg-surface-alt);
-  color: var(--text-tertiary);
+  color: var(--color-gray-400);
   cursor: not-allowed;
 }
 
@@ -114,7 +114,11 @@
   font-size: var(--text-sm);
   color: var(--color-danger-600);
   text-align: center;
-  font-weight: var(--font-medium);
+  font-weight: 600;
+  background: #fef2f2;
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid #fca5a5;
 }
 
 /* ── Resend ───────────────────────────────────────────────────────────────── */

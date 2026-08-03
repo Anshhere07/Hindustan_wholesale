@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
   TrendingUp, Package, ShoppingBag, Star, ArrowUpRight,
@@ -20,6 +20,8 @@ import {
 import { formatCurrency, formatDate } from '@/lib/utils/format';
 import { ROUTES } from '@/lib/constants/routes';
 import { useAuthStore } from '@/stores/auth.store';
+import { getSellerOrders, getAllOrders } from '@/lib/firebase/collections/orders';
+import type { Order } from '@/types/order.types';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Seller Dashboard — revenue analytics, order pipeline, inventory alerts
@@ -35,8 +37,28 @@ const INVENTORY_ALERTS = [
 
 const SellerDashboard: React.FC = () => {
   const { user } = useAuthStore();
+  const [orders, setOrders] = useState<Order[]>(MOCK_ORDERS);
+
+  useEffect(() => {
+    async function loadOrders() {
+      try {
+        let res: Order[] = [];
+        if (user?.id) {
+          res = await getSellerOrders(user.id, 5);
+        }
+        if (res.length === 0) {
+          res = await getAllOrders(5);
+        }
+        if (res.length > 0) setOrders(res);
+      } catch (err) {
+        console.error('Failed to load seller orders from Firestore:', err);
+      }
+    }
+    loadOrders();
+  }, [user]);
+
   const totalRevenue = MOCK_SELLER_REVENUE.reduce((s, m) => s + m.revenue, 0);
-  const totalOrders  = MOCK_SELLER_REVENUE.reduce((s, m) => s + m.orders, 0);
+  const totalOrders  = orders.length > 0 ? orders.length : MOCK_SELLER_REVENUE.reduce((s, m) => s + m.orders, 0);
 
   return (
     <div className={styles.page}>
@@ -178,7 +200,7 @@ const SellerDashboard: React.FC = () => {
             </Link>
           </div>
           <div className={styles.ordersList}>
-            {MOCK_ORDERS.slice(0, 3).map((order) => (
+            {orders.slice(0, 3).map((order) => (
               <div key={order.id} className={styles.orderRow}>
                 <div className={styles.orderInfo}>
                   <p className={styles.orderNum}>{order.orderNumber}</p>

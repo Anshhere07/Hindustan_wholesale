@@ -247,9 +247,20 @@ export const BRANDS = [
 ];
 
 // ── Public Header ─────────────────────────────────────────────────────────────
+import { resolveSearchRoute } from '@/lib/utils/searchRouter';
+
 export const PublicHeader: React.FC = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
   const [isDesktopMenuOpen, setIsDesktopMenuOpen] = React.useState(false);
+  const [searchQuery, setSearchQuery] = React.useState('');
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      const targetUrl = resolveSearchRoute(searchQuery);
+      window.location.href = targetUrl;
+    }
+  };
 
   return (
     <div className={styles.headerWrapper}>
@@ -257,7 +268,7 @@ export const PublicHeader: React.FC = () => {
       <div className={styles.headerTopBar}>
         <div className={styles.headerTopBarInner}>
           <div className={styles.topBarLeft}>
-            🇮🇳 Serving retailers across 720+ Indian cities
+            🇮🇳 Serving retailers across 100+ Indian cities
           </div>
           <div className={styles.topBarRight}>
             <a href="tel:+918800232363" className={styles.orderByCallBtnHeader}>
@@ -284,15 +295,17 @@ export const PublicHeader: React.FC = () => {
             </div>
           </Link>
 
-          <div className={styles.headerSearch}>
+          <form onSubmit={handleSearchSubmit} className={styles.headerSearch}>
             <Search size={18} className={styles.searchIcon} />
             <input
               type="text"
               placeholder="Search products, brands, HSN codes..."
               className={styles.searchInput}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
             />
-            <button className={styles.searchBtn}>Search</button>
-          </div>
+            <button type="submit" className={styles.searchBtn}>Search</button>
+          </form>
 
           <div className={styles.headerActions}>
             <Link href={ROUTES.AUTH.LOGIN} className={styles.actionBtn}>
@@ -386,7 +399,7 @@ const LandingPage: React.FC = () => {
             </h1>
 
             <p className={styles.heroSubtitle}>
-              Bulk pricing from verified manufacturers, GST-compliant invoicing and pan-India delivery — built for India&apos;s retailers, kirana stores and traders.
+              India&apos;s trusted B2B pltform for automobile retailers. Genuine products, transparent wholesale pricing, verified suppliers and reliable delivery - all in one place
             </p>
 
             <div className={styles.heroCta}>
@@ -399,16 +412,12 @@ const LandingPage: React.FC = () => {
 
             <div className={styles.heroStats}>
               <div className={styles.heroStat}>
-                <span className={styles.heroStatValue}>15k+</span>
+                <span className={styles.heroStatValue}>500+</span>
                 <span className={styles.heroStatLabel}>Verified sellers</span>
               </div>
               <div className={styles.heroStat}>
-                <span className={styles.heroStatValue}>720+</span>
+                <span className={styles.heroStatValue}>100+</span>
                 <span className={styles.heroStatLabel}>Cities served</span>
-              </div>
-              <div className={styles.heroStat}>
-                <span className={styles.heroStatValue}>₹380 Cr+</span>
-                <span className={styles.heroStatLabel}>GMV enabled</span>
               </div>
             </div>
           </div>
@@ -704,9 +713,9 @@ export const PublicFooter: React.FC = () => {
           <div className={styles.footerLinkCol}>
             <h4 className={styles.footerLinkTitle}>Company</h4>
             <Link href="/about" className={styles.footerLink}>About us</Link>
-            <Link href="#" className={styles.footerLink}>Contact</Link>
+            <Link href={ROUTES.CONTACT} className={styles.footerLink}>Contact</Link>
             <Link href="#" className={styles.footerLink}>Careers</Link>
-            <Link href="#" className={styles.footerLink}>Press</Link>
+            <Link href={ROUTES.PRESS} className={styles.footerLink}>Press</Link>
           </div>
 
           <div className={styles.footerLinkCol}>
