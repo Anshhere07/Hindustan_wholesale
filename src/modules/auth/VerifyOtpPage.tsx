@@ -7,6 +7,7 @@ import { ShieldCheck, ArrowLeft, RefreshCw } from 'lucide-react';
 import styles from './VerifyOtpPage.module.css';
 import Button from '@/components/ui/Button';
 import { useUIStore } from '@/stores/ui.store';
+import { useAuthStore } from '@/stores/auth.store';
 import { ROUTES } from '@/lib/constants/routes';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -93,8 +94,17 @@ const VerifyOtpPage: React.FC = () => {
     setError(null);
 
     try {
-      const email = typeof window !== 'undefined' ? (window.localStorage.getItem('hw-otp-email') || 'user@hindustanwheels.com') : '';
-      
+      const email = typeof window !== 'undefined'
+        ? (window.localStorage.getItem('hw-otp-email') || '')
+        : '';
+      const role = typeof window !== 'undefined'
+        ? (window.localStorage.getItem('hw-otp-role') || 'retailer')
+        : 'retailer';
+
+      if (!email) {
+        throw new Error('Session expired. Please go back and enter your email again.');
+      }
+
       // Call API route to verify OTP
       const res = await fetch('/api/auth/verify-otp', {
         method: 'POST',
@@ -107,13 +117,28 @@ const VerifyOtpPage: React.FC = () => {
         throw new Error(data.error || 'Invalid verification code');
       }
 
-      addNotification({
-        type: 'success',
-        title: 'OTP Verified',
-        message: 'Mail OTP verification successful.',
+      // Set a lightweight user session in auth store so the app knows user is logged in
+      const { setUser } = useAuthStore.getState();
+      setUser({
+        id: email.replace(/[^a-z0-9]/gi, '_'),
+        email,
+        phone: window.localStorage.getItem('hw-otp-mobile') || '',
+        firstName: window.localStorage.getItem('hw-otp-name')?.split(' ')[0] || 'User',
+        lastName: window.localStorage.getItem('hw-otp-name')?.split(' ').slice(1).join(' ') || '',
+        role: role === 'seller' ? 'seller' : 'buyer',
+        status: 'active',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       });
 
-      if (email.includes('seller')) {
+      addNotification({
+        type: 'success',
+        title: 'OTP Verified ✓',
+        message: 'You are now signed in. Welcome to Hindustan Wheels!',
+      });
+
+      // Redirect based on stored role
+      if (role === 'seller') {
         router.push(ROUTES.SELLER.DASHBOARD);
       } else {
         router.push(ROUTES.BUYER.DASHBOARD);
@@ -140,19 +165,26 @@ const VerifyOtpPage: React.FC = () => {
     const email = typeof window !== 'undefined' ? (window.localStorage.getItem('hw-otp-email') || '') : '';
     if (email) {
       try {
-        await fetch('/api/auth/send-otp', {
+        const res = await fetch('/api/auth/send-otp', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email }),
         });
-      } catch (e) {}
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed to resend');
+        addNotification({
+          type: 'info',
+          title: 'New Code Sent',
+          message: `A fresh 6-digit code has been sent to ${email}.`,
+        });
+      } catch (err: any) {
+        addNotification({
+          type: 'error',
+          title: 'Resend Failed',
+          message: err.message || 'Could not resend OTP. Please try again.',
+        });
+      }
     }
-
-    addNotification({
-      type: 'info',
-      title: 'Code Sent',
-      message: 'A new 6-digit verification code has been sent to your email.',
-    });
   };
 
   const isFormComplete = otp.every((d) => d !== '');

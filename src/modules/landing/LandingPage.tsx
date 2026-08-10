@@ -364,6 +364,12 @@ export const PublicHeader: React.FC = () => {
       {/* Mobile Menu Dropdown */}
       {isMobileMenuOpen && (
         <div className={styles.mobileMenuDropdown} onClick={() => setIsMobileMenuOpen(false)}>
+          <Link href={ROUTES.AUTH.LOGIN} className={styles.mobileMenuLink}>Sign in</Link>
+          <Link href={ROUTES.AUTH.REGISTER} className={styles.mobileMenuLink}>Register</Link>
+          <a href="tel:+918800232363" className={styles.mobileMenuLink}>
+            📞 Order by Call
+          </a>
+          <div style={{ height: '1px', background: 'var(--border-subtle)', margin: '4px 0' }} />
           <div className={styles.mobileMenuSection}>Automobile</div>
 
           <Link href="/categories/automobile/2-wheeler" className={styles.mobileMenuSubLink}>2-wheeler</Link>
@@ -372,6 +378,9 @@ export const PublicHeader: React.FC = () => {
           <Link href="/categories/automobile/agriculture" className={styles.mobileMenuSubLink}>Agriculture wheeler</Link>
           <div style={{ height: '1px', background: 'var(--border-subtle)', margin: '8px 0' }} />
           <Link href="/categories/clothing" className={styles.mobileMenuLink}>Clothing</Link>
+          <div style={{ height: '1px', background: 'var(--border-subtle)', margin: '4px 0' }} />
+          <Link href="/about" className={styles.mobileMenuLink}>About Us</Link>
+          <Link href="/contact" className={styles.mobileMenuLink}>Contact</Link>
         </div>
       )}
     </div>

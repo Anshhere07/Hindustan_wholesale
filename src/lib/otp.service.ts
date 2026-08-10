@@ -1,21 +1,38 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // Mail OTP Verification Service — Hindustan Wheels
-// Handles: 6-digit random code generation, Firestore TTL storage & Nodemailer SMTP dispatch
+// Handles: 6-digit random code generation, in-memory TTL storage & Nodemailer SMTP dispatch
 // ─────────────────────────────────────────────────────────────────────────────
 
 import nodemailer from 'nodemailer';
-import { db } from '@/lib/firebase/config';
-import {
-  doc,
-  setDoc,
-  getDoc,
-  updateDoc,
-  deleteDoc,
-  serverTimestamp,
-} from 'firebase/firestore';
 
-const OTP_COLLECTION = 'otp_codes';
 const OTP_EXPIRY_MINUTES = 10; // 10 minutes TTL
+
+// ── In-Memory OTP Store ──────────────────────────────────────────────────────
+// Replaces client-side Firebase SDK which doesn't work in server-side API routes.
+// OTPs are short-lived (10 min) so in-memory storage is reliable and fast.
+
+interface OtpRecord {
+  email: string;
+  otp: string;
+  expiresAt: number;
+  attempts: number;
+  verified: boolean;
+  createdAt: number;
+}
+
+const otpStore = new Map<string, OtpRecord>();
+
+// Clean up expired records periodically (every 5 minutes)
+if (typeof setInterval !== 'undefined') {
+  setInterval(() => {
+    const now = Date.now();
+    for (const [key, record] of otpStore.entries()) {
+      if (now > record.expiresAt) {
+        otpStore.delete(key);
+      }
+    }
+  }, 5 * 60 * 1000);
+}
 
 // Configure Nodemailer transporter (supports Gmail SMTP with fallback)
 function getTransporter() {
@@ -57,15 +74,15 @@ export async function generateAndSendOtp(email: string): Promise<{ otp: string; 
   const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
   const expiresAt = Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000;
 
-  // 2. Save OTP record to Firestore `otp_codes` collection
+  // 2. Save OTP record to in-memory store
   const docId = normalizedEmail.replace(/[^a-z0-9]/gi, '_');
-  await setDoc(doc(db, OTP_COLLECTION, docId), {
+  otpStore.set(docId, {
     email: normalizedEmail,
     otp: otpCode,
     expiresAt,
     attempts: 0,
     verified: false,
-    createdAt: serverTimestamp(),
+    createdAt: Date.now(),
   });
 
   // 3. Send email with 6-digit code via Nodemailer
@@ -114,6 +131,8 @@ export async function generateAndSendOtp(email: string): Promise<{ otp: string; 
     console.log(`✉️ Real OTP email sent to ${normalizedEmail} with code [${otpCode}]`);
   } catch (err: any) {
     console.error(`❌ SMTP mail dispatch failed for ${normalizedEmail}: ${err.message}`);
+    // Re-throw so the API route can return a proper error to the user
+    throw new Error(`Failed to send verification email to ${normalizedEmail}. Please try again.`);
   }
 
   return {
@@ -123,43 +142,40 @@ export async function generateAndSendOtp(email: string): Promise<{ otp: string; 
 }
 
 /**
- * Verify a 6-digit OTP code against Firestore
+ * Verify a 6-digit OTP code against in-memory store
  */
 export async function verifyOtpCode(email: string, inputOtp: string): Promise<{ valid: boolean; message: string }> {
   const normalizedEmail = email.trim().toLowerCase();
   const docId = normalizedEmail.replace(/[^a-z0-9]/gi, '_');
 
-  const snap = await getDoc(doc(db, OTP_COLLECTION, docId));
+  const data = otpStore.get(docId);
 
-  if (!snap.exists()) {
+  if (!data) {
     return { valid: false, message: 'No active OTP request found for this email. Please click "Resend Code".' };
   }
 
-  const data = snap.data();
-
   // Check expiration
   if (Date.now() > data.expiresAt) {
-    await deleteDoc(doc(db, OTP_COLLECTION, docId));
+    otpStore.delete(docId);
     return { valid: false, message: 'Verification OTP has expired. Please click "Resend Code".' };
   }
 
   // Check attempts limit (max 5 invalid tries)
   if ((data.attempts || 0) >= 5) {
-    await deleteDoc(doc(db, OTP_COLLECTION, docId));
+    otpStore.delete(docId);
     return { valid: false, message: 'Too many incorrect attempts. Please request a new OTP code.' };
   }
 
-  // Check code match against stored Firestore OTP
+  // Check code match against stored OTP
   const isValidCode = inputOtp.trim() === data.otp;
 
   if (!isValidCode) {
-    await updateDoc(doc(db, OTP_COLLECTION, docId), {
-      attempts: (data.attempts || 0) + 1,
-    });
-    return { valid: false, message: `Invalid OTP code (${4 - (data.attempts || 0)} attempts remaining).` };
+    data.attempts = (data.attempts || 0) + 1;
+    otpStore.set(docId, data);
+    return { valid: false, message: `Invalid OTP code (${5 - data.attempts} attempts remaining).` };
   }
 
-  // Mark as verified and clean up doc
-  await deleteDoc(doc(db, OTP_COLLECTION, docId));
+  // Mark as verified and clean up
+  otpStore.delete(docId);
   return { valid: true, message: 'OTP verified successfully!' };
 }
