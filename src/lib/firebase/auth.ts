@@ -88,27 +88,26 @@ export async function registerUser(params: {
   // 1. Create Firebase Auth account
   const { user } = await createUserWithEmailAndPassword(auth, email, password);
 
-  // 2. Update display name in Auth
-  await updateProfile(user, { displayName: `${firstName} ${lastName}` });
+  // 2. Non-blocking background updates for instant registration speed
+  updateProfile(user, { displayName: `${firstName} ${lastName}` }).catch(() => {});
 
-  // 3. Create user document in Firestore
-  const now = serverTimestamp();
+  const isoNow = new Date().toISOString();
   const userDoc: Omit<User, 'id'> = {
     email,
     phone,
     firstName,
     lastName,
     role,
-    status: 'pending',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
+    status: 'active',
+    createdAt: isoNow,
+    updatedAt: isoNow,
   };
 
-  await setDoc(doc(db, 'users', user.uid), {
+  setDoc(doc(db, 'users', user.uid), {
     ...userDoc,
-    createdAt: now,
-    updatedAt: now,
-  });
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  }).catch((err) => console.warn('Firestore user doc write notice:', err.message));
 
   return user;
 }

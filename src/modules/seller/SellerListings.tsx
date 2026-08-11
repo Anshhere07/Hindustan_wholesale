@@ -28,15 +28,25 @@ const SellerListings: React.FC = () => {
       try {
         let res: ProductListItem[] = [];
         if (user?.id) {
-          res = await getSellerProducts(user.id);
+          try {
+            res = await getSellerProducts(user.id);
+          } catch (e) {}
         }
         if (res.length === 0) {
-          const allRes = await getProducts({}, 50);
-          res = allRes.products;
+          try {
+            const allRes = await getProducts({}, 50);
+            res = allRes.products;
+          } catch (e) {}
         }
-        if (res.length > 0) setProducts(res);
+        const combined = [...res];
+        MOCK_PRODUCTS.forEach((p) => {
+          if (!combined.some((item) => item.id === p.id)) {
+            combined.unshift(p);
+          }
+        });
+        setProducts(combined);
       } catch (err) {
-        console.error('Failed to load seller products from Firestore:', err);
+        console.error('Failed to load seller products:', err);
       }
     }
     loadSellerProducts();

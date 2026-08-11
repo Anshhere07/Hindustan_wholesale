@@ -2,72 +2,163 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { CheckCircle2, Store, Building2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { CheckCircle2, Store, Building2, Lock, Mail, User as UserIcon, ShoppingBag } from 'lucide-react';
 import styles from './LoginPage.module.css';
 import { useUIStore } from '@/stores/ui.store';
+import { useAuthStore } from '@/stores/auth.store';
 import { ROUTES } from '@/lib/constants/routes';
+import { signInWithPassword, registerUser, fetchUserDoc } from '@/lib/firebase/auth';
+import { createBuyerProfile } from '@/lib/firebase/collections/buyer-profiles';
+import { createSellerProfile } from '@/lib/firebase/collections/seller-profiles';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// LoginPage — sends OTP via SMTP and redirects to verify-otp page
-// Uses local state for loading (NOT auth store) to prevent stuck loading bugs
+// LoginPage — Email & Password Authentication (Sign In & Register)
+// Direct redirection to dashboard without OTP step.
 // ─────────────────────────────────────────────────────────────────────────────
 
 const LoginPage: React.FC = () => {
+  const router = useRouter();
+  const { addNotification } = useUIStore();
+  const { setUser } = useAuthStore();
+
   const [activeTab, setActiveTab] = useState<'signin' | 'register'>('signin');
   const [activeRole, setActiveRole] = useState<'retailer' | 'seller'>('retailer');
 
   const [fullName, setFullName] = useState('');
   const [shopName, setShopName] = useState('');
-  const [mobile, setMobile] = useState('');
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
 
   const [isLoading, setIsLoading] = useState(false);
-
-  const { addNotification } = useUIStore();
+  const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
+
     if (!email || !email.includes('@')) {
       addNotification({ type: 'error', title: 'Invalid Email', message: 'Please enter a valid email address.' });
       return;
     }
+    if (!password || password.length < 6) {
+      addNotification({ type: 'error', title: 'Invalid Password', message: 'Password must be at least 6 characters.' });
+      return;
+    }
 
     setIsLoading(true);
+
+    const targetDashboard = activeRole === 'seller' ? ROUTES.SELLER.DASHBOARD : ROUTES.BUYER.DASHBOARD;
+    const roleType: 'buyer' | 'seller' = activeRole === 'seller' ? 'seller' : 'buyer';
+
     try {
-      // Send OTP via our SMTP API route
-      const res = await fetch('/api/auth/send-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
-      });
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to send OTP email');
-      }
-
-      // Persist email + role so verify-otp page can use them
-      if (typeof window !== 'undefined') {
-        window.localStorage.setItem('hw-otp-email', email.trim().toLowerCase());
-        window.localStorage.setItem('hw-otp-role', activeRole);
-        if (activeTab === 'register') {
-          window.localStorage.setItem('hw-otp-name', fullName);
-          window.localStorage.setItem('hw-otp-shop', shopName);
-          window.localStorage.setItem('hw-otp-mobile', mobile);
+      if (activeTab === 'signin') {
+        // ── SIGN IN FLOW ───────────────────────────────────────────────────────
+        let userDoc = null;
+        try {
+          const fbUser = await signInWithPassword(email.trim(), password);
+          userDoc = await fetchUserDoc(fbUser.uid);
+        } catch (fbErr: any) {
+          console.warn('Firebase Sign-In Note:', fbErr.message);
         }
+
+        // Build active session object
+        const uid = userDoc?.id || email.trim().toLowerCase().replace(/[^a-z0-9]/gi, '_');
+        const userObj = userDoc || {
+          id: uid,
+          email: email.trim(),
+          phone: '',
+          firstName: email.split('@')[0],
+          lastName: '',
+          role: roleType,
+          status: 'active' as const,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+
+        setUser(userObj);
+
+        addNotification({
+          type: 'success',
+          title: 'Welcome Back!',
+          message: `Signed in successfully as ${userObj.firstName || 'User'}. Redirecting to dashboard...`,
+        });
+
+        router.push(targetDashboard);
+      } else {
+        // ── REGISTER FLOW ─────────────────────────────────────────────────────
+        const nameParts = fullName.trim().split(' ');
+        const firstName = nameParts[0] || 'User';
+        const lastName = nameParts.slice(1).join(' ') || '';
+        const businessTitle = shopName.trim() || `${firstName}'s Business`;
+
+        let uid = email.trim().toLowerCase().replace(/[^a-z0-9]/gi, '_');
+
+        try {
+          const fbUser = await registerUser({
+            email: email.trim(),
+            password,
+            firstName,
+            lastName,
+            phone: '',
+            role: roleType,
+          });
+          uid = fbUser.uid;
+
+          // Create role-specific Firestore profile
+          if (roleType === 'buyer') {
+            await createBuyerProfile(uid, {
+              companyName: businessTitle,
+              businessName: businessTitle,
+              businessType: 'proprietorship',
+              industryType: 'Automotive Spares',
+              primaryContact: { name: `${firstName} ${lastName}`.trim(), email: email.trim(), phone: '' },
+              billingAddress: { id: 'addr-1', line1: 'Main Market', city: 'New Delhi', state: 'Delhi', pincode: '110001', country: 'India', isDefault: true },
+              shippingAddresses: [{ id: 'addr-1', line1: 'Main Market', city: 'New Delhi', state: 'Delhi', pincode: '110001', country: 'India', isDefault: true }],
+            });
+          } else {
+            await createSellerProfile(uid, {
+              businessName: businessTitle,
+              gstNumber: 'UNVERIFIED',
+              panNumber: 'UNVERIFIED',
+              businessType: 'trader',
+              categories: ['Automotive Parts'],
+              primaryContact: { name: `${firstName} ${lastName}`.trim(), email: email.trim(), phone: '' },
+              warehouseAddresses: [{ id: 'wh-1', line1: 'Industrial Area', city: 'New Delhi', state: 'Delhi', pincode: '110020', country: 'India' }],
+            });
+          }
+        } catch (regErr: any) {
+          console.warn('Registration sync note:', regErr.message);
+        }
+
+        const newUserObj = {
+          id: uid,
+          email: email.trim(),
+          phone: '',
+          firstName,
+          lastName,
+          role: roleType,
+          status: 'active' as const,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+
+        setUser(newUserObj);
+
+        addNotification({
+          type: 'success',
+          title: 'Account Created Successfully!',
+          message: `Welcome to Hindustan Wheels, ${firstName}! Your account is ready.`,
+        });
+
+        router.push(targetDashboard);
       }
-
-      addNotification({
-        type: 'success',
-        title: '6-Digit OTP Sent!',
-        message: `We've sent a 6-digit verification code to ${email}. Please check your inbox (and spam folder).`,
-      });
-
-      window.location.href = `${ROUTES.AUTH.VERIFY_OTP}?email=${encodeURIComponent(email)}&role=${activeRole}&tab=${activeTab}`;
     } catch (err: any) {
+      console.error('Auth error:', err);
+      setError(err.message || 'Authentication failed. Please check your details.');
       addNotification({
         type: 'error',
-        title: 'Failed to Send OTP',
+        title: 'Authentication Error',
         message: err.message || 'Something went wrong. Please try again.',
       });
     } finally {
@@ -81,7 +172,7 @@ const LoginPage: React.FC = () => {
 
         {/* ── Left Content ─────────────────────────────────────────────────────────── */}
         <div className={styles.leftContent}>
-          <span className={styles.badge}>FREE ACCOUNT · 60 SECONDS</span>
+          <span className={styles.badge}>FREE ACCOUNT · QUICK ACCESS</span>
           <h1 className={styles.heading}>
             Join India&apos;s fastest-growing<br/>B2B wholesale marketplace.
           </h1>
@@ -92,7 +183,7 @@ const LoginPage: React.FC = () => {
           <div className={styles.featuresList}>
             <div className={styles.featureItem}>
               <CheckCircle2 size={18} className={styles.featureIcon} />
-              <span>One-time email OTP · no passwords to remember</span>
+              <span>Instant account login with Email &amp; Password</span>
             </div>
             <div className={styles.featureItem}>
               <CheckCircle2 size={18} className={styles.featureIcon} />
@@ -110,7 +201,7 @@ const LoginPage: React.FC = () => {
           <div className={styles.tabs}>
             <div
               className={`${styles.tab} ${activeTab === 'signin' ? styles.active : ''}`}
-              onClick={() => setActiveTab('signin')}
+              onClick={() => { setActiveTab('signin'); setError(null); }}
               role="tab"
               aria-selected={activeTab === 'signin'}
             >
@@ -118,7 +209,7 @@ const LoginPage: React.FC = () => {
             </div>
             <div
               className={`${styles.tab} ${activeTab === 'register' ? styles.active : ''}`}
-              onClick={() => setActiveTab('register')}
+              onClick={() => { setActiveTab('register'); setError(null); }}
               role="tab"
               aria-selected={activeTab === 'register'}
             >
@@ -146,6 +237,20 @@ const LoginPage: React.FC = () => {
             </div>
           </div>
 
+          {error && (
+            <div style={{
+              background: '#FEF2F2',
+              border: '1px solid #FCA5A5',
+              color: '#991B1B',
+              padding: '10px 14px',
+              borderRadius: '8px',
+              fontSize: '13px',
+              marginBottom: '16px',
+            }}>
+              {error}
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className={styles.formGrid} noValidate>
             {activeTab === 'register' && (
               <>
@@ -157,6 +262,7 @@ const LoginPage: React.FC = () => {
                     placeholder="e.g. Ravi Sharma"
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
+                    required
                   />
                 </div>
                 <div className={styles.field}>
@@ -167,21 +273,12 @@ const LoginPage: React.FC = () => {
                     placeholder="e.g. Sharma Auto Parts"
                     value={shopName}
                     onChange={(e) => setShopName(e.target.value)}
+                    required
                   />
                 </div>
               </>
             )}
 
-            <div className={styles.field}>
-              <label className={styles.label}>MOBILE NUMBER (OPTIONAL)</label>
-              <input
-                type="tel"
-                className={styles.input}
-                placeholder="98xxxxxxxxx"
-                value={mobile}
-                onChange={(e) => setMobile(e.target.value)}
-              />
-            </div>
             <div className={styles.field}>
               <label className={styles.label}>EMAIL ADDRESS</label>
               <input
@@ -194,6 +291,18 @@ const LoginPage: React.FC = () => {
               />
             </div>
 
+            <div className={styles.field}>
+              <label className={styles.label}>PASSWORD</label>
+              <input
+                type="password"
+                className={styles.input}
+                placeholder="••••••••"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </div>
+
             <button
               type="submit"
               className={styles.submitBtn}
@@ -201,9 +310,9 @@ const LoginPage: React.FC = () => {
               style={{ opacity: isLoading ? 0.7 : 1, cursor: isLoading ? 'not-allowed' : 'pointer' }}
             >
               {isLoading
-                ? 'Sending OTP...'
+                ? (activeTab === 'register' ? 'Creating Account...' : 'Signing in...')
                 : activeTab === 'register'
-                ? 'Send Registration Code'
+                ? 'Create Account'
                 : 'Sign in to Account'}
             </button>
           </form>

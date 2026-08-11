@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import StoreHydration from '@/components/StoreHydration';
 import FirebaseProvider from '@/components/FirebaseProvider';
+import NotificationToast from '@/components/layout/NotificationToast';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Root Layout — applies font, theme attribute, and global styles
@@ -44,6 +45,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <FirebaseProvider>
           <StoreHydration />
           {children}
+          <NotificationToast />
         </FirebaseProvider>
       </body>
     </html>

@@ -43,7 +43,13 @@ const BuyerDashboard: React.FC = () => {
           getFeaturedProducts(4)
         ]);
         if (ordRes.length > 0) setOrders(ordRes);
-        if (featRes.length > 0) setFeatured(featRes);
+        const combinedFeat = [...featRes];
+        MOCK_PRODUCTS.forEach((p) => {
+          if (!combinedFeat.some((item) => item.id === p.id)) {
+            combinedFeat.unshift(p);
+          }
+        });
+        setFeatured(combinedFeat.length > 0 ? combinedFeat.slice(0, 8) : MOCK_PRODUCTS.slice(0, 8));
       } catch (err) {
         console.error('Failed to load BuyerDashboard data:', err);
       }

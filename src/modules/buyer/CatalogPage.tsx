@@ -60,7 +60,15 @@ const CatalogPage: React.FC = () => {
   }, []);
 
   const categoriesList = dbCategories.length > 0 ? dbCategories : MOCK_CATEGORIES;
-  const rawProducts = dbProducts.length > 0 ? dbProducts : MOCK_PRODUCTS;
+  const rawProducts = useMemo(() => {
+    const list = [...dbProducts];
+    MOCK_PRODUCTS.forEach((p) => {
+      if (!list.some((item) => item.id === p.id)) {
+        list.unshift(p);
+      }
+    });
+    return list.length > 0 ? list : MOCK_PRODUCTS;
+  }, [dbProducts]);
 
   const toggleFilter = (key: string) =>
     setExpandedFilters((p) => ({ ...p, [key]: !p[key] }));

@@ -7,7 +7,10 @@ export async function POST(req: Request) {
     const { email } = body;
 
     if (!email || typeof email !== 'string' || !email.includes('@')) {
-      return NextResponse.json({ error: 'Please provide a valid email address' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Please provide a valid email address' },
+        { status: 400 }
+      );
     }
 
     const result = await generateAndSendOtp(email);
@@ -15,9 +18,15 @@ export async function POST(req: Request) {
     return NextResponse.json({
       success: true,
       message: result.message,
+      emailSent: result.emailSent,
+      // In dev mode, expose OTP for easy testing (remove in production)
+      ...(process.env.NODE_ENV === 'development' ? { devOtp: result.otp } : {}),
     });
   } catch (err: any) {
-    console.error('Error sending OTP:', err);
-    return NextResponse.json({ error: err.message || 'Failed to send OTP' }, { status: 500 });
+    console.error('Error in send-otp route:', err);
+    return NextResponse.json(
+      { error: err.message || 'Failed to process OTP request' },
+      { status: 500 }
+    );
   }
 }

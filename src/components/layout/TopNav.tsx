@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
   Bell, Search, Menu, X, ShoppingCart,
-  LogOut, User, ChevronDown, Settings,
+  LogOut, User, ChevronDown,
 } from 'lucide-react';
 import styles from './TopNav.module.css';
 import { cn } from '@/lib/utils/cn';
@@ -122,10 +122,10 @@ const TopNav: React.FC = () => {
             />
             <div className={styles.userInfo}>
               <span className={styles.userName}>
-                {user ? `${user.firstName} ${user.lastName}` : 'Guest'}
+                {user ? (user.firstName ? `${user.firstName} ${user.lastName}`.trim() : user.email?.split('@')[0] || 'User') : 'Guest'}
               </span>
               <span className={styles.userRole}>
-                {user?.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : ''}
+                {user ? (user.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : 'Member') : 'Sign In'}
               </span>
             </div>
             <ChevronDown
@@ -146,21 +146,18 @@ const TopNav: React.FC = () => {
                     size="md"
                   />
                   <div>
-                    <p className={styles.menuName}>{user?.firstName} {user?.lastName}</p>
+                    <p className={styles.menuName}>{user?.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : user?.email?.split('@')[0] || 'User'}</p>
                     <p className={styles.menuEmail}>{user?.email}</p>
                   </div>
                 </div>
                 <div className={styles.menuDivider} />
                 <Link
-                  href={user?.role === 'buyer' ? ROUTES.BUYER.PROFILE : '#'}
+                  href={user?.role === 'seller' ? ROUTES.SELLER.PROFILE : ROUTES.BUYER.PROFILE}
                   className={styles.menuItem}
                   role="menuitem"
                   onClick={() => setUserMenuOpen(false)}
                 >
-                  <User size={15} /> Profile
-                </Link>
-                <Link href="#" className={styles.menuItem} role="menuitem" onClick={() => setUserMenuOpen(false)}>
-                  <Settings size={15} /> Settings
+                  <User size={15} /> My Profile
                 </Link>
                 <div className={styles.menuDivider} />
                 <button className={cn(styles.menuItem, styles['menuItem--danger'])} role="menuitem" onClick={handleLogout}>

@@ -117,19 +117,72 @@ const VerifyOtpPage: React.FC = () => {
         throw new Error(data.error || 'Invalid verification code');
       }
 
-      // Set a lightweight user session in auth store so the app knows user is logged in
-      const { setUser } = useAuthStore.getState();
-      setUser({
-        id: email.replace(/[^a-z0-9]/gi, '_'),
+      // Set user session in auth store & sync to Firestore
+      const uid = email.replace(/[^a-z0-9]/gi, '_');
+      const userRole = role === 'seller' ? 'seller' : 'buyer';
+      const userFirstName = typeof window !== 'undefined' ? (window.localStorage.getItem('hw-otp-name')?.split(' ')[0] || 'User') : 'User';
+      const userLastName = typeof window !== 'undefined' ? (window.localStorage.getItem('hw-otp-name')?.split(' ').slice(1).join(' ') || '') : '';
+      const userPhone = typeof window !== 'undefined' ? (window.localStorage.getItem('hw-otp-mobile') || '') : '';
+      const userShop = typeof window !== 'undefined' ? (window.localStorage.getItem('hw-otp-shop') || `${userFirstName}'s Store`) : `${userFirstName}'s Store`;
+
+      const newUser = {
+        id: uid,
         email,
-        phone: window.localStorage.getItem('hw-otp-mobile') || '',
-        firstName: window.localStorage.getItem('hw-otp-name')?.split(' ')[0] || 'User',
-        lastName: window.localStorage.getItem('hw-otp-name')?.split(' ').slice(1).join(' ') || '',
-        role: role === 'seller' ? 'seller' : 'buyer',
-        status: 'active',
+        phone: userPhone,
+        firstName: userFirstName,
+        lastName: userLastName,
+        role: userRole as 'buyer' | 'seller',
+        status: 'active' as const,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
-      });
+      };
+
+      // Try syncing to Firestore (non-blocking if Firestore network rules/offline)
+      try {
+        const { getUserById, createUser } = await import('@/lib/firebase/collections/users');
+        const existingUser = await getUserById(uid);
+        if (!existingUser) {
+          await createUser(uid, {
+            email,
+            phone: userPhone,
+            firstName: userFirstName,
+            lastName: userLastName,
+            role: userRole as 'buyer' | 'seller',
+            status: 'active',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          });
+
+          if (userRole === 'buyer') {
+            const { createBuyerProfile } = await import('@/lib/firebase/collections/buyer-profiles');
+            await createBuyerProfile(uid, {
+              companyName: userShop,
+              businessName: userShop,
+              businessType: 'proprietorship',
+              industryType: 'Automotive Spares',
+              primaryContact: { name: `${userFirstName} ${userLastName}`.trim(), email, phone: userPhone },
+              billingAddress: { id: 'addr-1', line1: 'Main Market', city: 'New Delhi', state: 'Delhi', pincode: '110001', country: 'India', isDefault: true },
+              shippingAddresses: [{ id: 'addr-1', line1: 'Main Market', city: 'New Delhi', state: 'Delhi', pincode: '110001', country: 'India', isDefault: true }],
+            });
+          } else {
+            const { createSellerProfile } = await import('@/lib/firebase/collections/seller-profiles');
+            await createSellerProfile(uid, {
+              businessName: userShop,
+              gstNumber: 'UNVERIFIED',
+              panNumber: 'UNVERIFIED',
+              businessType: 'trader',
+              categories: ['Automotive Parts'],
+              primaryContact: { name: `${userFirstName} ${userLastName}`.trim(), email, phone: userPhone },
+              warehouseAddresses: [{ id: 'wh-1', line1: 'Industrial Area', city: 'New Delhi', state: 'Delhi', pincode: '110020', country: 'India' }],
+            });
+          }
+        }
+      } catch (fsErr) {
+        console.warn('Firestore sync note:', fsErr);
+      }
+
+      const { setUser } = useAuthStore.getState();
+      setUser(newUser);
 
       addNotification({
         type: 'success',
