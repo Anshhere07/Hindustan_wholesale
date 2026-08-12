@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// Firebase App Initialization — Hindustan Wheels
+// Firebase App Initialization — Hindustan Wholesale
 // Singleton pattern: prevents multiple initializations in Next.js dev mode
 // ─────────────────────────────────────────────────────────────────────────────
 

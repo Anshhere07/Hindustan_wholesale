@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// Mail OTP Verification Service — Hindustan Wheels
+// Mail OTP Verification Service — Hindustan Wholesale
 // Handles: 6-digit random code generation, in-memory TTL storage & Nodemailer SMTP dispatch
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -72,16 +72,16 @@ export async function generateAndSendOtp(
 
   const fromEmail =
     process.env.SMTP_FROM ||
-    '"Hindustan Wheels Security" <hn.aditya321@gmail.com>';
+    '"Hindustan Wholesale Security" <hn.aditya321@gmail.com>';
 
   const mailOptions = {
     from: fromEmail,
     to: normalizedEmail,
-    subject: `🔐 ${otpCode} is your Hindustan Wheels Verification Code`,
+    subject: `🔐 ${otpCode} is your Hindustan Wholesale Verification Code`,
     html: `
       <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:32px;background:#fff;border:1px solid #e5e7eb;border-radius:16px;">
         <div style="text-align:center;margin-bottom:24px;">
-          <h2 style="color:#8B0000;margin:0;font-size:24px;font-weight:800;">HINDUSTAN WHEELS</h2>
+          <h2 style="color:#8B0000;margin:0;font-size:24px;font-weight:800;">Hindustan Wholesale</h2>
           <p style="color:#6b7280;font-size:13px;margin-top:4px;">India's Premier B2B Wholesale Marketplace</p>
         </div>
         <hr style="border:none;border-top:1px solid #f3f4f6;margin:20px 0;"/>
@@ -99,7 +99,7 @@ export async function generateAndSendOtp(
         </p>
         <hr style="border:none;border-top:1px solid #f3f4f6;margin:24px 0;"/>
         <p style="color:#9ca3af;font-size:11px;text-align:center;margin:0;">
-          © ${new Date().getFullYear()} Hindustan Wheels Wholesale Platform
+          © ${new Date().getFullYear()} Hindustan Wholesale Wholesale Platform
         </p>
       </div>
     `,

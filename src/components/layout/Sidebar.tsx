@@ -93,6 +93,9 @@ const Sidebar: React.FC = () => {
   const role: UserRole = user?.role ?? 'buyer';
   const navGroups = NAV_CONFIG[role];
 
+  // Logo click stays in portal — never redirects to public home
+  const portalHome = role === 'seller' ? ROUTES.SELLER.DASHBOARD : ROUTES.BUYER.DASHBOARD;
+
   const isActive = (href: string) => {
     if (href === '#') return false;
     if (href.endsWith('/dashboard')) return pathname === href;
@@ -120,19 +123,18 @@ const Sidebar: React.FC = () => {
       >
         {/* Logo */}
         <div className={styles.logoWrap}>
-          <Link href="/" className={styles.logo}>
+          <Link href={portalHome} className={styles.logo}>
+            {/* HW Logo Mark */}
             <div className={styles.logoIcon}>
-              <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" width="24" height="24">
-                <circle cx="16" cy="16" r="14" fill="white" fillOpacity="0.2"/>
-                <circle cx="16" cy="16" r="8" fill="white" fillOpacity="0.4"/>
-                <circle cx="16" cy="16" r="3" fill="white"/>
-                <path d="M16 2 L16 6 M16 26 L16 30 M2 16 L6 16 M26 16 L30 16" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+              <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" width="26" height="26">
+                <rect width="32" height="32" rx="8" fill="white" fillOpacity="0.15"/>
+                <text x="4" y="22" fontFamily="Georgia, serif" fontWeight="900" fontSize="18" fill="white" letterSpacing="-1">HW</text>
               </svg>
             </div>
             {!sidebarCollapsed && (
               <div className={styles.logoText}>
                 <span className={styles.logoName}>Hindustan</span>
-                <span className={styles.logoTagline}>Wheels B2B</span>
+                <span className={styles.logoTagline}>Wholesale</span>
               </div>
             )}
           </Link>

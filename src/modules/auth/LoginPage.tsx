@@ -148,7 +148,7 @@ const LoginPage: React.FC = () => {
         addNotification({
           type: 'success',
           title: 'Account Created Successfully!',
-          message: `Welcome to Hindustan Wheels, ${firstName}! Your account is ready.`,
+          message: `Welcome to Hindustan Wholesale, ${firstName}! Your account is ready.`,
         });
 
         router.push(targetDashboard);

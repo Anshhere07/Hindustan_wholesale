@@ -148,7 +148,7 @@ export default function RegisterPage() {
       addNotification({
         type: 'success',
         title: 'Account Created Successfully!',
-        message: `Welcome to Hindustan Wheels, ${firstName}! Your ${role === 'buyer' ? 'Retailer' : 'Seller'} account is ready.`,
+        message: `Welcome to Hindustan Wholesale, ${firstName}! Your ${role === 'buyer' ? 'Retailer' : 'Seller'} account is ready.`,
       });
 
       // Redirect directly to dashboard
@@ -196,7 +196,7 @@ export default function RegisterPage() {
             </svg>
           </div>
           <div>
-            <div style={{ color: '#ffffff', fontWeight: 800, fontSize: 16, lineHeight: 1.2 }}>Hindustan Wheels</div>
+            <div style={{ color: '#ffffff', fontWeight: 800, fontSize: 16, lineHeight: 1.2 }}>Hindustan Wholesale</div>
             <div style={{ color: '#d4af37', fontSize: 10, fontWeight: 600, letterSpacing: '0.06em' }}>B2B WHOLESALE MARKETPLACE</div>
           </div>
         </Link>
@@ -250,7 +250,7 @@ export default function RegisterPage() {
             </h1>
             <p style={{ color: 'var(--text-secondary)', fontSize: 13.5 }}>
               {role === 'buyer'
-                ? 'Join 10,000+ verified auto retailers on Hindustan Wheels'
+                ? 'Join 10,000+ verified auto retailers on Hindustan Wholesale'
                 : 'Start selling wholesale auto parts to verified retailers across India'}
             </p>
           </div>

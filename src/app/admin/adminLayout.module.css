@@ -1,0 +1,22 @@
+.adminContainer {
+  display: flex;
+  min-height: 100vh;
+  background: #f8f9fa;
+  width: 100%;
+}
+
+.adminMain {
+  flex: 1;
+  margin-left: 240px;
+  min-height: 100vh;
+  transition: margin-left 0.25s ease;
+  overflow-x: hidden;
+  width: 100%;
+}
+
+@media (max-width: 768px) {
+  .adminMain {
+    margin-left: 0 !important;
+    width: 100%;
+  }
+}

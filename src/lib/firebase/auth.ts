@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// Firebase Auth Helpers — Hindustan Wheels
+// Firebase Auth Helpers — Hindustan Wholesale
 // Handles: Email/Password, Email Link (OTP flow), session management
 // ─────────────────────────────────────────────────────────────────────────────
 

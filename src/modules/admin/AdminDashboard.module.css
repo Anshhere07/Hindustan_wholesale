@@ -1,6 +1,13 @@
 /* ── Admin Dashboard ──────────────────────────────────────────────────────── */
 
-.page { display: flex; flex-direction: column; gap: var(--space-6); }
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  padding: 28px 32px;
+  min-height: 100vh;
+  box-sizing: border-box;
+}
 
 .header {
   display: flex;
@@ -199,15 +206,21 @@
 @media (max-width: 1280px) {
   .kpiGrid   { grid-template-columns: repeat(2, 1fr); }
   .chartsRow { grid-template-columns: 1fr; }
+  .page { padding: 24px 24px; }
 }
 
 @media (max-width: 768px) {
+  /* On mobile, no sidebar offset needed — sidebar is drawer overlay */
+  .page { padding: 70px 16px 24px; }
   .kpiGrid { grid-template-columns: 1fr; }
   .orderRow { flex-direction: column; align-items: flex-start; gap: 6px; }
   .orderRight { align-items: flex-start; width: 100%; flex-direction: row; justify-content: space-between; }
   .title { font-size: 1.35rem; }
+  .chartsRow { grid-template-columns: 1fr; }
+  .sellersGrid { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 480px) {
   .header { flex-direction: column; }
+  .page { padding: 70px 12px 20px; }
 }

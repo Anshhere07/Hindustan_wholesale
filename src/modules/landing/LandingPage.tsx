@@ -725,6 +725,7 @@ export const PublicFooter: React.FC = () => {
             <Link href={ROUTES.CONTACT} className={styles.footerLink}>Contact</Link>
             <Link href="#" className={styles.footerLink}>Careers</Link>
             <Link href={ROUTES.PRESS} className={styles.footerLink}>Press</Link>
+            <Link href="/admin/login" className={styles.footerLink}>Admin</Link>
           </div>
 
           <div className={styles.footerLinkCol}>

@@ -18,7 +18,6 @@ service cloud.firestore {
       return isSignedIn() && uid() == docUid;
     }
 
-    // Fetch role from users collection — used for role-based checks
     function userRole() {
       return get(/databases/$(database)/documents/users/$(uid())).data.role;
     }
@@ -32,158 +31,131 @@ service cloud.firestore {
     // ─────────────────────────────────────────────────────────────────────────
 
     match /users/{userId} {
-      // A user can read their own document; admin can read anyone's
       allow read: if isOwner(userId) || isAdmin();
-
-      // Only the user themselves can create their document on registration
       allow create: if isOwner(userId)
         && request.resource.data.keys().hasAll(['email', 'role', 'status', 'firstName', 'lastName'])
-        && request.resource.data.role in ['buyer', 'seller'];  // admin role can only be set by admin
-
-      // User can update their own profile; admin can update any user
+        && request.resource.data.role in ['buyer', 'seller'];
       allow update: if isOwner(userId) || isAdmin();
-
-      // Only admin can delete users (and only soft-delete via status field in practice)
       allow delete: if isAdmin();
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // buyer_profiles — extended buyer business info + KYC
+    // buyer_profiles — extended buyer details & KYC
     // ─────────────────────────────────────────────────────────────────────────
 
     match /buyer_profiles/{userId} {
-      allow read: if isOwner(userId) || isAdmin();
-      allow create, update: if isOwner(userId);
-      allow delete: if isAdmin();
+      allow read:   if isOwner(userId) || isAdmin();
+      allow write:  if isOwner(userId) || isAdmin();
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // seller_profiles — extended seller business info + KYC + approval
+    // seller_profiles — business profile, GST, bank details
     // ─────────────────────────────────────────────────────────────────────────
 
     match /seller_profiles/{userId} {
-      // Sellers can be read by buyers (to see who they're buying from) + admin
-      allow read: if isOwner(userId) || isAdmin() || isBuyer();
-
-      allow create: if isOwner(userId);
-
-      // Sellers can update their own profile EXCEPT approvalStatus (only admin)
-      allow update: if (isOwner(userId)
-          && !('approvalStatus' in request.resource.data.diff(resource.data).affectedKeys()))
-        || isAdmin();
-
-      allow delete: if isAdmin();
+      allow read:   if isOwner(userId) || isAdmin() || isBuyer();
+      allow write:  if isOwner(userId) || isAdmin();
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // categories — product taxonomy
-    // ─────────────────────────────────────────────────────────────────────────
-
-    match /categories/{categoryId} {
-      allow read: if true;           // public — anyone can browse categories
-      allow write: if isAdmin();
-    }
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // products — the core catalog
+    // products — wholesale product catalog
     // ─────────────────────────────────────────────────────────────────────────
 
     match /products/{productId} {
-      // Products are public for reading; authenticated users can create & update
+      // Anyone (including unauthenticated) can browse published products
       allow read: if true;
-      allow create, update: if isSignedIn();
+
+      // Sellers can create products for themselves; admin can manage all
+      allow create: if isSignedIn()
+        && (isSeller() || isAdmin());
+
+      // Seller can update only their own product; admin can update any
+      allow update: if isSignedIn()
+        && (resource.data.sellerId == uid() || isAdmin());
+
+      // Admin only for deletes
       allow delete: if isAdmin();
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // orders — order ledger (immutable, never deleted)
+    // categories — product categories (admin-managed)
+    // ─────────────────────────────────────────────────────────────────────────
+
+    match /categories/{categoryId} {
+      allow read:  if true;
+      allow write: if isSignedIn() || isAdmin();
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // orders — buyer purchase orders
     // ─────────────────────────────────────────────────────────────────────────
 
     match /orders/{orderId} {
-      // Buyer who placed it, any seller whose UID is in sellerIds[], or admin
-      allow read: if isSignedIn() && (
-        resource.data.buyerId == uid()
-        || uid() in resource.data.sellerIds
-        || isAdmin()
-      );
-
-      // Only buyers can place orders
-      allow create: if isBuyer()
-        && request.resource.data.buyerId == uid()
-        && request.resource.data.keys().hasAll(['orderNumber', 'buyerId', 'items', 'status']);
-
-      // Status updates: admin (any), seller (own items, limited fields), buyer (cancel only)
-      allow update: if isAdmin()
-        || (isSeller() && uid() in resource.data.sellerIds)
-        || (isBuyer() && resource.data.buyerId == uid()
-            && request.resource.data.status == 'cancelled'
-            && resource.data.status in ['pending_confirmation', 'confirmed']);
-
-      // Orders are NEVER deleted
-      allow delete: if false;
-    }
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // counters — used for sequential order number generation
-    // ─────────────────────────────────────────────────────────────────────────
-
-    match /counters/{docId} {
-      allow read: if isSignedIn();
-      allow write: if isBuyer() || isAdmin();  // placeOrder transaction writes here
-    }
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // rfqs — Request for Quotation
-    // ─────────────────────────────────────────────────────────────────────────
-
-    match /rfqs/{rfqId} {
-      allow read: if isSignedIn() && (
-        resource.data.buyerId == uid()
-        || isSeller()
-        || isAdmin()
-      );
-      allow create: if isBuyer() && request.resource.data.buyerId == uid();
-      allow update: if isSignedIn() && (
-        resource.data.buyerId == uid()
-        || isSeller()
-        || isAdmin()
-      );
+      allow read:   if isSignedIn()
+        && (resource.data.buyerId == uid() || resource.data.sellerId == uid() || isAdmin());
+      allow create: if isBuyer();
+      allow update: if isSignedIn()
+        && (resource.data.buyerId == uid() || resource.data.sellerId == uid() || isAdmin());
       allow delete: if isAdmin();
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // carts — one cart document per buyer
+    // carts — active shopping carts (1 cart doc per buyer UID)
     // ─────────────────────────────────────────────────────────────────────────
 
     match /carts/{userId} {
-      allow read, write: if isOwner(userId) && isBuyer();
+      allow read:  if isOwner(userId) || isAdmin();
+      allow write: if isOwner(userId) || isAdmin();
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // wishlists — one wishlist document per buyer
+    // rfqs — Request For Quotation
     // ─────────────────────────────────────────────────────────────────────────
 
-    match /wishlists/{userId} {
-      allow read, write: if isOwner(userId) && isBuyer();
+    match /rfqs/{rfqId} {
+      allow read:   if isSignedIn()
+        && (resource.data.buyerId == uid() || resource.data.sellerId == uid() || isAdmin());
+      allow create: if isBuyer();
+      allow update: if isSignedIn()
+        && (resource.data.buyerId == uid() || resource.data.sellerId == uid() || isAdmin());
+      allow delete: if isAdmin();
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // analytics_snapshots — pre-aggregated stats (written only by Cloud Functions)
+    // reviews — product reviews & ratings
     // ─────────────────────────────────────────────────────────────────────────
 
-    match /analytics_snapshots/{snapshotId} {
-      allow read: if isAdmin()
-        || (isSeller() && resource.data.entityId == uid());
-      allow write: if false;   // only Cloud Functions (service account) write here
+    match /reviews/{reviewId} {
+      allow read:   if true;
+      allow create: if isBuyer();
+      allow update: if isOwner(resource.data.userId) || isAdmin();
+      allow delete: if isAdmin();
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // platform_settings — admin-configurable global config
+    // notifications — user notifications
     // ─────────────────────────────────────────────────────────────────────────
 
-    match /platform_settings/{docId} {
-      allow read: if isSignedIn();
-      allow write: if isAdmin();
+    match /notifications/{notifId} {
+      allow read:   if isSignedIn() && resource.data.userId == uid();
+      allow write:  if isSignedIn() || isAdmin();
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // admin_logs — audit trail (admin read-only)
+    // ─────────────────────────────────────────────────────────────────────────
+
+    match /admin_logs/{logId} {
+      allow read:  if isAdmin();
+      allow write: if isAdmin() || isSignedIn();
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Placeholder / _meta documents — allow writes for seeding
+    // ─────────────────────────────────────────────────────────────────────────
+
+    match /{collection}/_placeholder {
+      allow read, write: if true;
     }
   }
 }

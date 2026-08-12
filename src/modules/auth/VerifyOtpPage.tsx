@@ -187,7 +187,7 @@ const VerifyOtpPage: React.FC = () => {
       addNotification({
         type: 'success',
         title: 'OTP Verified ✓',
-        message: 'You are now signed in. Welcome to Hindustan Wheels!',
+        message: 'You are now signed in. Welcome to Hindustan Wholesale!',
       });
 
       // Redirect based on stored role
