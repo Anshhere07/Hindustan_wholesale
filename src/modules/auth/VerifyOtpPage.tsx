@@ -7,12 +7,7 @@ import { ShieldCheck, ArrowLeft, RefreshCw } from 'lucide-react';
 import styles from './VerifyOtpPage.module.css';
 import Button from '@/components/ui/Button';
 import { useUIStore } from '@/stores/ui.store';
-import { useAuthStore } from '@/stores/auth.store';
-import { ROUTES } from '@/lib/constants/routes';
-
-// ─────────────────────────────────────────────────────────────────────────────
-// VerifyOtpPage — 6-digit focus-shifting OTP entry page with shake animations
-// ─────────────────────────────────────────────────────────────────────────────
+import { registerUser } from '@/lib/firebase/auth';
 
 const VerifyOtpPage: React.FC = () => {
   const [otp, setOtp] = useState<string[]>(Array(6).fill(''));
@@ -26,10 +21,8 @@ const VerifyOtpPage: React.FC = () => {
   const { addNotification } = useUIStore();
 
   useEffect(() => {
-    // Focus first input on mount
     inputRefs.current[0]?.focus();
 
-    // Timer for resend code
     let timer: NodeJS.Timeout;
     if (countdown > 0) {
       timer = setInterval(() => setCountdown((c) => c - 1), 1000);
@@ -46,7 +39,6 @@ const VerifyOtpPage: React.FC = () => {
     setOtp(newOtp);
     setError(null);
 
-    // Shift focus to next input if filled
     if (index < 5 && newOtp[index]) {
       inputRefs.current[index + 1]?.focus();
     }
@@ -94,108 +86,112 @@ const VerifyOtpPage: React.FC = () => {
     setError(null);
 
     try {
-      const email = typeof window !== 'undefined'
-        ? (window.localStorage.getItem('hw-otp-email') || '')
-        : '';
-      const role = typeof window !== 'undefined'
-        ? (window.localStorage.getItem('hw-otp-role') || 'retailer')
-        : 'retailer';
+      const email = typeof window !== 'undefined' ? (window.localStorage.getItem('hw-otp-email') || '') : '';
+      const role = typeof window !== 'undefined' ? (window.localStorage.getItem('hw-otp-role') || 'buyer') : 'buyer';
+      const fullName = typeof window !== 'undefined' ? (window.localStorage.getItem('hw-otp-name') || 'User') : 'User';
+      const businessName = typeof window !== 'undefined' ? (window.localStorage.getItem('hw-otp-business') || '') : '';
+      const gstNumber = typeof window !== 'undefined' ? (window.localStorage.getItem('hw-otp-gst') || '') : '';
+      const phone = typeof window !== 'undefined' ? (window.localStorage.getItem('hw-otp-phone') || '') : '';
+      const password = typeof window !== 'undefined' ? (window.localStorage.getItem('hw-otp-pass') || 'DefaultPass123!') : 'DefaultPass123!';
 
       if (!email) {
-        throw new Error('Session expired. Please go back and enter your email again.');
+        throw new Error('Session expired. Please go back to registration page.');
       }
 
-      // Call API route to verify OTP
+      // 1. Verify OTP with backend API
       const res = await fetch('/api/auth/verify-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, otp: fullCode }),
       });
       const data = await res.json();
-
       if (!res.ok) {
         throw new Error(data.error || 'Invalid verification code');
       }
 
-      // Set user session in auth store & sync to Firestore
+      // 2. Create user record with pending approval status
+      const nameParts = fullName.trim().split(' ');
+      const firstName = nameParts[0] || 'User';
+      const lastName = nameParts.slice(1).join(' ') || '';
       const uid = email.replace(/[^a-z0-9]/gi, '_');
-      const userRole = role === 'seller' ? 'seller' : 'buyer';
-      const userFirstName = typeof window !== 'undefined' ? (window.localStorage.getItem('hw-otp-name')?.split(' ')[0] || 'User') : 'User';
-      const userLastName = typeof window !== 'undefined' ? (window.localStorage.getItem('hw-otp-name')?.split(' ').slice(1).join(' ') || '') : '';
-      const userPhone = typeof window !== 'undefined' ? (window.localStorage.getItem('hw-otp-mobile') || '') : '';
-      const userShop = typeof window !== 'undefined' ? (window.localStorage.getItem('hw-otp-shop') || `${userFirstName}'s Store`) : `${userFirstName}'s Store`;
 
-      const newUser = {
-        id: uid,
-        email,
-        phone: userPhone,
-        firstName: userFirstName,
-        lastName: userLastName,
-        role: userRole as 'buyer' | 'seller',
-        status: 'active' as const,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-
-      // Try syncing to Firestore (non-blocking if Firestore network rules/offline)
       try {
-        const { getUserById, createUser } = await import('@/lib/firebase/collections/users');
-        const existingUser = await getUserById(uid);
-        if (!existingUser) {
-          await createUser(uid, {
-            email,
-            phone: userPhone,
-            firstName: userFirstName,
-            lastName: userLastName,
-            role: userRole as 'buyer' | 'seller',
-            status: 'active',
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          });
-
-          if (userRole === 'buyer') {
-            const { createBuyerProfile } = await import('@/lib/firebase/collections/buyer-profiles');
-            await createBuyerProfile(uid, {
-              companyName: userShop,
-              businessName: userShop,
-              businessType: 'proprietorship',
-              industryType: 'Automotive Spares',
-              primaryContact: { name: `${userFirstName} ${userLastName}`.trim(), email, phone: userPhone },
-              billingAddress: { id: 'addr-1', line1: 'Main Market', city: 'New Delhi', state: 'Delhi', pincode: '110001', country: 'India', isDefault: true },
-              shippingAddresses: [{ id: 'addr-1', line1: 'Main Market', city: 'New Delhi', state: 'Delhi', pincode: '110001', country: 'India', isDefault: true }],
-            });
-          } else {
-            const { createSellerProfile } = await import('@/lib/firebase/collections/seller-profiles');
-            await createSellerProfile(uid, {
-              businessName: userShop,
-              gstNumber: 'UNVERIFIED',
-              panNumber: 'UNVERIFIED',
-              businessType: 'trader',
-              categories: ['Automotive Parts'],
-              primaryContact: { name: `${userFirstName} ${userLastName}`.trim(), email, phone: userPhone },
-              warehouseAddresses: [{ id: 'wh-1', line1: 'Industrial Area', city: 'New Delhi', state: 'Delhi', pincode: '110020', country: 'India' }],
-            });
-          }
-        }
-      } catch (fsErr) {
-        console.warn('Firestore sync note:', fsErr);
+        await registerUser({
+          email,
+          password,
+          firstName,
+          lastName,
+          phone,
+          role: role as 'buyer' | 'seller',
+        });
+      } catch (authErr: any) {
+        console.warn('Firebase Auth note:', authErr.message);
       }
 
-      const { setUser } = useAuthStore.getState();
-      setUser(newUser);
+      // Sync user profile with status: 'pending' (Awaiting Admin Approval)
+      try {
+        const { createUser } = await import('@/lib/firebase/collections/users');
+        await createUser(uid, {
+          email,
+          phone,
+          firstName,
+          lastName,
+          role: role as 'buyer' | 'seller',
+          status: 'pending',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        });
 
+        if (role === 'buyer') {
+          const { createBuyerProfile } = await import('@/lib/firebase/collections/buyer-profiles');
+          await createBuyerProfile(uid, {
+            companyName: businessName || `${firstName}'s Shop`,
+            businessName: businessName || `${firstName}'s Shop`,
+            gstNumber: gstNumber || 'UNVERIFIED',
+            businessType: 'proprietorship',
+            industryType: 'Automotive Spares',
+            primaryContact: { name: `${firstName} ${lastName}`.trim(), email, phone },
+            billingAddress: { id: 'addr-1', line1: 'Main Market', city: 'New Delhi', state: 'Delhi', pincode: '110001', country: 'India', isDefault: true },
+            shippingAddresses: [{ id: 'addr-1', line1: 'Main Market', city: 'New Delhi', state: 'Delhi', pincode: '110001', country: 'India', isDefault: true }],
+            creditLimit: 100000,
+          });
+        } else {
+          const { createSellerProfile } = await import('@/lib/firebase/collections/seller-profiles');
+          await createSellerProfile(uid, {
+            businessName: businessName || `${firstName}'s Company`,
+            gstNumber: gstNumber || 'UNVERIFIED',
+            panNumber: 'UNVERIFIED',
+            businessType: 'trader',
+            categories: ['Automotive Parts'],
+            primaryContact: { name: `${firstName} ${lastName}`.trim(), email, phone },
+            warehouseAddresses: [{ id: 'wh-1', line1: 'Industrial Area', city: 'New Delhi', state: 'Delhi', pincode: '110020', country: 'India' }],
+          });
+        }
+      } catch (dbErr) {
+        console.warn('Firestore creation note:', dbErr);
+      }
+
+      // Clear temporary registration storage
+      if (typeof window !== 'undefined') {
+        window.localStorage.removeItem('hw-otp-email');
+        window.localStorage.removeItem('hw-otp-role');
+        window.localStorage.removeItem('hw-otp-name');
+        window.localStorage.removeItem('hw-otp-business');
+        window.localStorage.removeItem('hw-otp-gst');
+        window.localStorage.removeItem('hw-otp-phone');
+        window.localStorage.removeItem('hw-otp-pass');
+      }
+
+      // Display required notification toast
       addNotification({
         type: 'success',
-        title: 'OTP Verified ✓',
-        message: 'You are now signed in. Welcome to Hindustan Wholesale!',
+        title: 'Request Submitted for Account Approval!',
+        message: 'Your email has been verified. Your account request has been submitted to the admin for review and approval.',
+        duration: 8000,
       });
 
-      // Redirect based on stored role
-      if (role === 'seller') {
-        router.push(ROUTES.SELLER.DASHBOARD);
-      } else {
-        router.push(ROUTES.BUYER.DASHBOARD);
-      }
+      // Redirect user to login page until admin approves
+      router.push('/auth/login?status=pending_approval');
     } catch (err: any) {
       setIsLoading(false);
       setError(err.message || 'Invalid verification code');
@@ -246,23 +242,20 @@ const VerifyOtpPage: React.FC = () => {
     <div className={styles.page}>
       <div className={styles.formPanel}>
         <div className={styles.formInner}>
-          {/* Back link */}
-          <Link href={ROUTES.AUTH.LOGIN} className={styles.backLink}>
-            <ArrowLeft size={16} /> Back to Sign In
+          <Link href="/auth/register" className={styles.backLink}>
+            <ArrowLeft size={16} /> Back to Register
           </Link>
 
-          {/* Heading */}
           <div className={styles.header}>
             <div className={styles.iconWrap}>
               <ShieldCheck size={28} />
             </div>
             <h1 className={styles.title}>Email OTP Verification</h1>
             <p className={styles.subtitle}>
-              We sent a 6-digit authentication code to your registered email.
+              Enter the 6-digit verification code sent to your registered email.
             </p>
           </div>
 
-          {/* Form */}
           <form onSubmit={handleSubmit} className={styles.form} noValidate>
             <div className={`${styles.otpGroup} ${shake ? styles.shake : ''}`} role="group" aria-label="6 digit verification code">
               {otp.map((digit, idx) => (
@@ -299,11 +292,10 @@ const VerifyOtpPage: React.FC = () => {
               isLoading={isLoading}
               disabled={!isFormComplete || isLoading}
             >
-              Verify & Proceed
+              Verify Code & Submit Request
             </Button>
           </form>
 
-          {/* Resend Action */}
           <div className={styles.resendWrap}>
             <p className={styles.resendText}>
               Didn&apos;t receive the code?

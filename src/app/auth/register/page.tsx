@@ -3,17 +3,8 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { registerUser } from '@/lib/firebase/auth';
-import { createBuyerProfile } from '@/lib/firebase/collections/buyer-profiles';
-import { createSellerProfile } from '@/lib/firebase/collections/seller-profiles';
 import { useUIStore } from '@/stores/ui.store';
-import { useAuthStore } from '@/stores/auth.store';
-import { ROUTES } from '@/lib/constants/routes';
 import { Building2, User, Mail, Phone, Lock, FileText, ShieldCheck, ArrowLeft } from 'lucide-react';
-
-// ─────────────────────────────────────────────────────────────────────────────
-// RegisterPage — Clean, form-focused registration for Buyers & Sellers
-// ─────────────────────────────────────────────────────────────────────────────
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -34,7 +25,8 @@ export default function RegisterPage() {
     e.preventDefault();
     setError(null);
 
-    if (!email || !email.includes('@')) {
+    const cleanEmail = email.trim().toLowerCase();
+    if (!cleanEmail || !cleanEmail.includes('@')) {
       setError('Please enter a valid email address.');
       return;
     }
@@ -46,120 +38,39 @@ export default function RegisterPage() {
     setIsLoading(true);
 
     try {
-      const nameParts = fullName.trim().split(' ');
-      const firstName = nameParts[0] || 'User';
-      const lastName = nameParts.slice(1).join(' ') || '';
-      const businessTitle = businessName.trim() || `${firstName}'s Business`;
-
-      let firebaseUser = null;
-      let uid = email.trim().toLowerCase().replace(/[^a-z0-9]/gi, '_');
-
-      try {
-        firebaseUser = await registerUser({
-          email: email.trim(),
-          password,
-          firstName,
-          lastName,
-          phone: phone.trim(),
-          role,
-        });
-        uid = firebaseUser.uid;
-      } catch (authErr: any) {
-        console.warn('Firebase Auth notice:', authErr.message);
-        if (authErr.code === 'auth/email-already-in-use') {
-          addNotification({
-            type: 'info',
-            title: 'Account Exists',
-            message: 'Account with this email already exists! Redirecting to sign in...',
-          });
-          router.push(`/auth/login?email=${encodeURIComponent(email)}`);
-          return;
-        }
-      }
-
-      // Non-blocking background profile document creation
-      if (role === 'buyer') {
-        createBuyerProfile(uid, {
-          companyName: businessTitle,
-          businessName: businessTitle,
-          gstNumber: gstNumber.trim() || 'UNVERIFIED',
-          businessType: 'proprietorship',
-          industryType: 'Automotive Spares',
-          primaryContact: { name: `${firstName} ${lastName}`.trim(), email: email.trim(), phone: phone.trim() },
-          shippingAddresses: [{
-            id: 'addr-1',
-            line1: '12 Commercial Complex',
-            city: 'New Delhi',
-            state: 'Delhi',
-            pincode: '110001',
-            country: 'India',
-            isDefault: true,
-          }],
-          billingAddress: {
-            id: 'addr-1',
-            line1: '12 Commercial Complex',
-            city: 'New Delhi',
-            state: 'Delhi',
-            pincode: '110001',
-            country: 'India',
-            isDefault: true,
-          },
-          creditLimit: 100000,
-        }).catch((err) => console.warn('Buyer profile background notice:', err.message));
-      } else {
-        createSellerProfile(uid, {
-          businessName: businessTitle,
-          gstNumber: gstNumber.trim() || 'UNVERIFIED',
-          panNumber: 'UNVERIFIED',
-          businessType: 'manufacturer',
-          primaryContact: { name: `${firstName} ${lastName}`.trim(), email: email.trim(), phone: phone.trim() },
-          bankDetails: {
-            accountHolderName: businessTitle,
-            accountNumber: '918002003004',
-            ifscCode: 'HDFC0001234',
-            bankName: 'HDFC Bank',
-          },
-          warehouseAddresses: [{
-            id: 'wh-1',
-            line1: 'Plot 10 Industrial Park',
-            city: 'New Delhi',
-            state: 'Delhi',
-            pincode: '110020',
-            country: 'India',
-          }],
-          categories: ['Engine Parts', 'Auto Accessories'],
-        }).catch((err) => console.warn('Seller profile background notice:', err.message));
-      }
-
-      // Update auth store with active user session
-      const { setUser } = useAuthStore.getState();
-      setUser({
-        id: uid,
-        email: email.trim(),
-        phone: phone.trim(),
-        firstName,
-        lastName,
-        role,
-        status: 'active',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+      // 1. Send OTP to email first
+      const res = await fetch('/api/auth/send-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: cleanEmail }),
       });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to send verification code to email');
+      }
+
+      // 2. Save draft registration details in localStorage for OTP verification step
+      if (typeof window !== 'undefined') {
+        window.localStorage.setItem('hw-otp-email', cleanEmail);
+        window.localStorage.setItem('hw-otp-role', role);
+        window.localStorage.setItem('hw-otp-name', fullName.trim());
+        window.localStorage.setItem('hw-otp-business', businessName.trim());
+        window.localStorage.setItem('hw-otp-gst', gstNumber.trim());
+        window.localStorage.setItem('hw-otp-phone', phone.trim());
+        window.localStorage.setItem('hw-otp-pass', password);
+      }
 
       addNotification({
-        type: 'success',
-        title: 'Account Created Successfully!',
-        message: `Welcome to Hindustan Wholesale, ${firstName}! Your ${role === 'buyer' ? 'Retailer' : 'Seller'} account is ready.`,
+        type: 'info',
+        title: 'Verification Code Sent',
+        message: `A 6-digit OTP code has been sent to ${cleanEmail}. Please verify to complete registration.`,
       });
 
-      // Redirect directly to dashboard
-      if (role === 'buyer') {
-        router.push(ROUTES.BUYER.DASHBOARD);
-      } else {
-        router.push(ROUTES.SELLER.DASHBOARD);
-      }
+      // 3. Redirect to OTP verification page
+      router.push('/auth/verify-otp');
     } catch (err: any) {
       console.error('Registration error:', err);
-      setError(err.message || 'Failed to create account. Please check your details.');
+      setError(err.message || 'Failed to send OTP code. Please check your details.');
     } finally {
       setIsLoading(false);
     }
@@ -167,8 +78,7 @@ export default function RegisterPage() {
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg-base)' }}>
-
-      {/* Top Header — Clean Logo Header (No Search Bar or TopNav) */}
+      {/* Top Header */}
       <header style={{
         height: 64,
         background: 'linear-gradient(135deg, #8B0000 0%, #60020B 100%)',
@@ -509,11 +419,7 @@ export default function RegisterPage() {
                 gap: 8,
               }}
             >
-              {isLoading
-                ? 'Creating Account...'
-                : role === 'buyer'
-                ? 'Create Retailer Account'
-                : 'Create Seller Account'}
+              {isLoading ? 'Sending OTP Code...' : 'Continue & Verify Email'}
             </button>
           </form>
 
