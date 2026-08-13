@@ -20,6 +20,8 @@ export interface User {
   lastLoginAt?: Timestamp;
 }
 
+export type UserProfile = User;
+
 export interface BuyerProfile {
   userId: ID;
   companyName: string;
