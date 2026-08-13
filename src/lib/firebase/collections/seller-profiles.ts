@@ -20,10 +20,23 @@ import type { SellerProfile } from '@/types/user.types';
 
 const COLLECTION = 'seller_profiles';
 
-export async function getSellerProfile(uid: string): Promise<SellerProfile | null> {
-  const snap = await getDoc(doc(db, COLLECTION, uid));
-  if (!snap.exists()) return null;
-  return { userId: snap.id, ...snap.data() } as SellerProfile;
+export async function getSellerProfile(uid: string, email?: string): Promise<SellerProfile | null> {
+  try {
+    const snap = await getDoc(doc(db, COLLECTION, uid));
+    if (snap.exists()) {
+      return { userId: snap.id, ...snap.data() } as SellerProfile;
+    }
+    if (email) {
+      const emailUid = email.replace(/[^a-z0-9]/gi, '_');
+      const altSnap = await getDoc(doc(db, COLLECTION, emailUid));
+      if (altSnap.exists()) {
+        return { userId: altSnap.id, ...altSnap.data() } as SellerProfile;
+      }
+    }
+  } catch (err) {
+    console.warn('getSellerProfile error:', err);
+  }
+  return null;
 }
 
 export async function createSellerProfile(
@@ -52,14 +65,18 @@ export async function updateSellerProfile(
 }
 
 export async function getPendingSellers(): Promise<SellerProfile[]> {
-  const q = query(
-    collection(db, COLLECTION),
-    where('approvalStatus', '==', 'pending'),
-    orderBy('updatedAt', 'desc'),
-    limit(50)
-  );
-  const snap = await getDocs(q);
-  return snap.docs.map((d) => ({ userId: d.id, ...d.data() }) as SellerProfile);
+  try {
+    const q = query(
+      collection(db, COLLECTION),
+      where('approvalStatus', '==', 'pending'),
+      limit(50)
+    );
+    const snap = await getDocs(q);
+    return snap.docs.map((d) => ({ userId: d.id, ...d.data() }) as SellerProfile);
+  } catch (err) {
+    console.warn('getPendingSellers error:', err);
+    return [];
+  }
 }
 
 export async function approveSeller(uid: string, adminUid: string): Promise<void> {

@@ -43,13 +43,14 @@ const CatalogPage: React.FC = () => {
 
   useEffect(() => {
     async function loadData() {
+      setLoading(true);
       try {
         const [catData, prodRes] = await Promise.all([
           getAllCategories(),
           getProducts(filters, 50)
         ]);
-        if (catData.length > 0) setDbCategories(catData);
-        if (prodRes.products.length > 0) setDbProducts(prodRes.products);
+        setDbCategories(catData);
+        setDbProducts(prodRes.products);
       } catch (err) {
         console.error('Failed to load Firestore catalog:', err);
       } finally {
@@ -59,16 +60,8 @@ const CatalogPage: React.FC = () => {
     loadData();
   }, []);
 
-  const categoriesList = dbCategories.length > 0 ? dbCategories : MOCK_CATEGORIES;
-  const rawProducts = useMemo(() => {
-    const list = [...dbProducts];
-    MOCK_PRODUCTS.forEach((p) => {
-      if (!list.some((item) => item.id === p.id)) {
-        list.unshift(p);
-      }
-    });
-    return list.length > 0 ? list : MOCK_PRODUCTS;
-  }, [dbProducts]);
+  const categoriesList = dbCategories;
+  const rawProducts = dbProducts;
 
   const toggleFilter = (key: string) =>
     setExpandedFilters((p) => ({ ...p, [key]: !p[key] }));

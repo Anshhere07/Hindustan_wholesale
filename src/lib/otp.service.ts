@@ -72,7 +72,7 @@ export async function generateAndSendOtp(
 
   const fromEmail =
     process.env.SMTP_FROM ||
-    '"Hindustan Wholesale Security" <hn.aditya321@gmail.com>';
+    '"Hindustan Wholesale" <saxenaansh387@gmail.com>';
 
   const mailOptions = {
     from: fromEmail,

@@ -48,110 +48,126 @@ export async function getProducts(
   pageSize = 20,
   lastDoc?: QueryDocumentSnapshot
 ): Promise<{ products: ProductListItem[]; lastVisible: QueryDocumentSnapshot | null }> {
-  const constraints: QueryConstraint[] = [where('status', '==', 'active')];
+  try {
+    // Only return products that are BOTH active status AND admin-approved
+    const constraints: QueryConstraint[] = [
+      where('status', '==', 'active'),
+      where('approvalStatus', '==', 'approved'),
+    ];
 
-  if (filters.categoryId) {
-    constraints.push(where('categoryId', '==', filters.categoryId));
+    if (filters.sellerId) {
+      constraints.push(where('sellerId', '==', filters.sellerId));
+    }
+
+    constraints.push(limit(pageSize));
+    if (lastDoc) constraints.push(startAfter(lastDoc));
+
+    const q = query(collection(db, COLLECTION), ...constraints);
+    const snap = await getDocs(q);
+
+    let products: ProductListItem[] = snap.docs.map((d) => {
+      const data = d.data() as Product;
+      const primaryImg = (data.images || []).find((img) => img.isPrimary) ??
+        (data.images || [])[0] ??
+        { id: 'img-1', url: 'https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?w=400&q=80', altText: data.name, isPrimary: true, order: 1 };
+      return {
+        id: d.id,
+        sku: data.sku,
+        name: data.name,
+        slug: data.slug,
+        basePrice: data.basePrice,
+        currency: data.currency,
+        moq: data.moq,
+        unit: data.unit,
+        stock: data.stock,
+        rating: data.rating ?? 0,
+        reviewCount: data.reviewCount ?? 0,
+        sellerName: data.sellerName,
+        sellerRating: data.sellerRating,
+        leadTimeDays: data.leadTimeDays,
+        isFeatured: data.isFeatured,
+        status: data.status,
+        approvalStatus: data.approvalStatus,
+        brand: data.brand,
+        primaryImage: primaryImg,
+        categoryId: data.categoryId,
+        categoryName: data.categoryName,
+      } satisfies ProductListItem;
+    });
+
+    // Apply remaining client-side filters (category, brand, price, rating)
+    if (filters.categoryId) {
+      products = products.filter(
+        (p) => p.categoryId === filters.categoryId ||
+          p.categoryName?.toLowerCase().includes(filters.categoryId!.toLowerCase())
+      );
+    }
+    if (filters.brand?.length) {
+      products = products.filter((p) => p.brand && filters.brand!.includes(p.brand));
+    }
+    if (filters.inStock) {
+      products = products.filter((p) => p.stock > 0);
+    }
+
+    // Client-side sort
+    switch (filters.sortBy) {
+      case 'price_asc': products.sort((a, b) => a.basePrice - b.basePrice); break;
+      case 'price_desc': products.sort((a, b) => b.basePrice - a.basePrice); break;
+      case 'rating': products.sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0)); break;
+      case 'moq_asc': products.sort((a, b) => a.moq - b.moq); break;
+    }
+
+    const lastVisible = snap.docs[snap.docs.length - 1] ?? null;
+    return { products, lastVisible };
+  } catch (err) {
+    console.warn('getProducts error (falling back to empty):', err);
+    return { products: [], lastVisible: null };
   }
-  if (filters.sellerId) {
-    constraints.push(where('sellerId', '==', filters.sellerId));
-  }
-  if (filters.brand?.length === 1) {
-    // Firestore supports single equality for arrays; for multi-brand use client-side filter
-    constraints.push(where('brand', '==', filters.brand[0]));
-  }
-  if (filters.inStock) {
-    constraints.push(where('stock', '>', 0));
-  }
-
-  // Sorting
-  switch (filters.sortBy) {
-    case 'price_asc':
-      constraints.push(orderBy('basePrice', 'asc'));
-      break;
-    case 'price_desc':
-      constraints.push(orderBy('basePrice', 'desc'));
-      break;
-    case 'rating':
-      constraints.push(orderBy('rating', 'desc'));
-      break;
-    case 'moq_asc':
-      constraints.push(orderBy('moq', 'asc'));
-      break;
-    default:
-      constraints.push(orderBy('isFeatured', 'desc'), orderBy('createdAt', 'desc'));
-  }
-
-  constraints.push(limit(pageSize));
-  if (lastDoc) constraints.push(startAfter(lastDoc));
-
-  const q = query(collection(db, COLLECTION), ...constraints);
-  const snap = await getDocs(q);
-
-  const products: ProductListItem[] = snap.docs.map((d) => {
-    const data = d.data() as Product;
-    return {
-      id: d.id,
-      sku: data.sku,
-      name: data.name,
-      slug: data.slug,
-      basePrice: data.basePrice,
-      currency: data.currency,
-      moq: data.moq,
-      unit: data.unit,
-      stock: data.stock,
-      rating: data.rating,
-      reviewCount: data.reviewCount,
-      sellerName: data.sellerName,
-      sellerRating: data.sellerRating,
-      leadTimeDays: data.leadTimeDays,
-      isFeatured: data.isFeatured,
-      status: data.status,
-      brand: data.brand,
-      primaryImage: data.images.find((img) => img.isPrimary) ?? data.images[0],
-      categoryId: data.categoryId,
-      categoryName: data.categoryName,
-    } satisfies ProductListItem;
-  });
-
-  const lastVisible = snap.docs[snap.docs.length - 1] ?? null;
-  return { products, lastVisible };
 }
 
 // ── Seller product management ─────────────────────────────────────────────────
 
 export async function getSellerProducts(sellerId: string): Promise<ProductListItem[]> {
-  const q = query(
-    collection(db, COLLECTION),
-    where('sellerId', '==', sellerId),
-    orderBy('createdAt', 'desc')
-  );
-  const snap = await getDocs(q);
-  return snap.docs.map((d) => {
-    const data = d.data() as Product;
-    return {
-      id: d.id,
-      sku: data.sku,
-      name: data.name,
-      slug: data.slug,
-      basePrice: data.basePrice,
-      currency: data.currency,
-      moq: data.moq,
-      unit: data.unit,
-      stock: data.stock,
-      rating: data.rating,
-      reviewCount: data.reviewCount,
-      sellerName: data.sellerName,
-      sellerRating: data.sellerRating,
-      leadTimeDays: data.leadTimeDays,
-      isFeatured: data.isFeatured,
-      status: data.status,
-      brand: data.brand,
-      primaryImage: data.images.find((img) => img.isPrimary) ?? data.images[0],
-      categoryId: data.categoryId,
-      categoryName: data.categoryName,
-    } satisfies ProductListItem;
-  });
+  try {
+    const q = query(
+      collection(db, COLLECTION),
+      where('sellerId', '==', sellerId)
+    );
+    const snap = await getDocs(q);
+    const items = snap.docs.map((d) => {
+      const data = d.data() as Product;
+      const primaryImg = (data.images || []).find((img) => img.isPrimary) ??
+        (data.images || [])[0] ??
+        { id: 'img-1', url: 'https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?w=400&q=80', altText: data.name, isPrimary: true, order: 1 };
+      return {
+        id: d.id,
+        sku: data.sku,
+        name: data.name,
+        slug: data.slug,
+        basePrice: data.basePrice,
+        currency: data.currency,
+        moq: data.moq,
+        unit: data.unit,
+        stock: data.stock,
+        rating: data.rating ?? 0,
+        reviewCount: data.reviewCount ?? 0,
+        sellerName: data.sellerName,
+        sellerRating: data.sellerRating,
+        leadTimeDays: data.leadTimeDays,
+        isFeatured: data.isFeatured,
+        status: data.status,
+        approvalStatus: data.approvalStatus,
+        brand: data.brand,
+        primaryImage: primaryImg,
+        categoryId: data.categoryId,
+        categoryName: data.categoryName,
+      } satisfies ProductListItem;
+    });
+    return items;
+  } catch (err) {
+    console.warn('getSellerProducts error:', err);
+    return [];
+  }
 }
 
 export async function createProduct(
@@ -159,6 +175,7 @@ export async function createProduct(
 ): Promise<string> {
   const ref = await addDoc(collection(db, COLLECTION), {
     ...data,
+    approvalStatus: data.approvalStatus || 'pending',
     rating: 0,
     reviewCount: 0,
     createdAt: serverTimestamp(),
@@ -176,6 +193,39 @@ export async function updateProduct(id: string, data: Partial<Product>): Promise
 
 export async function deleteProduct(id: string): Promise<void> {
   await deleteDoc(doc(db, COLLECTION, id));
+}
+
+// ── Admin Product Approval Helpers ────────────────────────────────────────────
+
+export async function getAllProductsAdmin(): Promise<Product[]> {
+  try {
+    const snap = await getDocs(collection(db, COLLECTION));
+    const list = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Product);
+    return list.sort((a, b) => {
+      const dateA = a.createdAt ? new Date(a.createdAt as string).getTime() : 0;
+      const dateB = b.createdAt ? new Date(b.createdAt as string).getTime() : 0;
+      return dateB - dateA;
+    });
+  } catch (err) {
+    console.warn('getAllProductsAdmin error:', err);
+    return [];
+  }
+}
+
+export async function approveProductAdmin(id: string): Promise<void> {
+  await updateDoc(doc(db, COLLECTION, id), {
+    approvalStatus: 'approved',
+    status: 'active',
+    updatedAt: serverTimestamp(),
+  });
+}
+
+export async function rejectProductAdmin(id: string): Promise<void> {
+  await updateDoc(doc(db, COLLECTION, id), {
+    approvalStatus: 'rejected',
+    status: 'draft',
+    updatedAt: serverTimestamp(),
+  });
 }
 
 // ── Featured products (for buyer dashboard) ───────────────────────────────────

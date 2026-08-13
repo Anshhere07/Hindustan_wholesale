@@ -32,26 +32,24 @@ const BuyerDashboard: React.FC = () => {
   const { user } = useAuthStore();
   const { grandTotal, itemCount } = useCartStore();
 
-  const [orders, setOrders] = useState<Order[]>(MOCK_ORDERS);
-  const [featured, setFeatured] = useState<ProductListItem[]>(MOCK_PRODUCTS.filter((p) => p.isFeatured));
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [featured, setFeatured] = useState<ProductListItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     async function loadData() {
+      setIsLoading(true);
       try {
         const [ordRes, featRes] = await Promise.all([
-          user?.id ? getBuyerOrders(user.id, 5) : getAllOrders(5),
-          getFeaturedProducts(4)
+          user?.id ? getBuyerOrders(user.id, 5) : Promise.resolve([]),
+          getFeaturedProducts(8)
         ]);
-        if (ordRes.length > 0) setOrders(ordRes);
-        const combinedFeat = [...featRes];
-        MOCK_PRODUCTS.forEach((p) => {
-          if (!combinedFeat.some((item) => item.id === p.id)) {
-            combinedFeat.unshift(p);
-          }
-        });
-        setFeatured(combinedFeat.length > 0 ? combinedFeat.slice(0, 8) : MOCK_PRODUCTS.slice(0, 8));
+        setOrders(ordRes);
+        setFeatured(featRes);
       } catch (err) {
         console.error('Failed to load BuyerDashboard data:', err);
+      } finally {
+        setIsLoading(false);
       }
     }
     loadData();
@@ -84,19 +82,19 @@ const BuyerDashboard: React.FC = () => {
       <div className={styles.statsGrid}>
         <StatCard
           label="Total Spent (YTD)"
-          value={formatCurrency(2175629, 'INR', { compact: true })}
-          trend={18.4}
-          trendLabel="vs last year"
+          value={formatCurrency(orders.reduce((acc, o) => acc + o.grandTotal, 0), 'INR', { compact: true })}
+          trend={0}
+          trendLabel="live database"
           icon={<TrendingUp size={20} />}
           iconBg="#fff1f2"
           iconColor="#8b0000"
         />
         <StatCard
           label="Active Orders"
-          value="3"
-          subValue="2 in transit"
-          trend={12.5}
-          trendLabel="vs last month"
+          value={orders.filter(o => o.status !== 'delivered' && o.status !== 'cancelled').length}
+          subValue={`${orders.length} total orders`}
+          trend={0}
+          trendLabel="live database"
           icon={<Package size={20} />}
           iconBg="#ecfdf5"
           iconColor="#10b981"
@@ -111,9 +109,9 @@ const BuyerDashboard: React.FC = () => {
         />
         <StatCard
           label="Avg. Order Value"
-          value={formatCurrency(56780, 'INR', { compact: true })}
-          trend={-3.2}
-          trendLabel="vs last month"
+          value={orders.length > 0 ? formatCurrency(Math.round(orders.reduce((acc, o) => acc + o.grandTotal, 0) / orders.length), 'INR', { compact: true }) : '₹0'}
+          trend={0}
+          trendLabel="live database"
           icon={<CreditCard size={20} />}
           iconBg="#fff1f2"
           iconColor="#c8102e"
@@ -127,13 +125,13 @@ const BuyerDashboard: React.FC = () => {
           <div className={styles.chartHeader}>
             <div>
               <h2 className={styles.sectionTitle}>Monthly Spend</h2>
-              <p className={styles.sectionSub}>Procurement spend trend — 2026</p>
+              <p className={styles.sectionSub}>Procurement spend trend — live database</p>
             </div>
-            <span className={styles.totalSpend}>{formatCurrency(2175629, 'INR', { compact: true })} YTD</span>
+            <span className={styles.totalSpend}>{formatCurrency(orders.reduce((acc, o) => acc + o.grandTotal, 0), 'INR', { compact: true })}</span>
           </div>
           <div className={styles.chartWrap}>
             <ResponsiveContainer width="100%" height={220}>
-              <AreaChart data={MOCK_BUYER_SPEND} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
+              <AreaChart data={[{ month: 'Jan', spend: orders.reduce((acc, o) => acc + o.grandTotal, 0) }]} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
                 <defs>
                   <linearGradient id="spendGrad" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%"  stopColor="#8b0000" stopOpacity={0.25} />
@@ -162,21 +160,27 @@ const BuyerDashboard: React.FC = () => {
             </Link>
           </div>
           <div className={styles.ordersList}>
-            {recentOrders.map((order) => (
-              <Link key={order.id} href={ROUTES.BUYER.ORDER_DETAIL(order.id)} className={styles.orderRow}>
-                <div className={styles.orderInfo}>
-                  <p className={styles.orderNum}>{order.orderNumber}</p>
-                  <p className={styles.orderMeta}>
-                    {order.items.length} item{order.items.length > 1 ? 's' : ''} ·{' '}
-                    {formatDate(order.createdAt)}
-                  </p>
-                </div>
-                <div className={styles.orderRight}>
-                  <p className={styles.orderAmount}>{formatCurrency(order.grandTotal, 'INR')}</p>
-                  <OrderStatusBadge status={order.status} size="sm" />
-                </div>
-              </Link>
-            ))}
+            {recentOrders.length === 0 ? (
+              <div style={{ padding: '24px 12px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: 13 }}>
+                No recent orders found in database.
+              </div>
+            ) : (
+              recentOrders.map((order) => (
+                <Link key={order.id} href={ROUTES.BUYER.ORDER_DETAIL(order.id)} className={styles.orderRow}>
+                  <div className={styles.orderInfo}>
+                    <p className={styles.orderNum}>{order.orderNumber}</p>
+                    <p className={styles.orderMeta}>
+                      {order.items.length} item{order.items.length > 1 ? 's' : ''} ·{' '}
+                      {formatDate(order.createdAt)}
+                    </p>
+                  </div>
+                  <div className={styles.orderRight}>
+                    <p className={styles.orderAmount}>{formatCurrency(order.grandTotal, 'INR')}</p>
+                    <OrderStatusBadge status={order.status} size="sm" />
+                  </div>
+                </Link>
+              ))
+            )}
           </div>
         </div>
       </div>

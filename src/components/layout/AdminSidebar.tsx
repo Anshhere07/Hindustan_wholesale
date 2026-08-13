@@ -4,12 +4,13 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
-  LayoutDashboard, Store, Users, ShoppingBag,
+  LayoutDashboard, Store, Users, ShoppingBag, Package,
   Tag, BarChart3, Settings, ChevronLeft, ChevronRight,
   Menu, X, Shield, LogOut,
 } from 'lucide-react';
 import { useUIStore } from '@/stores/ui.store';
 import styles from './AdminSidebar.module.css';
+import HWLogo from '@/components/ui/HWLogo';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Admin Sidebar — responsive, collapsible, role-locked to admin
@@ -17,6 +18,7 @@ import styles from './AdminSidebar.module.css';
 
 const NAV_ITEMS = [
   { label: 'Dashboard',   href: '/admin/dashboard',   icon: LayoutDashboard },
+  { label: 'Products',    href: '/admin/products',    icon: Package },
   { label: 'Sellers',     href: '/admin/sellers',     icon: Store },
   { label: 'Buyers',      href: '/admin/buyers',      icon: Users },
   { label: 'Orders',      href: '/admin/orders',      icon: ShoppingBag },
@@ -57,18 +59,7 @@ export default function AdminSidebar({ onSignOut }: AdminSidebarProps) {
         {/* Header */}
         <div className={styles.header}>
           <Link href="/admin/dashboard" className={styles.logo} onClick={() => setMobileOpen(false)}>
-            <div className={styles.logoIcon}>
-              <svg viewBox="0 0 32 32" fill="none" width="26" height="26">
-                <rect width="32" height="32" rx="8" fill="white" fillOpacity="0.15"/>
-                <text x="4" y="22" fontFamily="Georgia, serif" fontWeight="900" fontSize="18" fill="white" letterSpacing="-1">HW</text>
-              </svg>
-            </div>
-            {!collapsed && (
-              <div className={styles.logoText}>
-                <span className={styles.logoName}>Hindustan</span>
-                <span className={styles.logoTagline}>Admin Portal</span>
-              </div>
-            )}
+            <HWLogo showText={!collapsed} size="sm" subtitle="Admin Portal" />
           </Link>
 
           {/* Close on mobile */}
@@ -102,6 +93,7 @@ export default function AdminSidebar({ onSignOut }: AdminSidebarProps) {
               <Link
                 key={item.href}
                 href={item.href}
+                prefetch={true}
                 onClick={() => setMobileOpen(false)}
                 className={`${styles.navItem} ${active ? styles.navItemActive : ''}`}
                 title={collapsed ? item.label : undefined}

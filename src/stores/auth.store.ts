@@ -44,7 +44,7 @@ export const useAuthStore = create<AuthStore>()(
     (set, get) => ({
       user: null,
       isAuthenticated: false,
-      isLoading: false,
+      isLoading: true, // Start as loading until Firebase resolves
 
       // ── Firebase Email/Password sign-in ───────────────────────────────────
       login: async (email: string, password: string) => {
@@ -54,10 +54,28 @@ export const useAuthStore = create<AuthStore>()(
           const userDoc = await fetchUserDoc(fbUser.uid);
           if (userDoc) {
             await updateLastLogin(fbUser.uid);
-            set({ user: userDoc, isAuthenticated: true });
+            set({ user: userDoc, isAuthenticated: true, isLoading: false });
+          } else {
+            // Build minimal profile from Firebase auth token
+            const displayName = fbUser.displayName || '';
+            const parts = displayName.split(' ');
+            const firstName = parts[0] || email.split('@')[0] || 'User';
+            const lastName = parts.slice(1).join(' ');
+            const minUser: User = {
+              id: fbUser.uid,
+              email: fbUser.email || email,
+              firstName,
+              lastName,
+              phone: fbUser.phoneNumber || '',
+              role: 'buyer',
+              status: 'active',
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+            };
+            set({ user: minUser, isAuthenticated: true, isLoading: false });
           }
         } finally {
-          set({ isLoading: false });
+          set((s) => ({ isLoading: s.isLoading ? false : s.isLoading }));
         }
       },
 
@@ -74,35 +92,44 @@ export const useAuthStore = create<AuthStore>()(
       // ── Sign out ──────────────────────────────────────────────────────────
       logout: async () => {
         await signOutUser();
-        set({ user: null, isAuthenticated: false });
+        set({ user: null, isAuthenticated: false, isLoading: false });
+
+        // Prevent browser back button from returning to portal pages after logout
+        if (typeof window !== 'undefined') {
+          // Replace every history entry so there's nothing to go back to
+          window.history.pushState(null, '', '/auth/login');
+          window.history.pushState(null, '', '/auth/login');
+          window.addEventListener('popstate', function onPopState() {
+            window.history.pushState(null, '', '/auth/login');
+          });
+        }
       },
 
       setLoading: (isLoading: boolean) => set({ isLoading }),
       setUser: (user: User | null) => set({ user, isAuthenticated: !!user }),
 
       // ── Initialize Firebase auth state listener ───────────────────────────
-      // Runs once on app mount. NEVER sets user=null unless Firebase explicitly
-      // says the session is gone (fbUser === null), preventing the "Guest" flash.
+      // Runs once on app mount. Reads the REAL Firestore user doc first.
+      // Falls back gracefully if Firestore is slow.
       initAuthListener: () => {
         return onAuthChange(async (fbUser) => {
           if (fbUser) {
             try {
               const userDoc = await fetchUserDoc(fbUser.uid);
               if (userDoc) {
-                // Full Firestore document found — use it
+                // Full Firestore document found — always prefer this
                 set({ user: userDoc, isAuthenticated: true, isLoading: false });
               } else {
-                // Firestore doc missing (background write still pending)
-                // Keep existing persisted state if it belongs to the same user
+                // Firestore doc missing — check if persisted user matches
                 const persisted = get().user;
                 if (persisted && persisted.id === fbUser.uid) {
-                  // Same user — just mark authenticated, don't overwrite rich data
+                  // Same user already in store — preserve their data
                   set({ isAuthenticated: true, isLoading: false });
                 } else {
-                  // Different/new user — build minimal user from Firebase token
+                  // Build user from Firebase Auth token
                   const displayName = fbUser.displayName || '';
                   const parts = displayName.split(' ');
-                  const firstName = parts[0] || 'User';
+                  const firstName = parts[0] || fbUser.email?.split('@')[0] || 'User';
                   const lastName = parts.slice(1).join(' ');
                   set({
                     user: {
@@ -110,7 +137,7 @@ export const useAuthStore = create<AuthStore>()(
                       email: fbUser.email || '',
                       firstName,
                       lastName,
-                      phone: '',
+                      phone: fbUser.phoneNumber || '',
                       role: 'buyer',
                       status: 'active',
                       createdAt: new Date().toISOString(),
@@ -122,11 +149,18 @@ export const useAuthStore = create<AuthStore>()(
                 }
               }
             } catch {
-              // Firestore unavailable — preserve persisted state, never flash Guest
-              set({ isLoading: false });
+              // Firestore unavailable — preserve persisted state
+              const persisted = get().user;
+              if (persisted && persisted.id === fbUser.uid) {
+                set({ isAuthenticated: true, isLoading: false });
+              } else {
+                // Cannot verify user identity, sign out safely
+                await signOutUser();
+                set({ user: null, isAuthenticated: false, isLoading: false });
+              }
             }
           } else {
-            // Explicit sign-out from Firebase — clear session
+            // Explicit sign-out from Firebase — clear everything
             set({ user: null, isAuthenticated: false, isLoading: false });
           }
         });
@@ -136,7 +170,7 @@ export const useAuthStore = create<AuthStore>()(
       name:       'hw-auth',
       storage:    createJSONStorage(() => ssrSafeLocalStorage),
       partialize: (state) => ({ user: state.user, isAuthenticated: state.isAuthenticated }),
-      skipHydration: true,
+      skipHydration: false, // Allow immediate hydration so layout guards work
     }
   )
 );

@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
   Users, Store, ShoppingBag, DollarSign, TrendingUp,
-  AlertTriangle, CheckCircle, Clock, ArrowUpRight, Shield,
+  AlertTriangle, CheckCircle, ArrowUpRight, Shield,
 } from 'lucide-react';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid,
@@ -15,47 +15,76 @@ import StatCard from '@/components/shared/StatCard';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import { formatCurrency, formatDate } from '@/lib/utils/format';
-import { MOCK_SELLER_REVENUE, MOCK_ORDERS } from '@/lib/api/mock-data';
 import { ROUTES } from '@/lib/constants/routes';
 import { getAllOrders } from '@/lib/firebase/collections/orders';
 import { getPendingSellers, approveSeller, rejectSeller } from '@/lib/firebase/collections/seller-profiles';
+import { getUsersByRole } from '@/lib/firebase/collections/users';
 import type { Order } from '@/types/order.types';
 import type { SellerProfile } from '@/types/user.types';
 import { useAuthStore } from '@/stores/auth.store';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Admin Dashboard — platform-wide overview, seller approvals, revenue
+// All numbers come from live Firestore — no mock data
 // ─────────────────────────────────────────────────────────────────────────────
 
-const PENDING_SELLERS_MOCK = [
-  { id: 's-1', name: 'Kapoor Spares Pvt. Ltd.', category: 'Engine Parts', city: 'Ludhiana', applied: '2026-07-12', gst: '03AABCK1234A1Z5' },
-  { id: 's-2', name: 'South Auto Components', category: 'Electrical', city: 'Chennai', applied: '2026-07-11', gst: '33AABCS5678B1Z1' },
-  { id: 's-3', name: 'RK Tyre Distributors', category: 'Tyres & Wheels', city: 'Jaipur', applied: '2026-07-10', gst: '08AABRK9012C1Z8' },
-];
-
-const PLATFORM_REVENUE = MOCK_SELLER_REVENUE.map((m) => ({
-  month: m.month,
-  gmv: m.revenue,
-  commission: Math.round(m.revenue * 0.025),
-  orders: m.orders,
-}));
+interface PlatformStats {
+  totalBuyers: number;
+  totalSellers: number;
+  totalOrders: number;
+  totalGmv: number;
+  totalCommission: number;
+  pendingSellerCount: number;
+}
 
 const AdminDashboard: React.FC = () => {
   const { user } = useAuthStore();
-  const [orders, setOrders] = useState<Order[]>(MOCK_ORDERS);
+  const [orders, setOrders] = useState<Order[]>([]);
   const [pendingSellers, setPendingSellers] = useState<SellerProfile[]>([]);
+  const [stats, setStats] = useState<PlatformStats>({
+    totalBuyers: 0,
+    totalSellers: 0,
+    totalOrders: 0,
+    totalGmv: 0,
+    totalCommission: 0,
+    pendingSellerCount: 0,
+  });
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function loadAdminData() {
+      setLoading(true);
       try {
-        const [ordRes, sellerRes] = await Promise.all([
-          getAllOrders(10),
-          getPendingSellers()
+        // Run all Firestore queries in parallel for speed
+        const [ordRes, sellerRes, buyers, sellers] = await Promise.all([
+          getAllOrders(50),          // Get up to 50 orders for stats
+          getPendingSellers(),
+          getUsersByRole('buyer'),
+          getUsersByRole('seller'),
         ]);
-        if (ordRes.length > 0) setOrders(ordRes);
-        setPendingSellers(sellerRes);
+
+        // Count active sellers vs pending sellers
+        const activeSellersCount = sellers.filter((s) => s.status === 'active').length;
+        const pendingSellersCount = sellers.filter((s) => s.status === 'pending' || s.status === 'pending_approval').length;
+
+        setOrders(ordRes.slice(0, 10)); // Show only 10 in the list
+        setPendingSellers(sellerRes.filter((s) => s.approvalStatus === 'pending'));
+
+        const gmv = ordRes.reduce((acc, o) => acc + (o.grandTotal || 0), 0);
+        const commission = Math.round(gmv * 0.025);
+
+        setStats({
+          totalBuyers: buyers.length,
+          totalSellers: activeSellersCount,
+          totalOrders: ordRes.length,
+          totalGmv: gmv,
+          totalCommission: commission,
+          pendingSellerCount: pendingSellersCount,
+        });
       } catch (err) {
         console.error('Failed to load AdminDashboard data from Firestore:', err);
+      } finally {
+        setLoading(false);
       }
     }
     loadAdminData();
@@ -65,6 +94,7 @@ const AdminDashboard: React.FC = () => {
     try {
       await approveSeller(sellerUid, user?.id || 'ADMIN');
       setPendingSellers((p) => p.filter((s) => s.userId !== sellerUid));
+      setStats((s) => ({ ...s, pendingSellerCount: Math.max(0, s.pendingSellerCount - 1) }));
     } catch (err) {
       console.error('Failed to approve seller:', err);
     }
@@ -74,12 +104,37 @@ const AdminDashboard: React.FC = () => {
     try {
       await rejectSeller(sellerUid, 'KYC documentation insufficient');
       setPendingSellers((p) => p.filter((s) => s.userId !== sellerUid));
+      setStats((s) => ({ ...s, pendingSellerCount: Math.max(0, s.pendingSellerCount - 1) }));
     } catch (err) {
       console.error('Failed to reject seller:', err);
     }
   };
-  const totalGmv = PLATFORM_REVENUE.reduce((s, m) => s + m.gmv, 0);
-  const totalCommission = PLATFORM_REVENUE.reduce((s, m) => s + m.commission, 0);
+
+  // Build chart data from real orders grouped by month
+  const chartData = React.useMemo(() => {
+    const monthMap: Record<string, { month: string; gmv: number; commission: number; orders: number }> = {};
+    const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+    orders.forEach((order) => {
+      const date = order.createdAt
+        ? new Date(typeof order.createdAt === 'string' ? order.createdAt : (order.createdAt as any).seconds * 1000)
+        : new Date();
+      const key = `${date.getFullYear()}-${date.getMonth()}`;
+      if (!monthMap[key]) {
+        monthMap[key] = { month: monthNames[date.getMonth()], gmv: 0, commission: 0, orders: 0 };
+      }
+      monthMap[key].gmv += order.grandTotal || 0;
+      monthMap[key].commission += Math.round((order.grandTotal || 0) * 0.025);
+      monthMap[key].orders += 1;
+    });
+
+    const result = Object.values(monthMap).sort((a, b) =>
+      monthNames.indexOf(a.month) - monthNames.indexOf(b.month)
+    );
+
+    // If no data, show empty placeholder
+    return result.length > 0 ? result : [{ month: 'No data', gmv: 0, commission: 0, orders: 0 }];
+  }, [orders]);
 
   return (
     <div className={styles.page}>
@@ -98,53 +153,54 @@ const AdminDashboard: React.FC = () => {
       <div className={styles.kpiGrid}>
         <StatCard
           label="Platform GMV (YTD)"
-          value={formatCurrency(totalGmv, 'INR', { compact: true })}
-          trend={28.4}
-          trendLabel="vs last year"
+          value={stats.totalGmv > 0 ? formatCurrency(stats.totalGmv, 'INR', { compact: true }) : '₹0'}
+          trend={0}
+          trendLabel="live database"
           icon={<TrendingUp size={20} />}
           iconBg="#eef2ff"
           iconColor="#bd1b13"
         />
         <StatCard
           label="Commission Earned"
-          value={formatCurrency(totalCommission, 'INR', { compact: true })}
-          trend={31.2}
-          trendLabel="vs last year"
+          value={stats.totalCommission > 0 ? formatCurrency(stats.totalCommission, 'INR', { compact: true }) : '₹0'}
+          trend={0}
+          trendLabel="2.5% of GMV"
           icon={<DollarSign size={20} />}
           iconBg="#f0fdf4"
           iconColor="#059669"
         />
         <StatCard
           label="Registered Buyers"
-          value="10,482"
-          trend={14.6}
-          trendLabel="this month"
+          value={stats.totalBuyers.toLocaleString()}
+          trend={0}
+          trendLabel="live database"
           icon={<Users size={20} />}
           iconBg="#fffbeb"
           iconColor="#d97706"
         />
         <StatCard
           label="Active Sellers"
-          value="4,918"
-          subValue="83 pending approval"
-          trend={9.3}
+          value={stats.totalSellers.toLocaleString()}
+          subValue={stats.pendingSellerCount > 0 ? `${stats.pendingSellerCount} pending approval` : 'No pending approvals'}
+          trend={0}
           icon={<Store size={20} />}
           iconBg="#f5f3ff"
           iconColor="#991410"
         />
         <StatCard
-          label="Total Orders (YTD)"
-          value="1,24,800"
-          trend={22.1}
+          label="Total Orders"
+          value={stats.totalOrders.toLocaleString()}
+          trend={0}
+          trendLabel="live database"
           icon={<ShoppingBag size={20} />}
           iconBg="#ecfeff"
           iconColor="#0891b2"
         />
         <StatCard
-          label="Dispute Rate"
-          value="0.8%"
-          trend={-12.5}
-          trendLabel="improvement"
+          label="Pending Approvals"
+          value={stats.pendingSellerCount}
+          trend={0}
+          trendLabel="seller requests"
           icon={<AlertTriangle size={20} />}
           iconBg="#fff1f2"
           iconColor="#dc2626"
@@ -158,12 +214,12 @@ const AdminDashboard: React.FC = () => {
           <div className={styles.chartHeader}>
             <div>
               <h2 className={styles.sectionTitle}>Platform GMV</h2>
-              <p className={styles.sectionSub}>Gross Merchandise Value — 2026</p>
+              <p className={styles.sectionSub}>Gross Merchandise Value — live database</p>
             </div>
-            <span className={styles.chartValue}>{formatCurrency(totalGmv, 'INR', { compact: true })}</span>
+            <span className={styles.chartValue}>{stats.totalGmv > 0 ? formatCurrency(stats.totalGmv, 'INR', { compact: true }) : '₹0'}</span>
           </div>
           <ResponsiveContainer width="100%" height={210}>
-            <AreaChart data={PLATFORM_REVENUE} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
+            <AreaChart data={chartData} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
               <defs>
                 <linearGradient id="gmvGrad" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%"  stopColor="#bd1b13" stopOpacity={0.2} />
@@ -172,7 +228,7 @@ const AdminDashboard: React.FC = () => {
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" />
               <XAxis dataKey="month" tick={{ fontSize: 11, fill: 'var(--text-tertiary)' }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 11, fill: 'var(--text-tertiary)' }} axisLine={false} tickLine={false} tickFormatter={(v: number) => `₹${v / 100000}L`} />
+              <YAxis tick={{ fontSize: 11, fill: 'var(--text-tertiary)' }} axisLine={false} tickLine={false} tickFormatter={(v: number) => `₹${v > 0 ? (v / 100000).toFixed(1) + 'L' : '0'}`} />
               <Tooltip contentStyle={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: '12px', fontSize: 12 }} formatter={(v: any) => [formatCurrency(v, 'INR'), 'GMV']} />
               <Area type="monotone" dataKey="gmv" stroke="#bd1b13" strokeWidth={2.5} fill="url(#gmvGrad)" dot={false} />
             </AreaChart>
@@ -187,14 +243,14 @@ const AdminDashboard: React.FC = () => {
               <p className={styles.sectionSub}>Platform earnings (2.5% of GMV)</p>
             </div>
             <span className={styles.chartValue} style={{ color: 'var(--color-success-600)' }}>
-              {formatCurrency(totalCommission, 'INR', { compact: true })}
+              {stats.totalCommission > 0 ? formatCurrency(stats.totalCommission, 'INR', { compact: true }) : '₹0'}
             </span>
           </div>
           <ResponsiveContainer width="100%" height={210}>
-            <BarChart data={PLATFORM_REVENUE} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
+            <BarChart data={chartData} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" />
               <XAxis dataKey="month" tick={{ fontSize: 11, fill: 'var(--text-tertiary)' }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 11, fill: 'var(--text-tertiary)' }} axisLine={false} tickLine={false} tickFormatter={(v: number) => `₹${v / 1000}K`} />
+              <YAxis tick={{ fontSize: 11, fill: 'var(--text-tertiary)' }} axisLine={false} tickLine={false} tickFormatter={(v: number) => `₹${v > 0 ? (v / 1000).toFixed(1) + 'K' : '0'}`} />
               <Tooltip contentStyle={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: '12px', fontSize: 12 }} formatter={(v: any) => [formatCurrency(v, 'INR'), 'Commission']} />
               <Bar dataKey="commission" fill="#059669" radius={[5, 5, 0, 0]} />
             </BarChart>
@@ -207,31 +263,39 @@ const AdminDashboard: React.FC = () => {
         <div className={styles.cardHeader}>
           <div>
             <h2 className={styles.sectionTitle}>Pending Seller Approvals</h2>
-            <p className={styles.sectionSub}>{pendingSellers.length > 0 ? pendingSellers.length : PENDING_SELLERS_MOCK.length} sellers awaiting KYC verification</p>
+            <p className={styles.sectionSub}>{pendingSellers.length} sellers awaiting KYC verification</p>
           </div>
           <Link href={ROUTES.ADMIN.SELLERS} className={styles.viewAll}>
             View all <ArrowUpRight size={13} />
           </Link>
         </div>
         <div className={styles.approvalsTable}>
-          <table className={styles.table}>
-            <thead>
-              <tr>
-                <th scope="col">Business Name</th>
-                <th scope="col">Category</th>
-                <th scope="col">Location</th>
-                <th scope="col">GST Number</th>
-                <th scope="col">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {pendingSellers.length > 0 ? (
-                pendingSellers.map((seller) => (
+          {loading ? (
+            <div style={{ padding: '24px 12px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: 13 }}>
+              Loading from database…
+            </div>
+          ) : pendingSellers.length === 0 ? (
+            <div style={{ padding: '24px 12px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: 13 }}>
+              No pending seller approval requests in database.
+            </div>
+          ) : (
+            <table className={styles.table}>
+              <thead>
+                <tr>
+                  <th scope="col">Business Name</th>
+                  <th scope="col">Category</th>
+                  <th scope="col">Location</th>
+                  <th scope="col">GST Number</th>
+                  <th scope="col">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {pendingSellers.map((seller) => (
                   <tr key={seller.userId} className={styles.tableRow}>
                     <td className={styles.sellerName}>{seller.businessName}</td>
                     <td><Badge variant="primary" size="sm">{seller.categories?.[0] || 'Auto Parts'}</Badge></td>
                     <td className={styles.city}>{seller.warehouseAddresses?.[0]?.city || 'India'}</td>
-                    <td><span className={styles.gst}>{seller.gstNumber}</span></td>
+                    <td><span className={styles.gst}>{seller.gstNumber || '—'}</span></td>
                     <td>
                       <div className={styles.approvalActions}>
                         <Button variant="primary" size="xs" leftIcon={<CheckCircle size={12} />} onClick={() => handleApprove(seller.userId)}>Approve</Button>
@@ -239,25 +303,10 @@ const AdminDashboard: React.FC = () => {
                       </div>
                     </td>
                   </tr>
-                ))
-              ) : (
-                PENDING_SELLERS_MOCK.map((seller) => (
-                  <tr key={seller.id} className={styles.tableRow}>
-                    <td className={styles.sellerName}>{seller.name}</td>
-                    <td><Badge variant="primary" size="sm">{seller.category}</Badge></td>
-                    <td className={styles.city}>{seller.city}</td>
-                    <td><span className={styles.gst}>{seller.gst}</span></td>
-                    <td>
-                      <div className={styles.approvalActions}>
-                        <Button variant="primary" size="xs" leftIcon={<CheckCircle size={12} />}>Approve</Button>
-                        <Button variant="danger" size="xs">Reject</Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
       </div>
 
@@ -273,23 +322,33 @@ const AdminDashboard: React.FC = () => {
           </Link>
         </div>
         <div className={styles.ordersList}>
-          {orders.map((order) => (
-            <div key={order.id} className={styles.orderRow}>
-              <div className={styles.orderInfo}>
-                <p className={styles.orderNum}>{order.orderNumber}</p>
-                <p className={styles.orderMeta}>{order.buyerName} · {order.items.length} item(s)</p>
-              </div>
-              <div className={styles.orderMid}>
-                <p className={styles.orderDate}>{formatDate(order.createdAt)}</p>
-              </div>
-              <div className={styles.orderRight}>
-                <p className={styles.orderAmount}>{formatCurrency(order.grandTotal, 'INR')}</p>
-                <span className={`${styles.orderStatus} ${styles[`orderStatus--${order.status}`]}`}>
-                  {order.status.replace('_', ' ')}
-                </span>
-              </div>
+          {loading ? (
+            <div style={{ padding: '24px 12px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: 13 }}>
+              Loading from database…
             </div>
-          ))}
+          ) : orders.length === 0 ? (
+            <div style={{ padding: '24px 12px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: 13 }}>
+              No platform orders found in database.
+            </div>
+          ) : (
+            orders.map((order) => (
+              <div key={order.id} className={styles.orderRow}>
+                <div className={styles.orderInfo}>
+                  <p className={styles.orderNum}>{order.orderNumber}</p>
+                  <p className={styles.orderMeta}>{order.buyerName || '—'} · {order.items?.length || 0} item(s)</p>
+                </div>
+                <div className={styles.orderMid}>
+                  <p className={styles.orderDate}>{formatDate(order.createdAt)}</p>
+                </div>
+                <div className={styles.orderRight}>
+                  <p className={styles.orderAmount}>{formatCurrency(order.grandTotal, 'INR')}</p>
+                  <span className={`${styles.orderStatus} ${styles[`orderStatus--${order.status}`]}`}>
+                    {order.status?.replace('_', ' ') || '—'}
+                  </span>
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </div>
     </div>
@@ -297,4 +356,3 @@ const AdminDashboard: React.FC = () => {
 };
 
 export default AdminDashboard;
-

@@ -1,7 +1,8 @@
 import type { NextConfig } from "next";
+import path from "path";
 
 const nextConfig: NextConfig = {
-  // Allow images from these external domains (Unsplash, Firebase Storage, etc.)
+  // Allow images from these external domains
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: 'images.unsplash.com' },
@@ -10,9 +11,9 @@ const nextConfig: NextConfig = {
       { protocol: 'https', hostname: 'ui-avatars.com' },
     ],
   },
-  // Silence noisy Turbopack multi-lockfile warning
+  // Fix Turbopack root to absolute path
   turbopack: {
-    root: '.',
+    root: path.resolve(__dirname),
   },
 };
 

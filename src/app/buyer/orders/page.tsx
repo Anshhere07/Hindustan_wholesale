@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import type { Metadata } from 'next';
 import OrdersPage from '@/modules/buyer/OrdersPage';
 export const metadata: Metadata = { title: 'My Orders' };

@@ -14,6 +14,7 @@ import { useUIStore } from '@/stores/ui.store';
 import { useAuthStore } from '@/stores/auth.store';
 import { ROUTES } from '@/lib/constants/routes';
 import type { UserRole } from '@/types/user.types';
+import HWLogo from '@/components/ui/HWLogo';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Sidebar Navigation — role-aware, collapsible
@@ -124,19 +125,7 @@ const Sidebar: React.FC = () => {
         {/* Logo */}
         <div className={styles.logoWrap}>
           <Link href={portalHome} className={styles.logo}>
-            {/* HW Logo Mark */}
-            <div className={styles.logoIcon}>
-              <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" width="26" height="26">
-                <rect width="32" height="32" rx="8" fill="white" fillOpacity="0.15"/>
-                <text x="4" y="22" fontFamily="Georgia, serif" fontWeight="900" fontSize="18" fill="white" letterSpacing="-1">HW</text>
-              </svg>
-            </div>
-            {!sidebarCollapsed && (
-              <div className={styles.logoText}>
-                <span className={styles.logoName}>Hindustan</span>
-                <span className={styles.logoTagline}>Wholesale</span>
-              </div>
-            )}
+            <HWLogo showText={!sidebarCollapsed} size="sm" />
           </Link>
 
           {/* Collapse toggle — desktop only */}
@@ -167,6 +156,7 @@ const Sidebar: React.FC = () => {
                         className={cn(styles.navItem, active && styles['navItem--active'])}
                         aria-current={active ? 'page' : undefined}
                         title={sidebarCollapsed ? item.label : undefined}
+                        prefetch={true}
                         onClick={() => setMobileMenuOpen(false)}
                       >
                         <span className={styles.navIcon}>

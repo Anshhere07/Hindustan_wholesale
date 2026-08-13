@@ -51,13 +51,24 @@ export async function getUsersByRole(role: 'buyer' | 'seller' | 'admin'): Promis
   try {
     const q = query(
       collection(db, COLLECTION),
-      where('role', '==', role),
-      orderBy('createdAt', 'desc')
+      where('role', '==', role)
     );
     const snap = await getDocs(q);
-    return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as UserProfile);
+    const users = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as UserProfile);
+    return users.sort((a, b) => {
+      const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return dateB - dateA;
+    });
   } catch (err) {
     console.warn(`getUsersByRole error for ${role}:`, err);
-    return [];
+    try {
+      const snap = await getDocs(collection(db, COLLECTION));
+      return snap.docs
+        .map((d) => ({ id: d.id, ...d.data() }) as UserProfile)
+        .filter((u) => u.role === role);
+    } catch {
+      return [];
+    }
   }
 }

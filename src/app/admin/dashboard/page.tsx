@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import type { Metadata } from 'next';
 import AdminDashboard from '@/modules/admin/AdminDashboard';
 export const metadata: Metadata = { title: 'Admin Dashboard' };

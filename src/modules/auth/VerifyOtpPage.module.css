@@ -80,37 +80,53 @@
 }
 
 .otpGroup {
+  position: relative;
   display: flex;
   justify-content: center;
   gap: var(--space-2);
   width: 100%;
+  cursor: pointer;
 }
 
-.otpInput {
+.hiddenInput {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  z-index: 10;
+  cursor: pointer;
+}
+
+.otpBox {
   flex: 1;
   max-width: 56px;
   min-width: 0;
-  aspect-ratio: 0.8;
+  height: 64px;
   background: var(--bg-surface);
   border: 2px solid var(--color-gray-200);
   border-radius: var(--radius-xl);
   font-size: 1.6rem;
   font-weight: 700;
   color: var(--color-brand-800);
-  text-align: center;
-  outline: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-family: var(--font-sans);
   transition: all var(--transition-fast);
+  pointer-events: none;
 }
-.otpInput:focus {
+
+.otpBoxFocused {
   border-color: var(--color-brand-800);
   box-shadow: 0 0 0 4px rgba(139, 0, 0, 0.15);
   transform: translateY(-2px);
 }
-.otpInput:disabled {
-  background: var(--bg-surface-alt);
-  color: var(--color-gray-400);
-  cursor: not-allowed;
+
+.otpBoxFilled {
+  border-color: var(--color-brand-700);
+  background: #fdf2f4;
 }
 
 .error {

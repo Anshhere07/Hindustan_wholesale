@@ -9,19 +9,25 @@ import Button from '@/components/ui/Button';
 import { useUIStore } from '@/stores/ui.store';
 import { registerUser } from '@/lib/firebase/auth';
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Verify OTP Page — single-input 6-digit OTP entry with 6 visual slot boxes
+// Ensures 100% smooth entry across all mobile keypads, keyboards, & paste flows
+// ─────────────────────────────────────────────────────────────────────────────
+
 const VerifyOtpPage: React.FC = () => {
-  const [otp, setOtp] = useState<string[]>(Array(6).fill(''));
+  const [otpCode, setOtpCode] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [countdown, setCountdown] = useState(30);
   const [shake, setShake] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
 
-  const inputRefs = useRef<HTMLInputElement[]>([]);
+  const inputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
   const { addNotification } = useUIStore();
 
   useEffect(() => {
-    inputRefs.current[0]?.focus();
+    inputRef.current?.focus();
 
     let timer: NodeJS.Timeout;
     if (countdown > 0) {
@@ -30,53 +36,15 @@ const VerifyOtpPage: React.FC = () => {
     return () => clearInterval(timer);
   }, [countdown]);
 
-  const handleChange = (value: string, index: number) => {
-    const numericValue = value.replace(/[^0-9]/g, '');
-    if (!numericValue) return;
-
-    const newOtp = [...otp];
-    newOtp[index] = numericValue.substring(numericValue.length - 1);
-    setOtp(newOtp);
+  const handleOtpChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const digits = e.target.value.replace(/[^0-9]/g, '').slice(0, 6);
+    setOtpCode(digits);
     setError(null);
-
-    if (index < 5 && newOtp[index]) {
-      inputRefs.current[index + 1]?.focus();
-    }
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, index: number) => {
-    if (e.key === 'Backspace') {
-      const newOtp = [...otp];
-      if (!newOtp[index] && index > 0) {
-        newOtp[index - 1] = '';
-        setOtp(newOtp);
-        inputRefs.current[index - 1]?.focus();
-      } else {
-        newOtp[index] = '';
-        setOtp(newOtp);
-      }
-      setError(null);
-    }
-  };
-
-  const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
-    e.preventDefault();
-    const pastedData = e.clipboardData.getData('text').trim();
-    if (!/^\d{6}$/.test(pastedData)) {
-      setError('Please paste a valid 6-digit numeric code');
-      return;
-    }
-
-    const digits = pastedData.split('');
-    setOtp(digits);
-    setError(null);
-    inputRefs.current[5]?.focus();
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const fullCode = otp.join('');
-    if (fullCode.length < 6) {
+    if (otpCode.length < 6) {
       setError('Please enter all 6 digits of the code');
       triggerShake();
       return;
@@ -102,21 +70,21 @@ const VerifyOtpPage: React.FC = () => {
       const res = await fetch('/api/auth/verify-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, otp: fullCode }),
+        body: JSON.stringify({ email, otp: otpCode }),
       });
       const data = await res.json();
       if (!res.ok) {
         throw new Error(data.error || 'Invalid verification code');
       }
 
-      // 2. Create user record with pending approval status
+      // 2. Create user record in Firebase Auth first to get real UID
       const nameParts = fullName.trim().split(' ');
       const firstName = nameParts[0] || 'User';
       const lastName = nameParts.slice(1).join(' ') || '';
-      const uid = email.replace(/[^a-z0-9]/gi, '_');
+      let firebaseUid = '';
 
       try {
-        await registerUser({
+        const fbUser = await registerUser({
           email,
           password,
           firstName,
@@ -124,14 +92,27 @@ const VerifyOtpPage: React.FC = () => {
           phone,
           role: role as 'buyer' | 'seller',
         });
+        firebaseUid = fbUser.uid;
       } catch (authErr: any) {
         console.warn('Firebase Auth note:', authErr.message);
+        if (authErr.code === 'auth/email-already-in-use') {
+          try {
+            const { signInWithPassword } = await import('@/lib/firebase/auth');
+            const existingFbUser = await signInWithPassword(email, password);
+            firebaseUid = existingFbUser.uid;
+          } catch (signinErr: any) {
+            console.warn('Could not get Firebase UID from sign-in:', signinErr.message);
+            firebaseUid = email.replace(/[^a-z0-9]/gi, '_');
+          }
+        } else {
+          firebaseUid = email.replace(/[^a-z0-9]/gi, '_');
+        }
       }
 
       // Sync user profile with status: 'pending' (Awaiting Admin Approval)
       try {
         const { createUser } = await import('@/lib/firebase/collections/users');
-        await createUser(uid, {
+        await createUser(firebaseUid, {
           email,
           phone,
           firstName,
@@ -144,7 +125,7 @@ const VerifyOtpPage: React.FC = () => {
 
         if (role === 'buyer') {
           const { createBuyerProfile } = await import('@/lib/firebase/collections/buyer-profiles');
-          await createBuyerProfile(uid, {
+          await createBuyerProfile(firebaseUid, {
             companyName: businessName || `${firstName}'s Shop`,
             businessName: businessName || `${firstName}'s Shop`,
             gstNumber: gstNumber || 'UNVERIFIED',
@@ -157,7 +138,7 @@ const VerifyOtpPage: React.FC = () => {
           });
         } else {
           const { createSellerProfile } = await import('@/lib/firebase/collections/seller-profiles');
-          await createSellerProfile(uid, {
+          await createSellerProfile(firebaseUid, {
             businessName: businessName || `${firstName}'s Company`,
             gstNumber: gstNumber || 'UNVERIFIED',
             panNumber: 'UNVERIFIED',
@@ -171,7 +152,6 @@ const VerifyOtpPage: React.FC = () => {
         console.warn('Firestore creation note:', dbErr);
       }
 
-      // Clear temporary registration storage
       if (typeof window !== 'undefined') {
         window.localStorage.removeItem('hw-otp-email');
         window.localStorage.removeItem('hw-otp-role');
@@ -182,7 +162,6 @@ const VerifyOtpPage: React.FC = () => {
         window.localStorage.removeItem('hw-otp-pass');
       }
 
-      // Display required notification toast
       addNotification({
         type: 'success',
         title: 'Request Submitted for Account Approval!',
@@ -190,14 +169,13 @@ const VerifyOtpPage: React.FC = () => {
         duration: 8000,
       });
 
-      // Redirect user to login page until admin approves
       router.push('/auth/login?status=pending_approval');
     } catch (err: any) {
       setIsLoading(false);
       setError(err.message || 'Invalid verification code');
       triggerShake();
-      setOtp(Array(6).fill(''));
-      inputRefs.current[0]?.focus();
+      setOtpCode('');
+      inputRef.current?.focus();
     }
   };
 
@@ -208,8 +186,8 @@ const VerifyOtpPage: React.FC = () => {
 
   const handleResend = async () => {
     setCountdown(30);
-    setOtp(Array(6).fill(''));
-    inputRefs.current[0]?.focus();
+    setOtpCode('');
+    inputRef.current?.focus();
 
     const email = typeof window !== 'undefined' ? (window.localStorage.getItem('hw-otp-email') || '') : '';
     if (email) {
@@ -236,7 +214,7 @@ const VerifyOtpPage: React.FC = () => {
     }
   };
 
-  const isFormComplete = otp.every((d) => d !== '');
+  const isFormComplete = otpCode.length === 6;
 
   return (
     <div className={styles.page}>
@@ -257,25 +235,40 @@ const VerifyOtpPage: React.FC = () => {
           </div>
 
           <form onSubmit={handleSubmit} className={styles.form} noValidate>
-            <div className={`${styles.otpGroup} ${shake ? styles.shake : ''}`} role="group" aria-label="6 digit verification code">
-              {otp.map((digit, idx) => (
-                <input
-                  key={idx}
-                  ref={(el) => { if (el) inputRefs.current[idx] = el; }}
-                  type="text"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  maxLength={1}
-                  className={styles.otpInput}
-                  value={digit}
-                  onChange={(e) => handleChange(e.target.value, idx)}
-                  onKeyDown={(e) => handleKeyDown(e, idx)}
-                  onPaste={handlePaste}
-                  disabled={isLoading}
-                  autoComplete="one-time-code"
-                  aria-label={`Digit ${idx + 1}`}
-                />
-              ))}
+            <div
+              className={`${styles.otpGroup} ${shake ? styles.shake : ''}`}
+              onClick={() => inputRef.current?.focus()}
+              role="group"
+              aria-label="6 digit verification code"
+            >
+              <input
+                ref={inputRef}
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                maxLength={6}
+                className={styles.hiddenInput}
+                value={otpCode}
+                onChange={handleOtpChange}
+                onFocus={() => setIsFocused(true)}
+                onBlur={() => setIsFocused(false)}
+                disabled={isLoading}
+                autoComplete="one-time-code"
+                aria-label="6-digit verification code"
+              />
+
+              {Array.from({ length: 6 }).map((_, idx) => {
+                const char = otpCode[idx] || '';
+                const isBoxFocused = isFocused && (otpCode.length === idx || (idx === 5 && otpCode.length === 6));
+                return (
+                  <div
+                    key={idx}
+                    className={`${styles.otpBox} ${isBoxFocused ? styles.otpBoxFocused : ''} ${char ? styles.otpBoxFilled : ''}`}
+                  >
+                    {char}
+                  </div>
+                );
+              })}
             </div>
 
             {error && (

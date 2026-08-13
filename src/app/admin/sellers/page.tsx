@@ -1,5 +1,7 @@
 'use client';
 
+export const dynamic = 'force-dynamic';
+
 import React, { useState, useEffect } from 'react';
 import {
   Store, CheckCircle, XCircle, Eye, Edit3, Save, X, Search, ShieldCheck, Clock
@@ -11,13 +13,19 @@ import { getUsersByRole, updateUser } from '@/lib/firebase/collections/users';
 import { getSellerProfile, updateSellerProfile } from '@/lib/firebase/collections/seller-profiles';
 import type { UserProfile, SellerProfile } from '@/types/user.types';
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Admin Sellers Page — view, edit, approve, & reject seller account requests
+// Responsive UI, live Firestore state sync & instant status transition
+// ─────────────────────────────────────────────────────────────────────────────
+
 export default function AdminSellersPage() {
   const { addNotification } = useUIStore();
   const [sellers, setSellers] = useState<UserProfile[]>([]);
   const [profiles, setProfiles] = useState<Record<string, SellerProfile>>({});
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  
+  const [statusTab, setStatusTab] = useState<'all' | 'pending' | 'active' | 'rejected'>('all');
+
   // Modal states
   const [viewSeller, setViewSeller] = useState<UserProfile | null>(null);
   const [editSeller, setEditSeller] = useState<{ user: UserProfile; profile?: SellerProfile } | null>(null);
@@ -28,10 +36,10 @@ export default function AdminSellersPage() {
     try {
       const sellerUsers = await getUsersByRole('seller');
       setSellers(sellerUsers);
-      
+
       const profMap: Record<string, SellerProfile> = {};
       for (const u of sellerUsers) {
-        const p = await getSellerProfile(u.id);
+        const p = await getSellerProfile(u.id, u.email);
         if (p) profMap[u.id] = p;
       }
       setProfiles(profMap);
@@ -48,15 +56,27 @@ export default function AdminSellersPage() {
 
   const handleApprove = async (user: UserProfile) => {
     try {
+      const emailUid = user.email.replace(/[^a-z0-9]/gi, '_');
       await updateUser(user.id, { status: 'active' });
-      if (profiles[user.id]) {
-        await updateSellerProfile(user.id, { approvalStatus: 'approved' });
-      }
-      setSellers((prev) => prev.map((s) => (s.id === user.id ? { ...s, status: 'active' } : s)));
+      await updateUser(emailUid, { status: 'active' }).catch(() => {});
+
+      await updateSellerProfile(user.id, { approvalStatus: 'approved' }).catch(() => {});
+      await updateSellerProfile(emailUid, { approvalStatus: 'approved' }).catch(() => {});
+
+      // Update both state objects instantly so Approve button disappears and badge turns green APPROVED
+      setSellers((prev) => prev.map((s) => (s.id === user.id || s.email === user.email ? { ...s, status: 'active' } : s)));
+      setProfiles((prev) => {
+        const next = { ...prev };
+        if (next[user.id]) next[user.id] = { ...next[user.id], approvalStatus: 'approved' };
+        if (next[emailUid]) next[emailUid] = { ...next[emailUid], approvalStatus: 'approved' };
+        return next;
+      });
+
       addNotification({
         type: 'success',
         title: 'Seller Account Approved!',
-        message: `Notification sent to seller (${user.email}). Account is now active.`,
+        message: `Seller account (${user.email}) approved. Status updated to APPROVED. User can now sign in.`,
+        duration: 6000,
       });
     } catch (err: any) {
       addNotification({ type: 'error', title: 'Approval Failed', message: err.message });
@@ -65,15 +85,26 @@ export default function AdminSellersPage() {
 
   const handleReject = async (user: UserProfile) => {
     try {
-      await updateUser(user.id, { status: 'suspended' });
-      if (profiles[user.id]) {
-        await updateSellerProfile(user.id, { approvalStatus: 'rejected' });
-      }
-      setSellers((prev) => prev.map((s) => (s.id === user.id ? { ...s, status: 'suspended' } : s)));
+      const emailUid = user.email.replace(/[^a-z0-9]/gi, '_');
+      await updateUser(user.id, { status: 'rejected' });
+      await updateUser(emailUid, { status: 'rejected' }).catch(() => {});
+
+      await updateSellerProfile(user.id, { approvalStatus: 'rejected' }).catch(() => {});
+      await updateSellerProfile(emailUid, { approvalStatus: 'rejected' }).catch(() => {});
+
+      setSellers((prev) => prev.map((s) => (s.id === user.id || s.email === user.email ? { ...s, status: 'rejected' } : s)));
+      setProfiles((prev) => {
+        const next = { ...prev };
+        if (next[user.id]) next[user.id] = { ...next[user.id], approvalStatus: 'rejected' };
+        if (next[emailUid]) next[emailUid] = { ...next[emailUid], approvalStatus: 'rejected' };
+        return next;
+      });
+
       addNotification({
         type: 'warning',
-        title: 'Seller Account Rejected',
-        message: `Seller account (${user.email}) has been rejected/suspended.`,
+        title: 'Seller Request Denied',
+        message: `Seller request (${user.email}) denied. Status updated to REJECTED.`,
+        duration: 6000,
       });
     } catch (err: any) {
       addNotification({ type: 'error', title: 'Action Failed', message: err.message });
@@ -98,7 +129,7 @@ export default function AdminSellersPage() {
       addNotification({
         type: 'success',
         title: 'Seller Details Updated',
-        message: `Seller details for ${editForm.firstName} updated successfully.`,
+        message: `Seller profile for ${editForm.firstName} updated successfully.`,
       });
       setEditSeller(null);
       loadData();
@@ -107,29 +138,46 @@ export default function AdminSellersPage() {
     }
   };
 
-  const filteredSellers = sellers.filter((s) =>
-    s.email.toLowerCase().includes(search.toLowerCase()) ||
-    `${s.firstName} ${s.lastName}`.toLowerCase().includes(search.toLowerCase()) ||
-    (profiles[s.id]?.businessName || '').toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredSellers = sellers.filter((s) => {
+    const prof = profiles[s.id];
+    const matchesSearch =
+      s.email.toLowerCase().includes(search.toLowerCase()) ||
+      `${s.firstName} ${s.lastName}`.toLowerCase().includes(search.toLowerCase()) ||
+      (prof?.businessName || '').toLowerCase().includes(search.toLowerCase());
+
+    const isPending = (s.status === 'pending' || s.status === 'pending_approval' || prof?.approvalStatus === 'pending') && s.status !== 'active' && s.status !== 'rejected';
+    const isApproved = s.status === 'active' || prof?.approvalStatus === 'approved';
+    const isRejected = s.status === 'rejected' || s.status === 'suspended' || prof?.approvalStatus === 'rejected';
+
+    if (statusTab === 'all') return matchesSearch;
+    if (statusTab === 'pending') return matchesSearch && isPending;
+    if (statusTab === 'active') return matchesSearch && isApproved;
+    if (statusTab === 'rejected') return matchesSearch && isRejected;
+    return matchesSearch;
+  });
+
+  const pendingCount = sellers.filter((s) => {
+    const prof = profiles[s.id];
+    return (s.status === 'pending' || s.status === 'pending_approval' || prof?.approvalStatus === 'pending') && s.status !== 'active' && s.status !== 'rejected';
+  }).length;
 
   return (
-    <div style={{ padding: '28px 32px' }}>
+    <div style={{ padding: '20px 24px', maxWidth: 1400, margin: '0 auto' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16, marginBottom: 24 }}>
         <div>
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: '#8B0000', fontWeight: 600, fontSize: 13, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>
             <Store size={14} /> Seller Management
           </div>
           <h1 style={{ fontSize: 24, fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
-            Seller Requests & Accounts
+            Seller Requests &amp; Accounts
           </h1>
         </div>
 
-        <div style={{ position: 'relative', width: 280 }}>
+        <div style={{ position: 'relative', width: '100%', maxWidth: 300 }}>
           <Search size={16} style={{ position: 'absolute', left: 12, top: 12, color: '#9CA3AF' }} />
           <input
             type="text"
-            placeholder="Search seller name, email..."
+            placeholder="Search seller name, business, email..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             style={{
@@ -147,33 +195,70 @@ export default function AdminSellersPage() {
         </div>
       </div>
 
+      {/* Responsive Filter Tabs */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 20, overflowX: 'auto', paddingBottom: 4 }}>
+        {(['all', 'pending', 'active', 'rejected'] as const).map((tab) => {
+          const isActive = statusTab === tab;
+          return (
+            <button
+              key={tab}
+              onClick={() => setStatusTab(tab)}
+              style={{
+                padding: '8px 16px',
+                borderRadius: 8,
+                fontSize: 13,
+                fontWeight: 600,
+                border: 'none',
+                cursor: 'pointer',
+                background: isActive ? '#8B0000' : '#f3f4f6',
+                color: isActive ? '#fff' : 'var(--text-secondary)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                whiteSpace: 'nowrap',
+                transition: 'all 0.2s',
+              }}
+            >
+              {tab === 'active' ? 'APPROVED' : tab.toUpperCase()}
+              {tab === 'pending' && pendingCount > 0 && (
+                <span style={{ background: '#ef4444', color: '#fff', fontSize: 11, padding: '1px 6px', borderRadius: 999 }}>
+                  {pendingCount}
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
       {loading ? (
         <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-secondary)' }}>Loading seller accounts...</div>
       ) : filteredSellers.length === 0 ? (
         <div style={{ padding: 40, textAlign: 'center', background: '#fff', borderRadius: 16, border: '1px solid var(--border-subtle)' }}>
-          <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: 14 }}>No seller registrations found matching your query.</p>
+          <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: 14 }}>No seller accounts found under &quot;{statusTab}&quot; tab.</p>
         </div>
       ) : (
-        <div style={{ background: '#fff', borderRadius: 16, border: '1px solid var(--border-subtle)', overflow: 'hidden' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
+        <div style={{ background: '#fff', borderRadius: 16, border: '1px solid var(--border-subtle)', overflowX: 'auto' }}>
+          <table style={{ width: '100%', minWidth: 700, borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
             <thead>
               <tr style={{ background: '#f9fafb', borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-secondary)' }}>
-                <th style={{ padding: '14px 18px', fontWeight: 600 }}>Seller / Company</th>
-                <th style={{ padding: '14px 18px', fontWeight: 600 }}>Email & Contact</th>
+                <th style={{ padding: '14px 18px', fontWeight: 600 }}>Business / Seller</th>
+                <th style={{ padding: '14px 18px', fontWeight: 600 }}>Email &amp; Contact</th>
                 <th style={{ padding: '14px 18px', fontWeight: 600 }}>GSTIN</th>
-                <th style={{ padding: '14px 18px', fontWeight: 600 }}>Status</th>
+                <th style={{ padding: '14px 18px', fontWeight: 600 }}>Approval Status</th>
                 <th style={{ padding: '14px 18px', fontWeight: 600, textAlign: 'right' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
               {filteredSellers.map((seller) => {
                 const prof = profiles[seller.id];
-                const isPending = seller.status === 'pending';
+                const isPending = (seller.status === 'pending' || seller.status === 'pending_approval' || prof?.approvalStatus === 'pending') && seller.status !== 'active' && seller.status !== 'rejected';
+                const isApproved = seller.status === 'active' || prof?.approvalStatus === 'approved';
+
                 return (
                   <tr key={seller.id} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
                     <td style={{ padding: '14px 18px' }}>
                       <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{prof?.businessName || `${seller.firstName} ${seller.lastName}`}</div>
-                      <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>Owner: {seller.firstName} {seller.lastName}</div>
+                      <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>Primary Contact: {seller.firstName} {seller.lastName}</div>
                     </td>
                     <td style={{ padding: '14px 18px' }}>
                       <div>{seller.email}</div>
@@ -185,12 +270,12 @@ export default function AdminSellersPage() {
                       </span>
                     </td>
                     <td style={{ padding: '14px 18px' }}>
-                      <Badge variant={seller.status === 'active' ? 'success' : isPending ? 'warning' : 'danger'} size="sm">
-                        {seller.status.toUpperCase()}
+                      <Badge variant={isApproved ? 'success' : isPending ? 'warning' : 'danger'} size="sm">
+                        {isApproved ? 'APPROVED' : seller.status.toUpperCase()}
                       </Badge>
                     </td>
                     <td style={{ padding: '14px 18px', textAlign: 'right' }}>
-                      <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+                      <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
                         <Button
                           variant="ghost"
                           size="xs"
@@ -226,7 +311,7 @@ export default function AdminSellersPage() {
                             Approve
                           </Button>
                         )}
-                        {seller.status !== 'suspended' && (
+                        {!isApproved && seller.status !== 'rejected' && (
                           <Button
                             variant="danger"
                             size="xs"
@@ -251,17 +336,17 @@ export default function AdminSellersPage() {
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
           <div style={{ background: '#fff', borderRadius: 16, width: '100%', maxWidth: 480, padding: 24, boxShadow: '0 20px 40px rgba(0,0,0,0.2)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-              <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>Seller Account Details</h3>
+              <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>Seller Business Profile</h3>
               <button onClick={() => setViewSeller(null)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={18} /></button>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12, fontSize: 14 }}>
-              <div><strong>Name:</strong> {viewSeller.firstName} {viewSeller.lastName}</div>
+              <div><strong>Business Name:</strong> {profiles[viewSeller.id]?.businessName || 'N/A'}</div>
+              <div><strong>Contact Person:</strong> {viewSeller.firstName} {viewSeller.lastName}</div>
               <div><strong>Email:</strong> {viewSeller.email}</div>
               <div><strong>Phone:</strong> {viewSeller.phone || 'N/A'}</div>
-              <div><strong>Business Name:</strong> {profiles[viewSeller.id]?.businessName || 'N/A'}</div>
               <div><strong>GSTIN:</strong> {profiles[viewSeller.id]?.gstNumber || 'N/A'}</div>
-              <div><strong>Account Status:</strong> <Badge variant={viewSeller.status === 'active' ? 'success' : 'warning'}>{viewSeller.status}</Badge></div>
-              <div><strong>Created At:</strong> {viewSeller.createdAt ? new Date(viewSeller.createdAt).toLocaleDateString() : 'N/A'}</div>
+              <div><strong>Account Status:</strong> <Badge variant={viewSeller.status === 'active' ? 'success' : 'warning'}>{viewSeller.status === 'active' ? 'APPROVED' : viewSeller.status.toUpperCase()}</Badge></div>
+              <div><strong>Registered At:</strong> {viewSeller.createdAt ? new Date(viewSeller.createdAt).toLocaleDateString() : 'N/A'}</div>
             </div>
             <div style={{ marginTop: 20, textAlign: 'right' }}>
               <Button variant="secondary" onClick={() => setViewSeller(null)}>Close</Button>
@@ -275,7 +360,7 @@ export default function AdminSellersPage() {
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
           <div style={{ background: '#fff', borderRadius: 16, width: '100%', maxWidth: 480, padding: 24, boxShadow: '0 20px 40px rgba(0,0,0,0.2)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-              <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>Edit Seller Details</h3>
+              <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>Edit Seller Profile</h3>
               <button onClick={() => setEditSeller(null)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={18} /></button>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>

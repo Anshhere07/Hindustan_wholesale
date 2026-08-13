@@ -20,33 +20,24 @@ import type { ProductListItem } from '@/types/product.types';
 const SellerListings: React.FC = () => {
   const [search, setSearch] = useState('');
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
-  const [products, setProducts] = useState<ProductListItem[]>(MOCK_PRODUCTS);
+  const [products, setProducts] = useState<ProductListItem[]>([]);
+  const [loading, setLoading] = useState(true);
   const { user } = useAuthStore();
 
   useEffect(() => {
     async function loadSellerProducts() {
+      setLoading(true);
       try {
-        let res: ProductListItem[] = [];
         if (user?.id) {
-          try {
-            res = await getSellerProducts(user.id);
-          } catch (e) {}
+          const res = await getSellerProducts(user.id);
+          setProducts(res);
+        } else {
+          setProducts([]);
         }
-        if (res.length === 0) {
-          try {
-            const allRes = await getProducts({}, 50);
-            res = allRes.products;
-          } catch (e) {}
-        }
-        const combined = [...res];
-        MOCK_PRODUCTS.forEach((p) => {
-          if (!combined.some((item) => item.id === p.id)) {
-            combined.unshift(p);
-          }
-        });
-        setProducts(combined);
       } catch (err) {
         console.error('Failed to load seller products:', err);
+      } finally {
+        setLoading(false);
       }
     }
     loadSellerProducts();
@@ -135,8 +126,8 @@ const SellerListings: React.FC = () => {
                   </span>
                 </td>
                 <td>
-                  <Badge variant={product.status === 'active' ? 'success' : 'neutral'} size="sm">
-                    {product.status}
+                  <Badge variant={product.approvalStatus === 'approved' || product.status === 'active' ? 'success' : product.approvalStatus === 'rejected' ? 'danger' : 'warning'} size="sm">
+                    {product.approvalStatus === 'approved' || product.status === 'active' ? 'VERIFIED & LIVE' : product.approvalStatus === 'rejected' ? 'REJECTED' : 'PENDING VERIFICATION'}
                   </Badge>
                 </td>
                 <td>

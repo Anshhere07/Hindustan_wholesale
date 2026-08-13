@@ -1,5 +1,7 @@
 'use client';
 
+export const dynamic = 'force-dynamic';
+
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -110,13 +112,14 @@ export default function AddProductPage() {
         compatibleVehicles: compatibleVehicles.split(',').map(v => v.trim()).filter(Boolean),
         isGstExempt: false,
         gstRate: 18,
-        status,
-        isFeatured: true,
+        status: 'draft',
+        approvalStatus: 'pending',
+        isFeatured: false,
         rating: 4.8,
         reviewCount: 1,
       }).catch((dbErr) => console.warn('Firestore add product notice:', dbErr.message));
 
-      // 2. Instantly update MOCK_PRODUCTS array for live catalog availability
+      // 2. Add to local memory array with pending approval status
       const newListItem: ProductListItem = {
         id: createdDocId,
         sku: sku.trim().toUpperCase(),
@@ -132,8 +135,9 @@ export default function AddProductPage() {
         sellerName,
         sellerRating: 4.8,
         leadTimeDays: Number(leadTimeDays) || 3,
-        isFeatured: true,
-        status,
+        isFeatured: false,
+        status: 'draft',
+        approvalStatus: 'pending',
         brand: brand.trim(),
         categoryName,
         primaryImage: { id: 'img-1', url: finalImg, altText: name.trim(), isPrimary: true, order: 1 },
@@ -141,11 +145,12 @@ export default function AddProductPage() {
 
       MOCK_PRODUCTS.unshift(newListItem);
 
-      // 3. Trigger Toast Notification
+      // 3. Trigger Toast Notification to Seller
       addNotification({
-        type: 'success',
-        title: 'Product Published Successfully!',
-        message: `"${name.trim()}" is now live on your seller dashboard and ready for buyers to purchase.`,
+        type: 'info',
+        title: 'Product Request Submitted!',
+        message: `Product "${name.trim()}" has been submitted to Admin for verification and approval.`,
+        duration: 8000,
       });
 
       // 4. Redirect back to Seller Listings

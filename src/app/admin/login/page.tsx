@@ -1,5 +1,7 @@
 'use client';
 
+export const dynamic = 'force-dynamic';
+
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Shield, Mail, Lock, Eye, EyeOff, AlertCircle, Home } from 'lucide-react';
@@ -120,7 +122,7 @@ export default function AdminLoginPage() {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <form onSubmit={handleSubmit} autoComplete="off" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             {/* Email */}
             <div>
               <label style={{ display: 'block', color: 'rgba(255,255,255,0.6)', fontSize: 12, fontWeight: 600, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
@@ -129,7 +131,8 @@ export default function AdminLoginPage() {
               <div style={{ position: 'relative' }}>
                 <Mail size={16} style={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.35)' }} />
                 <input
-                  type="email" required id="admin-email"
+                  type="email" required id="admin-email" name="admin_email_field"
+                  autoComplete="off"
                   placeholder="admin@hindustanwholesale.in"
                   value={email} onChange={(e) => setEmail(e.target.value)}
                   style={{
@@ -150,7 +153,8 @@ export default function AdminLoginPage() {
               <div style={{ position: 'relative' }}>
                 <Lock size={16} style={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.35)' }} />
                 <input
-                  type={showPass ? 'text' : 'password'} required id="admin-password"
+                  type={showPass ? 'text' : 'password'} required id="admin-password" name="admin_password_field"
+                  autoComplete="new-password"
                   placeholder="Enter admin password"
                   value={password} onChange={(e) => setPassword(e.target.value)}
                   style={{

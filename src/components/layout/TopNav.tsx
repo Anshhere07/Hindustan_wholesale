@@ -39,11 +39,12 @@ const TopNav: React.FC = () => {
     }
   };
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
     setUserMenuOpen(false);
+    await logout();
     addNotification({ type: 'info', title: 'Signed out successfully' });
-    router.push(ROUTES.AUTH.LOGIN);
+    // Replace current history entry and push login so back button has nowhere to go
+    router.replace(ROUTES.AUTH.LOGIN);
   };
 
   const cartRoute = user?.role === 'buyer' ? ROUTES.BUYER.CART : '#';

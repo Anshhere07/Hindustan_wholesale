@@ -1,24 +1,22 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { CheckCircle2, Store, Building2, Lock, Mail, User as UserIcon, ShoppingBag } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { CheckCircle2, Store, Building2, Lock, Mail, User as UserIcon, ShoppingBag, Home, ArrowLeft } from 'lucide-react';
 import styles from './LoginPage.module.css';
 import { useUIStore } from '@/stores/ui.store';
 import { useAuthStore } from '@/stores/auth.store';
 import { ROUTES } from '@/lib/constants/routes';
-import { signInWithPassword, registerUser, fetchUserDoc } from '@/lib/firebase/auth';
-import { createBuyerProfile } from '@/lib/firebase/collections/buyer-profiles';
-import { createSellerProfile } from '@/lib/firebase/collections/seller-profiles';
+import { signInWithPassword, fetchUserDoc } from '@/lib/firebase/auth';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// LoginPage — Email & Password Authentication (Sign In & Register)
-// Direct redirection to dashboard without OTP step.
+// LoginPage — Sign In & Account Registration with OTP & Admin Approval Guard
 // ─────────────────────────────────────────────────────────────────────────────
 
 const LoginPage: React.FC = () => {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { addNotification } = useUIStore();
   const { setUser } = useAuthStore();
 
@@ -32,6 +30,18 @@ const LoginPage: React.FC = () => {
 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const status = searchParams.get('status');
+    if (status === 'pending_approval') {
+      addNotification({
+        type: 'info',
+        title: 'Account Approval Request Submitted',
+        message: 'Your registration details have been verified and sent to the Admin. Once approved, you can sign in.',
+        duration: 8000,
+      });
+    }
+  }, [searchParams, addNotification]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,6 +72,24 @@ const LoginPage: React.FC = () => {
           console.warn('Firebase Sign-In Note:', fbErr.message);
         }
 
+        // Check account approval status in Firestore
+        if (userDoc) {
+          if (userDoc.status === 'pending' || userDoc.status === 'pending_approval') {
+            setIsLoading(false);
+            const msg = 'Your account request is currently pending Admin approval. You will be able to sign in once approved.';
+            setError(msg);
+            addNotification({ type: 'warning', title: 'Approval Pending', message: msg, duration: 8000 });
+            return;
+          }
+          if (userDoc.status === 'rejected' || userDoc.status === 'suspended') {
+            setIsLoading(false);
+            const msg = 'Your registration request was denied/suspended by the Admin.';
+            setError(msg);
+            addNotification({ type: 'error', title: 'Account Request Denied', message: msg, duration: 8000 });
+            return;
+          }
+        }
+
         // Build active session object
         const uid = userDoc?.id || email.trim().toLowerCase().replace(/[^a-z0-9]/gi, '_');
         const userObj = userDoc || {
@@ -86,72 +114,44 @@ const LoginPage: React.FC = () => {
 
         router.push(targetDashboard);
       } else {
-        // ── REGISTER FLOW ─────────────────────────────────────────────────────
-        const nameParts = fullName.trim().split(' ');
-        const firstName = nameParts[0] || 'User';
-        const lastName = nameParts.slice(1).join(' ') || '';
-        const businessTitle = shopName.trim() || `${firstName}'s Business`;
-
-        let uid = email.trim().toLowerCase().replace(/[^a-z0-9]/gi, '_');
-
-        try {
-          const fbUser = await registerUser({
-            email: email.trim(),
-            password,
-            firstName,
-            lastName,
-            phone: '',
-            role: roleType,
-          });
-          uid = fbUser.uid;
-
-          // Create role-specific Firestore profile
-          if (roleType === 'buyer') {
-            await createBuyerProfile(uid, {
-              companyName: businessTitle,
-              businessName: businessTitle,
-              businessType: 'proprietorship',
-              industryType: 'Automotive Spares',
-              primaryContact: { name: `${firstName} ${lastName}`.trim(), email: email.trim(), phone: '' },
-              billingAddress: { id: 'addr-1', line1: 'Main Market', city: 'New Delhi', state: 'Delhi', pincode: '110001', country: 'India', isDefault: true },
-              shippingAddresses: [{ id: 'addr-1', line1: 'Main Market', city: 'New Delhi', state: 'Delhi', pincode: '110001', country: 'India', isDefault: true }],
-            });
-          } else {
-            await createSellerProfile(uid, {
-              businessName: businessTitle,
-              gstNumber: 'UNVERIFIED',
-              panNumber: 'UNVERIFIED',
-              businessType: 'trader',
-              categories: ['Automotive Parts'],
-              primaryContact: { name: `${firstName} ${lastName}`.trim(), email: email.trim(), phone: '' },
-              warehouseAddresses: [{ id: 'wh-1', line1: 'Industrial Area', city: 'New Delhi', state: 'Delhi', pincode: '110020', country: 'India' }],
-            });
-          }
-        } catch (regErr: any) {
-          console.warn('Registration sync note:', regErr.message);
+        // ── REGISTER FLOW (Store session -> Send OTP -> Verify Page) ─────────
+        if (!fullName.trim()) {
+          setIsLoading(false);
+          addNotification({ type: 'error', title: 'Full Name Required', message: 'Please enter your full name.' });
+          return;
         }
 
-        const newUserObj = {
-          id: uid,
-          email: email.trim(),
-          phone: '',
-          firstName,
-          lastName,
-          role: roleType,
-          status: 'active' as const,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        };
+        // Save registration details to local storage for OTP step
+        if (typeof window !== 'undefined') {
+          window.localStorage.setItem('hw-otp-email', email.trim());
+          window.localStorage.setItem('hw-otp-role', roleType);
+          window.localStorage.setItem('hw-otp-name', fullName.trim());
+          window.localStorage.setItem('hw-otp-business', shopName.trim() || `${fullName.trim()}'s Shop`);
+          window.localStorage.setItem('hw-otp-pass', password);
+        }
 
-        setUser(newUserObj);
+        // Send 6-digit OTP code to user email
+        try {
+          const res = await fetch('/api/auth/send-otp', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: email.trim() }),
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || 'Failed to send OTP code');
+        } catch (otpErr: any) {
+          console.warn('OTP dispatch note:', otpErr.message);
+        }
 
         addNotification({
-          type: 'success',
-          title: 'Account Created Successfully!',
-          message: `Welcome to Hindustan Wholesale, ${firstName}! Your account is ready.`,
+          type: 'info',
+          title: 'Verification Code Sent!',
+          message: `A 6-digit verification code was sent to ${email.trim()}. Please enter it on the next screen.`,
+          duration: 6000,
         });
 
-        router.push(targetDashboard);
+        // Redirect to OTP verification page
+        router.push('/auth/verify-otp');
       }
     } catch (err: any) {
       console.error('Auth error:', err);
@@ -183,7 +183,7 @@ const LoginPage: React.FC = () => {
           <div className={styles.featuresList}>
             <div className={styles.featureItem}>
               <CheckCircle2 size={18} className={styles.featureIcon} />
-              <span>Instant account login with Email &amp; Password</span>
+              <span>Verified buyers &amp; sellers with Admin approval</span>
             </div>
             <div className={styles.featureItem}>
               <CheckCircle2 size={18} className={styles.featureIcon} />
@@ -191,17 +191,22 @@ const LoginPage: React.FC = () => {
             </div>
             <div className={styles.featureItem}>
               <CheckCircle2 size={18} className={styles.featureIcon} />
-              <span>Seller onboarding &amp; KYC in under 5 minutes</span>
+              <span>Secure 6-digit Email OTP Verification</span>
             </div>
           </div>
         </div>
 
         {/* ── Right Content (Form Card) ────────────────────────────────────────────── */}
         <div className={styles.card}>
+          {/* Back to Home Page Button */}
+          <Link href="/" className={styles.backHomeLink} id="back-to-home-link">
+            <Home size={14} /> Back to Home Page
+          </Link>
+
           <div className={styles.tabs}>
             <div
               className={`${styles.tab} ${activeTab === 'signin' ? styles.active : ''}`}
-              onClick={() => { setActiveTab('signin'); setError(null); }}
+              onClick={() => { setActiveTab('signin'); setEmail(''); setPassword(''); setError(null); }}
               role="tab"
               aria-selected={activeTab === 'signin'}
             >
@@ -209,7 +214,7 @@ const LoginPage: React.FC = () => {
             </div>
             <div
               className={`${styles.tab} ${activeTab === 'register' ? styles.active : ''}`}
-              onClick={() => { setActiveTab('register'); setError(null); }}
+              onClick={() => { setActiveTab('register'); setEmail(''); setPassword(''); setFullName(''); setShopName(''); setError(null); }}
               role="tab"
               aria-selected={activeTab === 'register'}
             >
@@ -251,7 +256,7 @@ const LoginPage: React.FC = () => {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className={styles.formGrid} noValidate>
+          <form onSubmit={handleSubmit} className={styles.formGrid} autoComplete="off" noValidate>
             {activeTab === 'register' && (
               <>
                 <div className={styles.field}>
@@ -260,6 +265,7 @@ const LoginPage: React.FC = () => {
                     type="text"
                     className={styles.input}
                     placeholder="e.g. Ravi Sharma"
+                    autoComplete="off"
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
                     required
@@ -271,6 +277,7 @@ const LoginPage: React.FC = () => {
                     type="text"
                     className={styles.input}
                     placeholder="e.g. Sharma Auto Parts"
+                    autoComplete="off"
                     value={shopName}
                     onChange={(e) => setShopName(e.target.value)}
                     required
@@ -283,6 +290,8 @@ const LoginPage: React.FC = () => {
               <label className={styles.label}>EMAIL ADDRESS</label>
               <input
                 type="email"
+                name="user_reg_email"
+                autoComplete="off"
                 className={styles.input}
                 placeholder="you@business.in"
                 required
@@ -295,6 +304,8 @@ const LoginPage: React.FC = () => {
               <label className={styles.label}>PASSWORD</label>
               <input
                 type="password"
+                name="user_reg_password"
+                autoComplete="new-password"
                 className={styles.input}
                 placeholder="••••••••"
                 required
@@ -310,9 +321,9 @@ const LoginPage: React.FC = () => {
               style={{ opacity: isLoading ? 0.7 : 1, cursor: isLoading ? 'not-allowed' : 'pointer' }}
             >
               {isLoading
-                ? (activeTab === 'register' ? 'Creating Account...' : 'Signing in...')
+                ? (activeTab === 'register' ? 'Sending Verification Code...' : 'Signing in...')
                 : activeTab === 'register'
-                ? 'Create Account'
+                ? 'Continue & Verify Email'
                 : 'Sign in to Account'}
             </button>
           </form>

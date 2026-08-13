@@ -77,6 +77,7 @@ export interface Product {
   isGstExempt: boolean;
   gstRate?: number; // percentage
   status: Status;
+  approvalStatus?: 'pending' | 'approved' | 'rejected';
   isFeatured: boolean;
   rating: number;
   reviewCount: number;
@@ -103,6 +104,7 @@ export interface ProductListItem
     | 'leadTimeDays'
     | 'isFeatured'
     | 'status'
+    | 'approvalStatus'
     | 'brand'
   > {
   primaryImage: ProductImage;

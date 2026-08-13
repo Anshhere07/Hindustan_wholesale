@@ -2,9 +2,10 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import {
   TrendingUp, Package, ShoppingBag, Star, ArrowUpRight,
-  Plus, Clock, CheckCircle, AlertCircle,
+  Plus, Clock, CheckCircle, AlertCircle, ShieldCheck,
 } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -13,6 +14,7 @@ import {
 import styles from './SellerDashboard.module.css';
 import StatCard from '@/components/shared/StatCard';
 import { OrderStatusBadge } from '@/components/ui/Badge';
+import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import {
   MOCK_SELLER_REVENUE, MOCK_ORDERS, MOCK_CATEGORY_BREAKDOWN,
@@ -20,45 +22,48 @@ import {
 import { formatCurrency, formatDate } from '@/lib/utils/format';
 import { ROUTES } from '@/lib/constants/routes';
 import { useAuthStore } from '@/stores/auth.store';
-import { getSellerOrders, getAllOrders } from '@/lib/firebase/collections/orders';
+import { getSellerOrders } from '@/lib/firebase/collections/orders';
+import { getSellerProducts } from '@/lib/firebase/collections/products';
 import type { Order } from '@/types/order.types';
+import type { ProductListItem } from '@/types/product.types';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Seller Dashboard — revenue analytics, order pipeline, inventory alerts
+// Seller Dashboard — revenue analytics, order pipeline, live listings
 // ─────────────────────────────────────────────────────────────────────────────
 
 const PIE_COLORS = ['#bd1b13', '#991410', '#0891b2', '#059669', '#64748b'];
 
-const INVENTORY_ALERTS = [
-  { sku: 'EP-001', name: 'Bosch Fuel Injector Set', stock: 12, status: 'low' as const },
-  { sku: 'AC-506', name: 'Denso AC Compressor', stock: 3, status: 'critical' as const },
-  { sku: 'TW-304', name: 'MRF Nylogrip Tyre', stock: 28, status: 'ok' as const },
-];
-
 const SellerDashboard: React.FC = () => {
   const { user } = useAuthStore();
-  const [orders, setOrders] = useState<Order[]>(MOCK_ORDERS);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [sellerProducts, setSellerProducts] = useState<ProductListItem[]>([]);
 
   useEffect(() => {
-    async function loadOrders() {
+    async function loadData() {
       try {
-        let res: Order[] = [];
         if (user?.id) {
-          res = await getSellerOrders(user.id, 5);
+          const [orderRes, prods] = await Promise.all([
+            getSellerOrders(user.id, 20),
+            getSellerProducts(user.id),
+          ]);
+          setOrders(orderRes);
+          setSellerProducts(prods);
         }
-        if (res.length === 0) {
-          res = await getAllOrders(5);
-        }
-        if (res.length > 0) setOrders(res);
       } catch (err) {
-        console.error('Failed to load seller orders from Firestore:', err);
+        console.error('Failed to load seller data from Firestore:', err);
       }
     }
-    loadOrders();
+    loadData();
   }, [user]);
 
-  const totalRevenue = MOCK_SELLER_REVENUE.reduce((s, m) => s + m.revenue, 0);
-  const totalOrders  = orders.length > 0 ? orders.length : MOCK_SELLER_REVENUE.reduce((s, m) => s + m.orders, 0);
+  const totalRevenue = orders.reduce((acc, o) => acc + o.grandTotal, 0);
+  const totalOrders = orders.length;
+  const liveProducts = sellerProducts.filter(
+    (p) => p.approvalStatus === 'approved' || p.status === 'active'
+  );
+  const pendingProducts = sellerProducts.filter(
+    (p) => !p.approvalStatus || p.approvalStatus === 'pending'
+  );
 
   return (
     <div className={styles.page}>
@@ -67,7 +72,8 @@ const SellerDashboard: React.FC = () => {
         <div>
           <h1 className={styles.title}>Seller Dashboard</h1>
           <p className={styles.subtitle}>
-            Welcome back, <strong>{user?.firstName}</strong> · AutoParts Direct
+            Welcome back, <strong>{user?.firstName || 'Seller'}</strong>
+            {user?.email ? ` · ${user.email}` : ''}
           </p>
         </div>
         <Link href={ROUTES.SELLER.LISTING_NEW}>
@@ -96,24 +102,81 @@ const SellerDashboard: React.FC = () => {
           iconColor="#059669"
         />
         <StatCard
-          label="Active Listings"
-          value="247"
-          subValue="8 pending approval"
+          label="Live Listings"
+          value={liveProducts.length}
+          subValue={pendingProducts.length > 0 ? `${pendingProducts.length} pending verification` : 'All verified'}
           icon={<Package size={20} />}
           iconBg="#fffbeb"
           iconColor="#d97706"
         />
         <StatCard
           label="Seller Rating"
-          value="4.7 ★"
-          subValue="Based on 462 reviews"
-          trend={2.1}
-          trendLabel="this quarter"
+          value="5.0 ★"
+          subValue="Verified Seller"
+          trend={0}
+          trendLabel="live status"
           icon={<Star size={20} />}
           iconBg="#f5f3ff"
           iconColor="#991410"
         />
       </div>
+
+      {/* ── Live Products Section ────────────────────────────────────────── */}
+      {sellerProducts.length > 0 && (
+        <div style={{ background: '#fff', borderRadius: 16, border: '1px solid var(--border-subtle)', padding: 20, marginBottom: 24 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            <div>
+              <h2 className={styles.sectionTitle}>My Product Listings</h2>
+              <p className={styles.sectionSub}>{sellerProducts.length} total — {liveProducts.length} live</p>
+            </div>
+            <Link href={ROUTES.SELLER.LISTINGS} className={styles.viewAll}>
+              View all <ArrowUpRight size={13} />
+            </Link>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 14 }}>
+            {sellerProducts.slice(0, 6).map((prod) => {
+              const isLive = prod.approvalStatus === 'approved' || prod.status === 'active';
+              const isPending = !prod.approvalStatus || prod.approvalStatus === 'pending';
+              return (
+                <div key={prod.id} style={{
+                  border: '1px solid var(--border-subtle)',
+                  borderRadius: 12,
+                  overflow: 'hidden',
+                  background: '#fafafa',
+                }}>
+                  <div style={{ position: 'relative', width: '100%', height: 100 }}>
+                    <Image
+                      src={prod.primaryImage?.url || 'https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?w=400&q=80'}
+                      alt={prod.name}
+                      fill
+                      style={{ objectFit: 'cover' }}
+                      unoptimized
+                    />
+                    <div style={{ position: 'absolute', top: 6, right: 6 }}>
+                      <Badge
+                        variant={isLive ? 'success' : isPending ? 'warning' : 'danger'}
+                        size="sm"
+                      >
+                        {isLive ? '✓ LIVE' : isPending ? 'PENDING' : 'REJECTED'}
+                      </Badge>
+                    </div>
+                  </div>
+                  <div style={{ padding: '10px 12px' }}>
+                    <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--text-primary)', marginBottom: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{prod.name}</div>
+                    <div style={{ fontSize: 12, color: '#8B0000', fontWeight: 700 }}>{formatCurrency(prod.basePrice)}</div>
+                    <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>MOQ: {prod.moq} {prod.unit}s · Stock: {prod.stock}</div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          {pendingProducts.length > 0 && (
+            <div style={{ marginTop: 14, padding: '10px 14px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 10, fontSize: 13, color: '#92400e' }}>
+              ⏳ <strong>{pendingProducts.length} product(s)</strong> are pending admin verification before going live on the buyer catalog.
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ── Charts Row ──────────────────────────────────────────────────── */}
       <div className={styles.chartsRow}>
@@ -122,17 +185,17 @@ const SellerDashboard: React.FC = () => {
           <div className={styles.chartHeader}>
             <div>
               <h2 className={styles.sectionTitle}>Monthly Revenue</h2>
-              <p className={styles.sectionSub}>2026 performance</p>
+              <p className={styles.sectionSub}>Live performance</p>
             </div>
             <span className={styles.totalRevenue}>
-              {formatCurrency(totalRevenue, 'INR', { compact: true })} YTD
+              {formatCurrency(totalRevenue, 'INR', { compact: true })} Total
             </span>
           </div>
           <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={MOCK_SELLER_REVENUE} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
+            <BarChart data={[{ month: 'Current', revenue: totalRevenue }]} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" />
               <XAxis dataKey="month" tick={{ fontSize: 11, fill: 'var(--text-tertiary)' }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 11, fill: 'var(--text-tertiary)' }} axisLine={false} tickLine={false} tickFormatter={(v: number) => `₹${v / 100000}L`} />
+              <YAxis tick={{ fontSize: 11, fill: 'var(--text-tertiary)' }} axisLine={false} tickLine={false} tickFormatter={(v: number) => `₹${v}`} />
               <Tooltip
                 contentStyle={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: '12px', fontSize: 12 }}
                 formatter={(v: any) => [formatCurrency(v, 'INR'), 'Revenue']}
@@ -178,7 +241,7 @@ const SellerDashboard: React.FC = () => {
             </div>
           </div>
           <ResponsiveContainer width="100%" height={220}>
-            <LineChart data={MOCK_SELLER_REVENUE} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
+            <LineChart data={[{ month: 'Current', orders: totalOrders }]} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" />
               <XAxis dataKey="month" tick={{ fontSize: 11, fill: 'var(--text-tertiary)' }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fontSize: 11, fill: 'var(--text-tertiary)' }} axisLine={false} tickLine={false} />
@@ -200,52 +263,68 @@ const SellerDashboard: React.FC = () => {
             </Link>
           </div>
           <div className={styles.ordersList}>
-            {orders.slice(0, 3).map((order) => (
-              <div key={order.id} className={styles.orderRow}>
-                <div className={styles.orderInfo}>
-                  <p className={styles.orderNum}>{order.orderNumber}</p>
-                  <p className={styles.orderBuyer}>{order.buyerName}</p>
-                  <p className={styles.orderDate}>{formatDate(order.createdAt)}</p>
-                </div>
-                <div className={styles.orderRight}>
-                  <p className={styles.orderAmount}>{formatCurrency(order.grandTotal, 'INR')}</p>
-                  <OrderStatusBadge status={order.status} size="sm" />
-                </div>
+            {orders.length === 0 ? (
+              <div style={{ padding: '24px 12px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: 13 }}>
+                No recent seller orders found in database.
               </div>
-            ))}
+            ) : (
+              orders.slice(0, 3).map((order) => (
+                <div key={order.id} className={styles.orderRow}>
+                  <div className={styles.orderInfo}>
+                    <p className={styles.orderNum}>{order.orderNumber}</p>
+                    <p className={styles.orderBuyer}>{order.buyerName}</p>
+                    <p className={styles.orderDate}>{formatDate(order.createdAt)}</p>
+                  </div>
+                  <div className={styles.orderRight}>
+                    <p className={styles.orderAmount}>{formatCurrency(order.grandTotal, 'INR')}</p>
+                    <OrderStatusBadge status={order.status} size="sm" />
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
 
-        {/* Inventory Alerts */}
+        {/* Live Products Summary */}
         <div className={styles.alertsCard}>
           <div className={styles.cardHeader}>
-            <h2 className={styles.sectionTitle}>Inventory Alerts</h2>
+            <h2 className={styles.sectionTitle}>Product Verification Status</h2>
             <Link href={ROUTES.SELLER.LISTINGS} className={styles.viewAll}>
               Manage <ArrowUpRight size={13} />
             </Link>
           </div>
           <div className={styles.alertsList}>
-            {INVENTORY_ALERTS.map((item) => {
-              const Icon = item.status === 'critical' ? AlertCircle : item.status === 'low' ? Clock : CheckCircle;
-              const color = item.status === 'critical' ? '#dc2626' : item.status === 'low' ? '#d97706' : '#16a34a';
-              const bg = item.status === 'critical' ? '#fff1f2' : item.status === 'low' ? '#fffbeb' : '#f0fdf4';
-              return (
-                <div key={item.sku} className={styles.alertRow}>
-                  <div className={styles.alertIcon} style={{ background: bg, color }}>
-                    <Icon size={16} aria-hidden="true" />
+            {sellerProducts.length === 0 ? (
+              <div style={{ padding: '16px 0', textAlign: 'center', color: 'var(--text-secondary)', fontSize: 13 }}>
+                No products submitted yet.
+              </div>
+            ) : (
+              sellerProducts.slice(0, 5).map((item) => {
+                const isLive = item.approvalStatus === 'approved' || item.status === 'active';
+                const isPending = !item.approvalStatus || item.approvalStatus === 'pending';
+                const Icon = isLive ? CheckCircle : isPending ? Clock : AlertCircle;
+                const color = isLive ? '#16a34a' : isPending ? '#d97706' : '#dc2626';
+                const bg = isLive ? '#f0fdf4' : isPending ? '#fffbeb' : '#fff1f2';
+                return (
+                  <div key={item.id} className={styles.alertRow}>
+                    <div className={styles.alertIcon} style={{ background: bg, color }}>
+                      <Icon size={16} aria-hidden="true" />
+                    </div>
+                    <div className={styles.alertInfo}>
+                      <p className={styles.alertSku}>{item.sku}</p>
+                      <p className={styles.alertName}>{item.name}</p>
+                    </div>
+                    <div className={styles.alertStock} style={{ color, fontSize: 11, fontWeight: 700 }}>
+                      {isLive ? 'LIVE' : isPending ? 'PENDING' : 'REJECTED'}
+                    </div>
                   </div>
-                  <div className={styles.alertInfo}>
-                    <p className={styles.alertSku}>{item.sku}</p>
-                    <p className={styles.alertName}>{item.name}</p>
-                  </div>
-                  <div className={styles.alertStock} style={{ color }}>
-                    {item.stock} units
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })
+            )}
           </div>
-          <Button variant="outline" size="sm" fullWidth>Restock All</Button>
+          <Link href={ROUTES.SELLER.LISTING_NEW}>
+            <Button variant="outline" size="sm" fullWidth leftIcon={<Plus size={14} />}>Add New Product</Button>
+          </Link>
         </div>
       </div>
     </div>
@@ -253,4 +332,3 @@ const SellerDashboard: React.FC = () => {
 };
 
 export default SellerDashboard;
-

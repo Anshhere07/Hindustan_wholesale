@@ -14,10 +14,23 @@ import type { BuyerProfile } from '@/types/user.types';
 
 const COLLECTION = 'buyer_profiles';
 
-export async function getBuyerProfile(uid: string): Promise<BuyerProfile | null> {
-  const snap = await getDoc(doc(db, COLLECTION, uid));
-  if (!snap.exists()) return null;
-  return { userId: snap.id, ...snap.data() } as BuyerProfile;
+export async function getBuyerProfile(uid: string, email?: string): Promise<BuyerProfile | null> {
+  try {
+    const snap = await getDoc(doc(db, COLLECTION, uid));
+    if (snap.exists()) {
+      return { userId: snap.id, ...snap.data() } as BuyerProfile;
+    }
+    if (email) {
+      const emailUid = email.replace(/[^a-z0-9]/gi, '_');
+      const altSnap = await getDoc(doc(db, COLLECTION, emailUid));
+      if (altSnap.exists()) {
+        return { userId: altSnap.id, ...altSnap.data() } as BuyerProfile;
+      }
+    }
+  } catch (err) {
+    console.warn('getBuyerProfile error:', err);
+  }
+  return null;
 }
 
 export async function createBuyerProfile(

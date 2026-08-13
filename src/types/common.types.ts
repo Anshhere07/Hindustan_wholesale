@@ -8,7 +8,7 @@ export type Timestamp = string; // ISO 8601
 
 export type Currency = 'INR' | 'USD' | 'EUR';
 
-export type Status = 'active' | 'inactive' | 'pending' | 'suspended';
+export type Status = 'active' | 'inactive' | 'pending' | 'pending_approval' | 'draft' | 'rejected' | 'suspended';
 
 export interface PaginationMeta {
   page: number;

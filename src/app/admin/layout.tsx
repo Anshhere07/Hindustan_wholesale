@@ -15,7 +15,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const router = useRouter();
   const pathname = usePathname();
   const { addNotification } = useUIStore();
-  const [checked, setChecked] = useState(false);
+  const [checked, setChecked] = useState(() => typeof window !== 'undefined' && sessionStorage.getItem('hw-admin-auth') === 'true');
 
   const isLoginPage = pathname === '/admin/login' || pathname === '/admin/seed';
 
@@ -24,7 +24,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       setChecked(true);
       return;
     }
-    const isAdmin = sessionStorage.getItem('hw-admin-auth') === 'true';
+    const isAdmin = typeof window !== 'undefined' && sessionStorage.getItem('hw-admin-auth') === 'true';
     if (!isAdmin) {
       router.replace('/admin/login');
     } else {
