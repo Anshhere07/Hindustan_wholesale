@@ -9,8 +9,7 @@ import crypto from 'crypto';
 // Firebase client SDK — works in both local dev and Vercel serverless
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import {
-  getFirestore, collection, doc, getDoc, setDoc, deleteDoc, getDocs,
-  query, where, Timestamp,
+  getFirestore, doc, getDoc, setDoc, deleteDoc,
 } from 'firebase/firestore';
 
 // ── Firebase init (safe singleton for server-side API routes) ────────────────
@@ -52,17 +51,29 @@ function emailToDocId(email: string): string {
 // ── SMTP Transporter ─────────────────────────────────────────────────────────
 
 function getTransporter() {
-  const host = process.env.SMTP_HOST || '';
+  const host = process.env.SMTP_HOST || 'smtp.gmail.com';
   const port = parseInt(process.env.SMTP_PORT || '587', 10);
   const user = process.env.SMTP_USER || '';
-  const pass = process.env.SMTP_PASS || '';
+  const pass = (process.env.SMTP_PASS || '').replace(/\s+/g, ''); // strip any accidental whitespace
 
-  if (!host || !user || !pass) {
+  if (!user || !pass) {
     console.error(
-      '❌ OTP_SMTP_CONFIG_MISSING: SMTP_HOST, SMTP_USER, or SMTP_PASS is not set. ' +
-      'Emails cannot be sent. Set these in Vercel Dashboard → Environment Variables.'
+      '❌ OTP_SMTP_CONFIG_MISSING: SMTP_USER or SMTP_PASS is not set. ' +
+      'Emails cannot be sent.'
     );
     return null;
+  }
+
+  // When connecting to Gmail, use service: 'gmail' for robust SSL/TLS connectivity across serverless platforms
+  if (host.includes('gmail.com') || user.endsWith('@gmail.com')) {
+    return nodemailer.createTransport({
+      service: 'gmail',
+      auth: { user, pass },
+      tls: { rejectUnauthorized: false },
+      connectionTimeout: 15000,
+      greetingTimeout: 15000,
+      socketTimeout: 15000,
+    });
   }
 
   return nodemailer.createTransport({
@@ -77,20 +88,28 @@ function getTransporter() {
   });
 }
 
-// ── Rate Limiting ────────────────────────────────────────────────────────────
+// ── Rate Limiting (Single Document Key-Value, No Composite Index Needed) ──────
 
-async function checkRateLimit(normalizedEmail: string): Promise<boolean> {
+async function checkAndIncrementRateLimit(docId: string, normalizedEmail: string): Promise<boolean> {
   try {
-    const oneHourAgo = Date.now() - 60 * 60 * 1000;
-    const q = query(
-      collection(db, OTP_COLLECTION),
-      where('email', '==', normalizedEmail),
-      where('createdAt', '>', oneHourAgo)
-    );
-    const snap = await getDocs(q);
-    return snap.size < MAX_OTP_REQUESTS_PER_HOUR;
+    const snap = await getDoc(doc(db, OTP_COLLECTION, docId));
+    if (!snap.exists()) return true;
+
+    const data = snap.data();
+    const now = Date.now();
+    const oneHourAgo = now - 60 * 60 * 1000;
+
+    // Reset rate counter if window expired
+    if (!data.windowStart || data.windowStart < oneHourAgo) {
+      return true;
+    }
+
+    if ((data.requestCount || 0) >= MAX_OTP_REQUESTS_PER_HOUR) {
+      return false;
+    }
+
+    return true;
   } catch (err) {
-    // If rate-limit check fails, allow the request (fail-open for availability)
     console.warn('OTP_RATE_LIMIT_CHECK_ERROR:', err);
     return true;
   }
@@ -108,7 +127,7 @@ export async function generateAndSendOtp(
   console.log(`OTP_REQUEST_START recipient=${masked}`);
 
   // Rate limit check
-  const allowed = await checkRateLimit(normalizedEmail);
+  const allowed = await checkAndIncrementRateLimit(docId, normalizedEmail);
   if (!allowed) {
     console.warn(`OTP_RATE_LIMITED recipient=${masked}`);
     return {
@@ -122,6 +141,23 @@ export async function generateAndSendOtp(
   const now = Date.now();
   const expiresAt = now + OTP_EXPIRY_MINUTES * 60 * 1000;
 
+  // Read existing doc to maintain sliding rate window
+  let windowStart = now;
+  let requestCount = 1;
+  try {
+    const existingSnap = await getDoc(doc(db, OTP_COLLECTION, docId));
+    if (existingSnap.exists()) {
+      const existingData = existingSnap.data();
+      const oneHourAgo = now - 60 * 60 * 1000;
+      if (existingData.windowStart && existingData.windowStart > oneHourAgo) {
+        windowStart = existingData.windowStart;
+        requestCount = (existingData.requestCount || 0) + 1;
+      }
+    }
+  } catch (e) {
+    // best-effort
+  }
+
   // Store OTP in Firestore (persists across serverless invocations)
   try {
     await setDoc(doc(db, OTP_COLLECTION, docId), {
@@ -131,6 +167,8 @@ export async function generateAndSendOtp(
       attempts: 0,
       verified: false,
       createdAt: now,
+      windowStart,
+      requestCount,
     });
     console.log(`OTP_STORED recipient=${masked} expiresIn=${OTP_EXPIRY_MINUTES}min`);
   } catch (err: any) {
@@ -181,7 +219,7 @@ export async function generateAndSendOtp(
   if (!transporter) {
     console.error(`OTP_EMAIL_SKIPPED recipient=${masked} reason=SMTP_NOT_CONFIGURED`);
     return {
-      message: 'Verification code generated but email could not be sent. Please contact support.',
+      message: 'Verification code generated but email service is not configured. Please contact support.',
       emailSent: false,
     };
   }
@@ -207,13 +245,12 @@ export async function generateAndSendOtp(
       `OTP_EMAIL_FAILED recipient=${masked} errorType=${errorType} ` +
       `code=${code} responseCode=${responseCode} message=${err.message}`
     );
-    // OTP is still stored — don't throw, let the user know
   }
 
   return {
     message: emailSent
       ? `Verification code sent to ${normalizedEmail}`
-      : 'Unable to send verification email. Please try again or contact support.',
+      : 'Unable to send verification email. Please verify your email address or try again.',
     emailSent,
   };
 }

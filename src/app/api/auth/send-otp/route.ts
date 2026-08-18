@@ -15,11 +15,21 @@ export async function POST(req: Request) {
 
     const result = await generateAndSendOtp(email);
 
-    // Never expose OTP in the response — not even in dev mode
+    if (!result.emailSent) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: result.message || 'Unable to send verification email. Please check your email or try again.',
+          emailSent: false,
+        },
+        { status: 502 }
+      );
+    }
+
     return NextResponse.json({
       success: true,
       message: result.message,
-      emailSent: result.emailSent,
+      emailSent: true,
     });
   } catch (err: any) {
     console.error('OTP_ROUTE_ERROR:', err.message);
