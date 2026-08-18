@@ -84,7 +84,7 @@ async function sendEmail(
   otpCode: string
 ): Promise<{ success: boolean; messageId?: string; error?: string }> {
   const masked = maskEmail(toEmail);
-  const fromEmail = process.env.SMTP_FROM || 'Hindustan Wholesale <onboarding@resend.dev>';
+  const fromEmail = process.env.SMTP_FROM || 'Hindustan Wholesale <noreply@hindustanwholesale.com>';
   const subject = 'Your Hindustan Wholesale Verification Code';
   const html = getEmailHtml(otpCode);
 
@@ -100,7 +100,7 @@ async function sendEmail(
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          from: fromEmail.includes('gmail.com') ? 'Hindustan Wholesale <onboarding@resend.dev>' : fromEmail,
+          from: fromEmail,
           to: [toEmail],
           subject,
           html,
