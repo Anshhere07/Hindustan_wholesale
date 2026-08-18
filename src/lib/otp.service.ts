@@ -1,38 +1,69 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // Mail OTP Verification Service — Hindustan Wholesale
-// Handles: 6-digit random code generation, in-memory TTL storage & Nodemailer SMTP dispatch
+// Handles: secure 6-digit code generation, Firestore TTL storage & Nodemailer SMTP dispatch
 // ─────────────────────────────────────────────────────────────────────────────
 
 import nodemailer from 'nodemailer';
+import crypto from 'crypto';
 
+// Firebase client SDK — works in both local dev and Vercel serverless
+import { initializeApp, getApps, getApp } from 'firebase/app';
+import {
+  getFirestore, collection, doc, getDoc, setDoc, deleteDoc, getDocs,
+  query, where, Timestamp,
+} from 'firebase/firestore';
+
+// ── Firebase init (safe singleton for server-side API routes) ────────────────
+const firebaseConfig = {
+  apiKey:            process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain:        process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId:         process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket:     process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId:             process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+};
+const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+const OTP_COLLECTION = 'otp_codes';
 const OTP_EXPIRY_MINUTES = 10;
+const MAX_ATTEMPTS = 5;
+const MAX_OTP_REQUESTS_PER_HOUR = 5;
 
-// ── In-Memory OTP Store ──────────────────────────────────────────────────────
-interface OtpRecord {
-  email: string;
-  otp: string;
-  expiresAt: number;
-  attempts: number;
-  verified: boolean;
-  createdAt: number;
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+/** Mask email for safe logging: "s***@gmail.com" */
+function maskEmail(email: string): string {
+  const [local, domain] = email.split('@');
+  if (!local || !domain) return '***';
+  return `${local[0]}***@${domain}`;
 }
 
-const otpStore = new Map<string, OtpRecord>();
+/** Generate cryptographically secure 6-digit OTP */
+function generateSecureOtp(): string {
+  return crypto.randomInt(100000, 999999).toString();
+}
 
-// Cleanup expired records every 5 min
-setInterval(() => {
-  const now = Date.now();
-  for (const [key, record] of otpStore.entries()) {
-    if (now > record.expiresAt) otpStore.delete(key);
-  }
-}, 5 * 60 * 1000);
+/** Create deterministic Firestore doc ID from email */
+function emailToDocId(email: string): string {
+  return email.trim().toLowerCase().replace(/[^a-z0-9]/gi, '_');
+}
 
-// ── Transporter ──────────────────────────────────────────────────────────────
+// ── SMTP Transporter ─────────────────────────────────────────────────────────
+
 function getTransporter() {
-  const host = process.env.SMTP_HOST || 'smtp.gmail.com';
+  const host = process.env.SMTP_HOST || '';
   const port = parseInt(process.env.SMTP_PORT || '587', 10);
   const user = process.env.SMTP_USER || '';
   const pass = process.env.SMTP_PASS || '';
+
+  if (!host || !user || !pass) {
+    console.error(
+      '❌ OTP_SMTP_CONFIG_MISSING: SMTP_HOST, SMTP_USER, or SMTP_PASS is not set. ' +
+      'Emails cannot be sent. Set these in Vercel Dashboard → Environment Variables.'
+    );
+    return null;
+  }
 
   return nodemailer.createTransport({
     host,
@@ -40,36 +71,74 @@ function getTransporter() {
     secure: port === 465,
     auth: { user, pass },
     tls: { rejectUnauthorized: false },
-    connectionTimeout: 10000,
-    greetingTimeout: 10000,
-    socketTimeout: 10000,
+    connectionTimeout: 15000,
+    greetingTimeout: 15000,
+    socketTimeout: 15000,
   });
 }
 
-// ── Generate & Send OTP ───────────────────────────────────────────────────────
+// ── Rate Limiting ────────────────────────────────────────────────────────────
+
+async function checkRateLimit(normalizedEmail: string): Promise<boolean> {
+  try {
+    const oneHourAgo = Date.now() - 60 * 60 * 1000;
+    const q = query(
+      collection(db, OTP_COLLECTION),
+      where('email', '==', normalizedEmail),
+      where('createdAt', '>', oneHourAgo)
+    );
+    const snap = await getDocs(q);
+    return snap.size < MAX_OTP_REQUESTS_PER_HOUR;
+  } catch (err) {
+    // If rate-limit check fails, allow the request (fail-open for availability)
+    console.warn('OTP_RATE_LIMIT_CHECK_ERROR:', err);
+    return true;
+  }
+}
+
+// ── Generate & Send OTP ──────────────────────────────────────────────────────
+
 export async function generateAndSendOtp(
   email: string
-): Promise<{ otp: string; message: string; emailSent: boolean }> {
+): Promise<{ message: string; emailSent: boolean }> {
   const normalizedEmail = email.trim().toLowerCase();
-  const docId = normalizedEmail.replace(/[^a-z0-9]/gi, '_');
+  const docId = emailToDocId(normalizedEmail);
+  const masked = maskEmail(normalizedEmail);
 
-  // Generate 6-digit OTP
-  const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
-  const expiresAt = Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000;
+  console.log(`OTP_REQUEST_START recipient=${masked}`);
 
-  // Save to in-memory store FIRST (before email attempt)
-  otpStore.set(docId, {
-    email: normalizedEmail,
-    otp: otpCode,
-    expiresAt,
-    attempts: 0,
-    verified: false,
-    createdAt: Date.now(),
-  });
+  // Rate limit check
+  const allowed = await checkRateLimit(normalizedEmail);
+  if (!allowed) {
+    console.warn(`OTP_RATE_LIMITED recipient=${masked}`);
+    return {
+      message: 'Too many verification requests. Please wait before trying again.',
+      emailSent: false,
+    };
+  }
 
-  // Always log OTP to server console for dev/debug purposes
-  console.log(`\n🔐 OTP for ${normalizedEmail}: [${otpCode}] (expires in ${OTP_EXPIRY_MINUTES} min)\n`);
+  // Generate secure OTP
+  const otpCode = generateSecureOtp();
+  const now = Date.now();
+  const expiresAt = now + OTP_EXPIRY_MINUTES * 60 * 1000;
 
+  // Store OTP in Firestore (persists across serverless invocations)
+  try {
+    await setDoc(doc(db, OTP_COLLECTION, docId), {
+      email: normalizedEmail,
+      otp: otpCode,
+      expiresAt,
+      attempts: 0,
+      verified: false,
+      createdAt: now,
+    });
+    console.log(`OTP_STORED recipient=${masked} expiresIn=${OTP_EXPIRY_MINUTES}min`);
+  } catch (err: any) {
+    console.error(`OTP_STORE_FAILED recipient=${masked} error=${err.message}`);
+    throw new Error('Failed to generate verification code. Please try again.');
+  }
+
+  // Build email
   const fromEmail =
     process.env.SMTP_FROM ||
     '"Hindustan Wholesale" <saxenaansh387@gmail.com>';
@@ -77,7 +146,7 @@ export async function generateAndSendOtp(
   const mailOptions = {
     from: fromEmail,
     to: normalizedEmail,
-    subject: `🔐 ${otpCode} is your Hindustan Wholesale Verification Code`,
+    subject: 'Your Hindustan Wholesale Verification Code',
     html: `
       <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:32px;background:#fff;border:1px solid #e5e7eb;border-radius:16px;">
         <div style="text-align:center;margin-bottom:24px;">
@@ -87,7 +156,7 @@ export async function generateAndSendOtp(
         <hr style="border:none;border-top:1px solid #f3f4f6;margin:20px 0;"/>
         <h3 style="color:#111827;font-size:18px;margin-bottom:12px;">Email Verification Code</h3>
         <p style="color:#4b5563;font-size:14px;line-height:1.5;">
-          Use this 6-digit code to verify your email. Valid for <strong>10 minutes</strong>.
+          Use this 6-digit code to verify your email. Valid for <strong>${OTP_EXPIRY_MINUTES} minutes</strong>.
         </p>
         <div style="text-align:center;margin:28px 0;padding:20px;background:#fef2f2;border:2px dashed #fca5a5;border-radius:12px;">
           <span style="font-family:monospace;font-size:40px;font-weight:800;letter-spacing:10px;color:#8B0000;">
@@ -99,79 +168,128 @@ export async function generateAndSendOtp(
         </p>
         <hr style="border:none;border-top:1px solid #f3f4f6;margin:24px 0;"/>
         <p style="color:#9ca3af;font-size:11px;text-align:center;margin:0;">
-          © ${new Date().getFullYear()} Hindustan Wholesale Wholesale Platform
+          &copy; ${new Date().getFullYear()} Hindustan Wholesale Pvt. Ltd.
         </p>
       </div>
     `,
   };
 
-  // Try to send email — non-blocking failure (OTP is still stored)
+  // Send email via SMTP
   let emailSent = false;
+  const transporter = getTransporter();
+
+  if (!transporter) {
+    console.error(`OTP_EMAIL_SKIPPED recipient=${masked} reason=SMTP_NOT_CONFIGURED`);
+    return {
+      message: 'Verification code generated but email could not be sent. Please contact support.',
+      emailSent: false,
+    };
+  }
+
   try {
-    const transporter = getTransporter();
-    await transporter.sendMail(mailOptions);
+    const info = await transporter.sendMail(mailOptions);
     emailSent = true;
-    console.log(`✉️  OTP email sent successfully to ${normalizedEmail}`);
+    console.log(`OTP_EMAIL_SENT recipient=${masked} messageId=${info.messageId}`);
   } catch (err: any) {
-    // Email failed but OTP is stored — log the error, don't throw
-    console.error(`❌ SMTP failed for ${normalizedEmail}: ${err.message}`);
-    console.log(`📋 OTP for manual use: ${otpCode}`);
-    // Don't throw — let the API still return success so user can proceed
+    // Classify SMTP errors for debugging
+    const code = err.code || 'UNKNOWN';
+    const responseCode = err.responseCode || '';
+    let errorType = 'SMTP_UNKNOWN';
+
+    if (code === 'EDNS' || code === 'ENOTFOUND') errorType = 'SMTP_DNS_FAILURE';
+    else if (code === 'ECONNREFUSED') errorType = 'SMTP_CONNECTION_REFUSED';
+    else if (code === 'ETIMEDOUT' || code === 'ESOCKET') errorType = 'SMTP_TIMEOUT';
+    else if (code === 'EAUTH' || responseCode === 535) errorType = 'SMTP_AUTH_FAILURE';
+    else if (responseCode === 550 || responseCode === 553) errorType = 'SMTP_SENDER_REJECTED';
+    else if (responseCode === 421 || responseCode === 450) errorType = 'SMTP_RATE_LIMITED';
+
+    console.error(
+      `OTP_EMAIL_FAILED recipient=${masked} errorType=${errorType} ` +
+      `code=${code} responseCode=${responseCode} message=${err.message}`
+    );
+    // OTP is still stored — don't throw, let the user know
   }
 
   return {
-    otp: otpCode,
     message: emailSent
       ? `Verification code sent to ${normalizedEmail}`
-      : `Verification code generated. Check server console if email did not arrive.`,
+      : 'Unable to send verification email. Please try again or contact support.',
     emailSent,
   };
 }
 
 // ── Verify OTP ───────────────────────────────────────────────────────────────
+
 export async function verifyOtpCode(
   email: string,
   inputOtp: string
 ): Promise<{ valid: boolean; message: string }> {
   const normalizedEmail = email.trim().toLowerCase();
-  const docId = normalizedEmail.replace(/[^a-z0-9]/gi, '_');
+  const docId = emailToDocId(normalizedEmail);
+  const masked = maskEmail(normalizedEmail);
 
-  const data = otpStore.get(docId);
+  console.log(`OTP_VERIFY_START recipient=${masked}`);
 
-  if (!data) {
+  // Read OTP record from Firestore
+  let data: any;
+  try {
+    const snap = await getDoc(doc(db, OTP_COLLECTION, docId));
+    if (!snap.exists()) {
+      console.warn(`OTP_VERIFY_NOT_FOUND recipient=${masked}`);
+      return {
+        valid: false,
+        message: 'No active OTP found for this email. Please click "Resend Code".',
+      };
+    }
+    data = snap.data();
+  } catch (err: any) {
+    console.error(`OTP_VERIFY_READ_ERROR recipient=${masked} error=${err.message}`);
     return {
       valid: false,
-      message: 'No active OTP found for this email. Please click "Resend Code".',
+      message: 'Failed to verify code. Please try again.',
     };
   }
 
+  // Check expiration
   if (Date.now() > data.expiresAt) {
-    otpStore.delete(docId);
+    await deleteDoc(doc(db, OTP_COLLECTION, docId)).catch(() => {});
+    console.warn(`OTP_VERIFY_EXPIRED recipient=${masked}`);
     return {
       valid: false,
       message: 'OTP has expired. Please request a new code.',
     };
   }
 
-  if (data.attempts >= 5) {
-    otpStore.delete(docId);
+  // Check max attempts
+  if (data.attempts >= MAX_ATTEMPTS) {
+    await deleteDoc(doc(db, OTP_COLLECTION, docId)).catch(() => {});
+    console.warn(`OTP_VERIFY_MAX_ATTEMPTS recipient=${masked}`);
     return {
       valid: false,
       message: 'Too many incorrect attempts. Please request a new OTP.',
     };
   }
 
+  // Verify OTP
   if (inputOtp.trim() !== data.otp) {
-    data.attempts += 1;
-    otpStore.set(docId, data);
-    const remaining = 5 - data.attempts;
+    const newAttempts = (data.attempts || 0) + 1;
+    try {
+      await setDoc(doc(db, OTP_COLLECTION, docId), { ...data, attempts: newAttempts }, { merge: true });
+    } catch { /* best effort */ }
+
+    const remaining = MAX_ATTEMPTS - newAttempts;
+    console.warn(`OTP_VERIFY_WRONG recipient=${masked} attemptsUsed=${newAttempts}`);
     return {
       valid: false,
       message: `Incorrect OTP code. ${remaining} attempt${remaining === 1 ? '' : 's'} remaining.`,
     };
   }
 
-  // Correct OTP — clean up store
-  otpStore.delete(docId);
+  // Correct OTP — consume it (delete from Firestore)
+  try {
+    await deleteDoc(doc(db, OTP_COLLECTION, docId));
+  } catch { /* best effort */ }
+
+  console.log(`OTP_VERIFY_SUCCESS recipient=${masked}`);
   return { valid: true, message: 'OTP verified successfully!' };
 }

@@ -15,15 +15,14 @@ export async function POST(req: Request) {
 
     const result = await generateAndSendOtp(email);
 
+    // Never expose OTP in the response — not even in dev mode
     return NextResponse.json({
       success: true,
       message: result.message,
       emailSent: result.emailSent,
-      // In dev mode, expose OTP for easy testing (remove in production)
-      ...(process.env.NODE_ENV === 'development' ? { devOtp: result.otp } : {}),
     });
   } catch (err: any) {
-    console.error('Error in send-otp route:', err);
+    console.error('OTP_ROUTE_ERROR:', err.message);
     return NextResponse.json(
       { error: err.message || 'Failed to process OTP request' },
       { status: 500 }

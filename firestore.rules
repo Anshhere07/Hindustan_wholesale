@@ -151,6 +151,16 @@ service cloud.firestore {
     }
 
     // ─────────────────────────────────────────────────────────────────────────
+    // otp_codes — ephemeral OTP verification codes (server-side API routes)
+    // Server-side Next.js API routes run without Firebase Auth context,
+    // so these must be open. Documents are auto-deleted after verification.
+    // ─────────────────────────────────────────────────────────────────────────
+
+    match /otp_codes/{docId} {
+      allow read, write: if true;
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
     // Placeholder / _meta documents — allow writes for seeding
     // ─────────────────────────────────────────────────────────────────────────
 
