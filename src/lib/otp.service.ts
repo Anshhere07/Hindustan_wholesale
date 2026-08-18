@@ -1,6 +1,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // Mail OTP Verification Service — Hindustan Wholesale
-// Handles: secure 6-digit code generation, Firestore TTL storage & Nodemailer SMTP dispatch
+// Supports: Direct HTTPS Email API (Resend) + Nodemailer SMTP fallback
+// Handles: secure 6-digit code generation, Firestore TTL storage & email dispatch
 // ─────────────────────────────────────────────────────────────────────────────
 
 import nodemailer from 'nodemailer';
@@ -48,49 +49,133 @@ function emailToDocId(email: string): string {
   return email.trim().toLowerCase().replace(/[^a-z0-9]/gi, '_');
 }
 
-// ── SMTP Transporter ─────────────────────────────────────────────────────────
-
-function getTransporter() {
-  const host = process.env.SMTP_HOST || 'smtp.gmail.com';
-  const port = parseInt(process.env.SMTP_PORT || '587', 10);
-  const user = process.env.SMTP_USER || '';
-  const pass = (process.env.SMTP_PASS || '').replace(/\s+/g, ''); // strip any accidental whitespace
-
-  if (!user || !pass) {
-    console.error(
-      '❌ OTP_SMTP_CONFIG_MISSING: SMTP_USER or SMTP_PASS is not set. ' +
-      'Emails cannot be sent.'
-    );
-    return null;
-  }
-
-  // When connecting to Gmail, use service: 'gmail' for robust SSL/TLS connectivity across serverless platforms
-  if (host.includes('gmail.com') || user.endsWith('@gmail.com')) {
-    return nodemailer.createTransport({
-      service: 'gmail',
-      auth: { user, pass },
-      tls: { rejectUnauthorized: false },
-      connectionTimeout: 15000,
-      greetingTimeout: 15000,
-      socketTimeout: 15000,
-    });
-  }
-
-  return nodemailer.createTransport({
-    host,
-    port,
-    secure: port === 465,
-    auth: { user, pass },
-    tls: { rejectUnauthorized: false },
-    connectionTimeout: 15000,
-    greetingTimeout: 15000,
-    socketTimeout: 15000,
-  });
+function getEmailHtml(otpCode: string): string {
+  return `
+    <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:32px;background:#fff;border:1px solid #e5e7eb;border-radius:16px;">
+      <div style="text-align:center;margin-bottom:24px;">
+        <h2 style="color:#8B0000;margin:0;font-size:24px;font-weight:800;">Hindustan Wholesale</h2>
+        <p style="color:#6b7280;font-size:13px;margin-top:4px;">India's Premier B2B Wholesale Marketplace</p>
+      </div>
+      <hr style="border:none;border-top:1px solid #f3f4f6;margin:20px 0;"/>
+      <h3 style="color:#111827;font-size:18px;margin-bottom:12px;">Email Verification Code</h3>
+      <p style="color:#4b5563;font-size:14px;line-height:1.5;">
+        Use this 6-digit code to verify your email. Valid for <strong>${OTP_EXPIRY_MINUTES} minutes</strong>.
+      </p>
+      <div style="text-align:center;margin:28px 0;padding:20px;background:#fef2f2;border:2px dashed #fca5a5;border-radius:12px;">
+        <span style="font-family:monospace;font-size:40px;font-weight:800;letter-spacing:10px;color:#8B0000;">
+          ${otpCode}
+        </span>
+      </div>
+      <p style="color:#6b7280;font-size:12px;">
+        If you did not request this code, ignore this email. Never share your OTP with anyone.
+      </p>
+      <hr style="border:none;border-top:1px solid #f3f4f6;margin:24px 0;"/>
+      <p style="color:#9ca3af;font-size:11px;text-align:center;margin:0;">
+        &copy; ${new Date().getFullYear()} Hindustan Wholesale Pvt. Ltd.
+      </p>
+    </div>
+  `;
 }
 
-// ── Rate Limiting (Single Document Key-Value, No Composite Index Needed) ──────
+// ── Email Sender (Resend REST API or Nodemailer SMTP) ─────────────────────────
 
-async function checkAndIncrementRateLimit(docId: string, normalizedEmail: string): Promise<boolean> {
+async function sendEmail(
+  toEmail: string,
+  otpCode: string
+): Promise<{ success: boolean; messageId?: string; error?: string }> {
+  const masked = maskEmail(toEmail);
+  const fromEmail = process.env.SMTP_FROM || 'Hindustan Wholesale <onboarding@resend.dev>';
+  const subject = 'Your Hindustan Wholesale Verification Code';
+  const html = getEmailHtml(otpCode);
+
+  // 1. Check if RESEND_API_KEY is available (Fastest, 100% reliable on Vercel Serverless)
+  const resendApiKey = process.env.RESEND_API_KEY;
+  if (resendApiKey) {
+    try {
+      console.log(`OTP_DISPATCH_RESEND recipient=${masked}`);
+      const res = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${resendApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          from: fromEmail.includes('gmail.com') ? 'Hindustan Wholesale <onboarding@resend.dev>' : fromEmail,
+          to: [toEmail],
+          subject,
+          html,
+        }),
+      });
+
+      const resData = await res.json();
+      if (res.ok && resData.id) {
+        console.log(`OTP_EMAIL_SENT_RESEND recipient=${masked} id=${resData.id}`);
+        return { success: true, messageId: resData.id };
+      } else {
+        console.error(`OTP_RESEND_ERROR recipient=${masked} error=${JSON.stringify(resData)}`);
+      }
+    } catch (err: any) {
+      console.error(`OTP_RESEND_FETCH_ERROR recipient=${masked} message=${err.message}`);
+    }
+  }
+
+  // 2. SMTP Transporter Fallback
+  const host = process.env.SMTP_HOST || 'smtp.gmail.com';
+  const port = parseInt(process.env.SMTP_PORT || '465', 10);
+  const user = process.env.SMTP_USER || '';
+  const pass = (process.env.SMTP_PASS || '').replace(/\s+/g, '');
+
+  if (!user || !pass) {
+    return { success: false, error: 'SMTP credentials not configured.' };
+  }
+
+  try {
+    console.log(`OTP_DISPATCH_SMTP recipient=${masked} host=${host} port=${port}`);
+    const isGmail = host.includes('gmail.com') || user.endsWith('@gmail.com');
+    
+    const transporter = isGmail
+      ? nodemailer.createTransport({
+          service: 'gmail',
+          auth: { user, pass },
+          tls: { rejectUnauthorized: false },
+          connectionTimeout: 15000,
+          greetingTimeout: 15000,
+          socketTimeout: 15000,
+        })
+      : nodemailer.createTransport({
+          host,
+          port,
+          secure: port === 465,
+          auth: { user, pass },
+          tls: { rejectUnauthorized: false },
+          connectionTimeout: 15000,
+          greetingTimeout: 15000,
+          socketTimeout: 15000,
+        });
+
+    const info = await transporter.sendMail({
+      from: fromEmail,
+      to: toEmail,
+      subject,
+      html,
+    });
+
+    console.log(`OTP_EMAIL_SENT_SMTP recipient=${masked} messageId=${info.messageId}`);
+    return { success: true, messageId: info.messageId };
+  } catch (err: any) {
+    const code = err.code || 'UNKNOWN';
+    const responseCode = err.responseCode || '';
+    console.error(
+      `OTP_EMAIL_FAILED_SMTP recipient=${masked} code=${code} ` +
+      `responseCode=${responseCode} message=${err.message}`
+    );
+    return { success: false, error: err.message };
+  }
+}
+
+// ── Rate Limiting (Single Document Key-Value, Zero Index Requirement) ────────
+
+async function checkAndIncrementRateLimit(docId: string): Promise<boolean> {
   try {
     const snap = await getDoc(doc(db, OTP_COLLECTION, docId));
     if (!snap.exists()) return true;
@@ -99,7 +184,6 @@ async function checkAndIncrementRateLimit(docId: string, normalizedEmail: string
     const now = Date.now();
     const oneHourAgo = now - 60 * 60 * 1000;
 
-    // Reset rate counter if window expired
     if (!data.windowStart || data.windowStart < oneHourAgo) {
       return true;
     }
@@ -126,8 +210,7 @@ export async function generateAndSendOtp(
 
   console.log(`OTP_REQUEST_START recipient=${masked}`);
 
-  // Rate limit check
-  const allowed = await checkAndIncrementRateLimit(docId, normalizedEmail);
+  const allowed = await checkAndIncrementRateLimit(docId);
   if (!allowed) {
     console.warn(`OTP_RATE_LIMITED recipient=${masked}`);
     return {
@@ -136,12 +219,11 @@ export async function generateAndSendOtp(
     };
   }
 
-  // Generate secure OTP
   const otpCode = generateSecureOtp();
   const now = Date.now();
   const expiresAt = now + OTP_EXPIRY_MINUTES * 60 * 1000;
 
-  // Read existing doc to maintain sliding rate window
+  // Maintain sliding rate window
   let windowStart = now;
   let requestCount = 1;
   try {
@@ -154,11 +236,11 @@ export async function generateAndSendOtp(
         requestCount = (existingData.requestCount || 0) + 1;
       }
     }
-  } catch (e) {
+  } catch {
     // best-effort
   }
 
-  // Store OTP in Firestore (persists across serverless invocations)
+  // Store in Firestore
   try {
     await setDoc(doc(db, OTP_COLLECTION, docId), {
       email: normalizedEmail,
@@ -176,82 +258,14 @@ export async function generateAndSendOtp(
     throw new Error('Failed to generate verification code. Please try again.');
   }
 
-  // Build email
-  const fromEmail =
-    process.env.SMTP_FROM ||
-    '"Hindustan Wholesale" <saxenaansh387@gmail.com>';
-
-  const mailOptions = {
-    from: fromEmail,
-    to: normalizedEmail,
-    subject: 'Your Hindustan Wholesale Verification Code',
-    html: `
-      <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:32px;background:#fff;border:1px solid #e5e7eb;border-radius:16px;">
-        <div style="text-align:center;margin-bottom:24px;">
-          <h2 style="color:#8B0000;margin:0;font-size:24px;font-weight:800;">Hindustan Wholesale</h2>
-          <p style="color:#6b7280;font-size:13px;margin-top:4px;">India's Premier B2B Wholesale Marketplace</p>
-        </div>
-        <hr style="border:none;border-top:1px solid #f3f4f6;margin:20px 0;"/>
-        <h3 style="color:#111827;font-size:18px;margin-bottom:12px;">Email Verification Code</h3>
-        <p style="color:#4b5563;font-size:14px;line-height:1.5;">
-          Use this 6-digit code to verify your email. Valid for <strong>${OTP_EXPIRY_MINUTES} minutes</strong>.
-        </p>
-        <div style="text-align:center;margin:28px 0;padding:20px;background:#fef2f2;border:2px dashed #fca5a5;border-radius:12px;">
-          <span style="font-family:monospace;font-size:40px;font-weight:800;letter-spacing:10px;color:#8B0000;">
-            ${otpCode}
-          </span>
-        </div>
-        <p style="color:#6b7280;font-size:12px;">
-          If you did not request this code, ignore this email. Never share your OTP with anyone.
-        </p>
-        <hr style="border:none;border-top:1px solid #f3f4f6;margin:24px 0;"/>
-        <p style="color:#9ca3af;font-size:11px;text-align:center;margin:0;">
-          &copy; ${new Date().getFullYear()} Hindustan Wholesale Pvt. Ltd.
-        </p>
-      </div>
-    `,
-  };
-
-  // Send email via SMTP
-  let emailSent = false;
-  const transporter = getTransporter();
-
-  if (!transporter) {
-    console.error(`OTP_EMAIL_SKIPPED recipient=${masked} reason=SMTP_NOT_CONFIGURED`);
-    return {
-      message: 'Verification code generated but email service is not configured. Please contact support.',
-      emailSent: false,
-    };
-  }
-
-  try {
-    const info = await transporter.sendMail(mailOptions);
-    emailSent = true;
-    console.log(`OTP_EMAIL_SENT recipient=${masked} messageId=${info.messageId}`);
-  } catch (err: any) {
-    // Classify SMTP errors for debugging
-    const code = err.code || 'UNKNOWN';
-    const responseCode = err.responseCode || '';
-    let errorType = 'SMTP_UNKNOWN';
-
-    if (code === 'EDNS' || code === 'ENOTFOUND') errorType = 'SMTP_DNS_FAILURE';
-    else if (code === 'ECONNREFUSED') errorType = 'SMTP_CONNECTION_REFUSED';
-    else if (code === 'ETIMEDOUT' || code === 'ESOCKET') errorType = 'SMTP_TIMEOUT';
-    else if (code === 'EAUTH' || responseCode === 535) errorType = 'SMTP_AUTH_FAILURE';
-    else if (responseCode === 550 || responseCode === 553) errorType = 'SMTP_SENDER_REJECTED';
-    else if (responseCode === 421 || responseCode === 450) errorType = 'SMTP_RATE_LIMITED';
-
-    console.error(
-      `OTP_EMAIL_FAILED recipient=${masked} errorType=${errorType} ` +
-      `code=${code} responseCode=${responseCode} message=${err.message}`
-    );
-  }
+  // Dispatch email
+  const sendResult = await sendEmail(normalizedEmail, otpCode);
 
   return {
-    message: emailSent
+    message: sendResult.success
       ? `Verification code sent to ${normalizedEmail}`
-      : 'Unable to send verification email. Please verify your email address or try again.',
-    emailSent,
+      : 'Unable to send verification email. Please check your email address or try again.',
+    emailSent: sendResult.success,
   };
 }
 
@@ -267,7 +281,6 @@ export async function verifyOtpCode(
 
   console.log(`OTP_VERIFY_START recipient=${masked}`);
 
-  // Read OTP record from Firestore
   let data: any;
   try {
     const snap = await getDoc(doc(db, OTP_COLLECTION, docId));
@@ -287,7 +300,6 @@ export async function verifyOtpCode(
     };
   }
 
-  // Check expiration
   if (Date.now() > data.expiresAt) {
     await deleteDoc(doc(db, OTP_COLLECTION, docId)).catch(() => {});
     console.warn(`OTP_VERIFY_EXPIRED recipient=${masked}`);
@@ -297,7 +309,6 @@ export async function verifyOtpCode(
     };
   }
 
-  // Check max attempts
   if (data.attempts >= MAX_ATTEMPTS) {
     await deleteDoc(doc(db, OTP_COLLECTION, docId)).catch(() => {});
     console.warn(`OTP_VERIFY_MAX_ATTEMPTS recipient=${masked}`);
@@ -307,7 +318,6 @@ export async function verifyOtpCode(
     };
   }
 
-  // Verify OTP
   if (inputOtp.trim() !== data.otp) {
     const newAttempts = (data.attempts || 0) + 1;
     try {
@@ -322,7 +332,7 @@ export async function verifyOtpCode(
     };
   }
 
-  // Correct OTP — consume it (delete from Firestore)
+  // Success — consume OTP from Firestore
   try {
     await deleteDoc(doc(db, OTP_COLLECTION, docId));
   } catch { /* best effort */ }
