@@ -24,7 +24,9 @@ export type PaymentMethod =
   | 'bank_transfer'
   | 'upi'
   | 'cheque'
-  | 'cash_on_delivery';
+  | 'cash_on_delivery'
+  | 'call'
+  | 'whatsapp';
 
 export interface OrderLineItem {
   id: ID;

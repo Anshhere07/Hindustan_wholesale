@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic';
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import {
-  Package, CheckCircle, XCircle, Eye, Search, ShieldCheck, Tag, DollarSign, Layers
+  Package, CheckCircle, XCircle, Eye, Search, ShieldCheck, Tag, DollarSign, Layers, Trash2
 } from 'lucide-react';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
@@ -14,9 +14,11 @@ import {
   getAllProductsAdmin,
   approveProductAdmin,
   rejectProductAdmin,
+  deleteProduct,
 } from '@/lib/firebase/collections/products';
 import type { Product } from '@/types/product.types';
 import { formatCurrency } from '@/lib/utils/format';
+import { MOCK_PRODUCTS } from '@/lib/api/mock-data';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Admin Products Page — Review, Verify, Approve, or Reject Seller Product Listings
@@ -48,17 +50,35 @@ export default function AdminProductsPage() {
 
   const handleApprove = async (prod: Product) => {
     try {
-      await approveProductAdmin(prod.id);
+      const rawSellerPrice = prod.sellerPrice || prod.basePrice;
+      const approvedBuyerPrice = Math.round(rawSellerPrice * 1.10 * 100) / 100;
+
+      await approveProductAdmin(prod.id, prod);
       setProducts((prev) =>
         prev.map((p) =>
-          p.id === prod.id ? { ...p, approvalStatus: 'approved', status: 'active' } : p
+          p.id === prod.id
+            ? {
+                ...p,
+                approvalStatus: 'approved',
+                status: 'active',
+                sellerPrice: rawSellerPrice,
+                basePrice: approvedBuyerPrice,
+              }
+            : p
         )
       );
+      // Sync local in-memory item
+      const mockItem = MOCK_PRODUCTS.find(m => m.id === prod.id || m.sku === prod.sku);
+      if (mockItem) {
+        mockItem.approvalStatus = 'approved';
+        mockItem.status = 'active';
+        mockItem.basePrice = approvedBuyerPrice;
+      }
       addNotification({
         type: 'success',
-        title: 'Product Verified & Published!',
-        message: `"${prod.name}" verified successfully. It is now live in the Buyer Catalog.`,
-        duration: 6000,
+        title: 'Product Approved (+10% Margin Added)!',
+        message: `"${prod.name}" approved. Buyer price is set to ₹${approvedBuyerPrice.toLocaleString('en-IN')} (Seller price: ₹${rawSellerPrice.toLocaleString('en-IN')} + 10% platform margin).`,
+        duration: 7000,
       });
     } catch (err: any) {
       addNotification({ type: 'error', title: 'Verification Failed', message: err.message });
@@ -73,6 +93,12 @@ export default function AdminProductsPage() {
           p.id === prod.id ? { ...p, approvalStatus: 'rejected', status: 'draft' } : p
         )
       );
+      // Sync local in-memory item
+      const mockItem = MOCK_PRODUCTS.find(m => m.id === prod.id || m.sku === prod.sku);
+      if (mockItem) {
+        mockItem.approvalStatus = 'rejected';
+        mockItem.status = 'draft';
+      }
       addNotification({
         type: 'warning',
         title: 'Product Request Rejected',
@@ -81,6 +107,31 @@ export default function AdminProductsPage() {
       });
     } catch (err: any) {
       addNotification({ type: 'error', title: 'Action Failed', message: err.message });
+    }
+  };
+
+  const handleDelete = async (prod: Product) => {
+    if (!window.confirm(`Are you sure you want to permanently delete "${prod.name}"? This action cannot be undone.`)) {
+      return;
+    }
+    try {
+      await deleteProduct(prod.id);
+      setProducts((prev) => prev.filter((p) => p.id !== prod.id));
+      
+      // Also remove from in-memory mock if present
+      const mockIndex = MOCK_PRODUCTS.findIndex((m) => m.id === prod.id || m.sku === prod.sku);
+      if (mockIndex !== -1) {
+        MOCK_PRODUCTS.splice(mockIndex, 1);
+      }
+
+      addNotification({
+        type: 'success',
+        title: 'Product Deleted',
+        message: `"${prod.name}" was permanently removed from the marketplace.`,
+        duration: 5000,
+      });
+    } catch (err: any) {
+      addNotification({ type: 'error', title: 'Delete Failed', message: err.message });
     }
   };
 
@@ -221,8 +272,25 @@ export default function AdminProductsPage() {
                       <div style={{ fontWeight: 600 }}>{p.sellerName || 'Verified Seller'}</div>
                     </td>
                     <td style={{ padding: '14px 18px' }}>
-                      <div style={{ fontWeight: 700, color: '#8B0000' }}>{formatCurrency(p.basePrice)}</div>
-                      <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>MOQ: {p.moq} {p.unit}s</div>
+                      {isApproved ? (
+                        <div>
+                          <div style={{ fontWeight: 700, color: '#8B0000', fontSize: 13.5 }}>
+                            {formatCurrency(p.basePrice)} <span style={{ fontSize: 10.5, color: '#059669', background: '#ECFDF5', padding: '1px 5px', borderRadius: 4, fontWeight: 700 }}>+10% Live</span>
+                          </div>
+                          <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
+                            Seller: {formatCurrency(p.sellerPrice || Math.round((p.basePrice / 1.1) * 100) / 100)} · MOQ: {p.moq} {p.unit}s
+                          </div>
+                        </div>
+                      ) : (
+                        <div>
+                          <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>
+                            Seller: {formatCurrency(p.sellerPrice || p.basePrice)}
+                          </div>
+                          <div style={{ fontSize: 11, color: '#059669', fontWeight: 600 }}>
+                            Buyer (Approved +10%): {formatCurrency(Math.round((p.sellerPrice || p.basePrice) * 1.10 * 100) / 100)}
+                          </div>
+                        </div>
+                      )}
                     </td>
                     <td style={{ padding: '14px 18px' }}>
                       <Badge variant={isApproved ? 'success' : isPending ? 'warning' : 'danger'} size="sm">
@@ -246,7 +314,7 @@ export default function AdminProductsPage() {
                             leftIcon={<CheckCircle size={12} />}
                             onClick={() => handleApprove(p)}
                           >
-                            Verify &amp; Publish
+                            Verify &amp; Publish (+10%)
                           </Button>
                         )}
                         {!isApproved && p.approvalStatus !== 'rejected' && (
@@ -259,6 +327,14 @@ export default function AdminProductsPage() {
                             Reject
                           </Button>
                         )}
+                        <Button
+                          variant="danger"
+                          size="xs"
+                          leftIcon={<Trash2 size={12} />}
+                          onClick={() => handleDelete(p)}
+                        >
+                          Delete
+                        </Button>
                       </div>
                     </td>
                   </tr>
@@ -285,7 +361,21 @@ export default function AdminProductsPage() {
               <div><strong>Part Number / SKU:</strong> <span style={{ fontFamily: 'monospace' }}>{viewProduct.sku}</span></div>
               <div><strong>Brand:</strong> {viewProduct.brand || 'N/A'}</div>
               <div><strong>Category:</strong> {viewProduct.categoryName}</div>
-              <div><strong>Base Wholesale Price:</strong> {formatCurrency(viewProduct.basePrice)}</div>
+              <div style={{ background: '#f9fafb', padding: '10px 14px', borderRadius: 8, border: '1px solid #e5e7eb' }}>
+                <div style={{ marginBottom: 4 }}>
+                  <strong>Seller Base Price:</strong> {formatCurrency(viewProduct.sellerPrice || viewProduct.basePrice)}
+                </div>
+                <div style={{ marginBottom: 4, color: '#059669', fontWeight: 600 }}>
+                  <strong>Platform Margin (+10%):</strong> +{formatCurrency(Math.round((viewProduct.sellerPrice || viewProduct.basePrice) * 0.10 * 100) / 100)}
+                </div>
+                <div style={{ color: '#8B0000', fontWeight: 700, fontSize: 15 }}>
+                  <strong>Published Buyer Price:</strong> {formatCurrency(
+                    viewProduct.approvalStatus === 'approved'
+                      ? viewProduct.basePrice
+                      : Math.round((viewProduct.sellerPrice || viewProduct.basePrice) * 1.10 * 100) / 100
+                  )}
+                </div>
+              </div>
               <div><strong>MOQ (Minimum Order Qty):</strong> {viewProduct.moq} {viewProduct.unit}s</div>
               <div><strong>Stock Available:</strong> {viewProduct.stock} units</div>
               <div><strong>Seller Name:</strong> {viewProduct.sellerName}</div>
@@ -296,7 +386,7 @@ export default function AdminProductsPage() {
               <Button variant="secondary" onClick={() => setViewProduct(null)}>Close</Button>
               {viewProduct.approvalStatus !== 'approved' && (
                 <Button variant="primary" leftIcon={<CheckCircle size={14} />} onClick={() => { handleApprove(viewProduct); setViewProduct(null); }}>
-                  Verify &amp; Publish
+                  Verify &amp; Publish (+10%)
                 </Button>
               )}
             </div>

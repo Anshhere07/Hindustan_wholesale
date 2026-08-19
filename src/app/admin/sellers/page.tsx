@@ -4,12 +4,12 @@ export const dynamic = 'force-dynamic';
 
 import React, { useState, useEffect } from 'react';
 import {
-  Store, CheckCircle, XCircle, Eye, Edit3, Save, X, Search, ShieldCheck, Clock
+  Store, CheckCircle, XCircle, Eye, Edit3, Save, X, Search, ShieldCheck, Clock, Trash2
 } from 'lucide-react';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import { useUIStore } from '@/stores/ui.store';
-import { getUsersByRole, updateUser } from '@/lib/firebase/collections/users';
+import { getUsersByRole, updateUser, deleteUser } from '@/lib/firebase/collections/users';
 import { getSellerProfile, updateSellerProfile } from '@/lib/firebase/collections/seller-profiles';
 import type { UserProfile, SellerProfile } from '@/types/user.types';
 
@@ -53,6 +53,34 @@ export default function AdminSellersPage() {
   useEffect(() => {
     loadData();
   }, []);
+
+  const handleDelete = async (user: UserProfile) => {
+    if (!window.confirm(`Are you sure you want to permanently delete seller account "${user.email}"?`)) {
+      return;
+    }
+    try {
+      const emailUid = user.email.replace(/[^a-z0-9]/gi, '_');
+      await deleteUser(user.id);
+      await deleteUser(emailUid).catch(() => {});
+
+      setSellers((prev) => prev.filter((s) => s.id !== user.id && s.email !== user.email));
+      setProfiles((prev) => {
+        const next = { ...prev };
+        delete next[user.id];
+        delete next[emailUid];
+        return next;
+      });
+
+      addNotification({
+        type: 'success',
+        title: 'Seller Account Deleted',
+        message: `Seller account (${user.email}) has been permanently deleted.`,
+        duration: 5000,
+      });
+    } catch (err: any) {
+      addNotification({ type: 'error', title: 'Delete Failed', message: err.message });
+    }
+  };
 
   const handleApprove = async (user: UserProfile) => {
     try {
@@ -321,6 +349,14 @@ export default function AdminSellersPage() {
                             Reject
                           </Button>
                         )}
+                        <Button
+                          variant="danger"
+                          size="xs"
+                          leftIcon={<Trash2 size={12} />}
+                          onClick={() => handleDelete(seller)}
+                        >
+                          Delete
+                        </Button>
                       </div>
                     </td>
                   </tr>

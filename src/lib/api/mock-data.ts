@@ -27,7 +27,7 @@ export const MOCK_PRODUCTS: ProductListItem[] = [
     slug: 'bosch-fuel-injector-set-maruti', basePrice: 4800, currency: 'INR',
     moq: 4, unit: 'set', stock: 240, rating: 4.6, reviewCount: 128,
     sellerName: 'AutoParts Direct', sellerRating: 4.7, leadTimeDays: 3,
-    isFeatured: true, status: 'active', brand: 'Bosch', categoryName: 'Engine Parts',
+    isFeatured: true, status: 'active', approvalStatus: 'approved', brand: 'Bosch', vehicleType: '4-wheeler', categoryName: 'Engine Parts',
     primaryImage: { id: 'img-1', url: 'https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?w=400&h=300&fit=crop', altText: 'Fuel Injector', isPrimary: true, order: 1 },
   },
   {
@@ -35,7 +35,7 @@ export const MOCK_PRODUCTS: ProductListItem[] = [
     slug: 'brembo-brake-disc-tata-nexon', basePrice: 3200, currency: 'INR',
     moq: 2, unit: 'pair', stock: 180, rating: 4.8, reviewCount: 96,
     sellerName: 'BrakeMaster Co.', sellerRating: 4.9, leadTimeDays: 2,
-    isFeatured: true, status: 'active', brand: 'Brembo', categoryName: 'Brakes & Suspension',
+    isFeatured: true, status: 'active', approvalStatus: 'approved', brand: 'Brembo', vehicleType: '4-wheeler', categoryName: 'Brakes & Suspension',
     primaryImage: { id: 'img-2', url: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=300&fit=crop', altText: 'Brake Disc', isPrimary: true, order: 1 },
   },
   {
@@ -43,7 +43,7 @@ export const MOCK_PRODUCTS: ProductListItem[] = [
     slug: 'philips-led-headlight-h4-pack10', basePrice: 1450, currency: 'INR',
     moq: 10, unit: 'piece', stock: 500, rating: 4.5, reviewCount: 312,
     sellerName: 'LightZone India', sellerRating: 4.6, leadTimeDays: 1,
-    isFeatured: false, status: 'active', brand: 'Philips', categoryName: 'Electrical & Lighting',
+    isFeatured: false, status: 'active', approvalStatus: 'approved', brand: 'Philips', vehicleType: '2-wheeler', categoryName: 'Electrical & Lighting',
     primaryImage: { id: 'img-3', url: 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=400&h=300&fit=crop', altText: 'LED Headlight', isPrimary: true, order: 1 },
   },
   {
@@ -51,7 +51,7 @@ export const MOCK_PRODUCTS: ProductListItem[] = [
     slug: 'mrf-nylogrip-zapper-175-70-r14', basePrice: 5600, currency: 'INR',
     moq: 4, unit: 'piece', stock: 120, rating: 4.7, reviewCount: 74,
     sellerName: 'TyreWorld Hub', sellerRating: 4.5, leadTimeDays: 4,
-    isFeatured: true, status: 'active', brand: 'MRF', categoryName: 'Tyres & Wheels',
+    isFeatured: true, status: 'active', approvalStatus: 'approved', brand: 'MRF', vehicleType: '2-wheeler', categoryName: 'Tyres & Wheels',
     primaryImage: { id: 'img-4', url: 'https://images.unsplash.com/photo-1580273916550-e323be2ae537?w=400&h=300&fit=crop', altText: 'MRF Tyre', isPrimary: true, order: 1 },
   },
   {
@@ -59,7 +59,7 @@ export const MOCK_PRODUCTS: ProductListItem[] = [
     slug: 'mann-filter-oil-universal', basePrice: 320, currency: 'INR',
     moq: 24, unit: 'piece', stock: 800, rating: 4.4, reviewCount: 240,
     sellerName: 'FilterKing Supplies', sellerRating: 4.3, leadTimeDays: 2,
-    isFeatured: false, status: 'active', brand: 'Mann Filter', categoryName: 'Filters & Fluids',
+    isFeatured: false, status: 'active', approvalStatus: 'approved', brand: 'Mann Filter', vehicleType: '3-wheeler', categoryName: 'Filters & Fluids',
     primaryImage: { id: 'img-5', url: 'https://images.unsplash.com/photo-1614028674026-a65e31bfd27c?w=400&h=300&fit=crop', altText: 'Oil Filter', isPrimary: true, order: 1 },
   },
   {
@@ -67,7 +67,7 @@ export const MOCK_PRODUCTS: ProductListItem[] = [
     slug: 'denso-ac-compressor-hyundai-i20', basePrice: 12500, currency: 'INR',
     moq: 1, unit: 'piece', stock: 45, rating: 4.9, reviewCount: 38,
     sellerName: 'CoolAir Parts', sellerRating: 4.8, leadTimeDays: 5,
-    isFeatured: true, status: 'active', brand: 'Denso', categoryName: 'AC & Cooling',
+    isFeatured: true, status: 'active', approvalStatus: 'approved', brand: 'Denso', vehicleType: '4-wheeler', categoryName: 'AC & Cooling',
     primaryImage: { id: 'img-6', url: 'https://images.unsplash.com/photo-1601362840469-51e4d8d58785?w=400&h=300&fit=crop', altText: 'AC Compressor', isPrimary: true, order: 1 },
   },
   {
@@ -75,7 +75,7 @@ export const MOCK_PRODUCTS: ProductListItem[] = [
     slug: 'zf-sachs-clutch-kit-mahindra-scorpio', basePrice: 8900, currency: 'INR',
     moq: 1, unit: 'set', stock: 60, rating: 4.6, reviewCount: 55,
     sellerName: 'TransMax India', sellerRating: 4.7, leadTimeDays: 3,
-    isFeatured: false, status: 'active', brand: 'ZF Sachs', categoryName: 'Transmission',
+    isFeatured: false, status: 'active', approvalStatus: 'approved', brand: 'ZF Sachs', vehicleType: '4-wheeler', categoryName: 'Transmission',
     primaryImage: { id: 'img-7', url: 'https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=400&h=300&fit=crop', altText: 'Clutch Kit', isPrimary: true, order: 1 },
   },
   {
@@ -83,8 +83,24 @@ export const MOCK_PRODUCTS: ProductListItem[] = [
     slug: 'mahindra-oe-front-bumper-xuv700', basePrice: 18500, currency: 'INR',
     moq: 1, unit: 'piece', stock: 28, rating: 4.8, reviewCount: 22,
     sellerName: 'BodyParts Direct', sellerRating: 4.6, leadTimeDays: 7,
-    isFeatured: false, status: 'active', brand: 'Mahindra OE', categoryName: 'Body & Exterior',
+    isFeatured: false, status: 'active', approvalStatus: 'approved', brand: 'Mahindra OE', vehicleType: '4-wheeler', categoryName: 'Body & Exterior',
     primaryImage: { id: 'img-8', url: 'https://images.unsplash.com/photo-1553440569-bcc63803a83d?w=400&h=300&fit=crop', altText: 'Front Bumper', isPrimary: true, order: 1 },
+  },
+  {
+    id: 'prod-9', sku: 'TW-309', name: 'Bajaj RE Compact 3-Wheeler Brake Shoe Set',
+    slug: 'bajaj-re-compact-3w-brake-shoe', basePrice: 420, currency: 'INR',
+    moq: 10, unit: 'set', stock: 350, rating: 4.7, reviewCount: 88,
+    sellerName: 'BrakeMaster Co.', sellerRating: 4.9, leadTimeDays: 2,
+    isFeatured: true, status: 'active', approvalStatus: 'approved', brand: 'Bajaj', vehicleType: '3-wheeler', categoryName: 'Brakes & Suspension',
+    primaryImage: { id: 'img-9', url: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=300&fit=crop', altText: '3W Brake Shoe', isPrimary: true, order: 1 },
+  },
+  {
+    id: 'prod-10', sku: 'AG-901', name: 'Mahindra Tractor 575 DI Water Pump Assembly',
+    slug: 'mahindra-tractor-water-pump-assembly', basePrice: 2850, currency: 'INR',
+    moq: 2, unit: 'piece', stock: 95, rating: 4.8, reviewCount: 42,
+    sellerName: 'AutoParts Direct', sellerRating: 4.7, leadTimeDays: 3,
+    isFeatured: true, status: 'active', approvalStatus: 'approved', brand: 'Mahindra OE', vehicleType: 'agriculture', categoryName: 'Engine Parts',
+    primaryImage: { id: 'img-10', url: 'https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?w=400&h=300&fit=crop', altText: 'Tractor Water Pump', isPrimary: true, order: 1 },
   },
 ];
 

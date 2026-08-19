@@ -21,13 +21,19 @@ import type { Category } from '@/types/product.types';
 const COLLECTION = 'categories';
 
 export async function getAllCategories(): Promise<Category[]> {
-  const q = query(
-    collection(db, COLLECTION),
-    where('isActive', '==', true),
-    orderBy('name', 'asc')
-  );
-  const snap = await getDocs(q);
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Category);
+  try {
+    const snap = await getDocs(collection(db, COLLECTION));
+    const list = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Category);
+    if (list.length > 0) {
+      return list.sort((a, b) => a.name.localeCompare(b.name));
+    }
+    const { MOCK_CATEGORIES } = await import('@/lib/api/mock-data');
+    return MOCK_CATEGORIES;
+  } catch (err) {
+    console.warn('getAllCategories error (falling back to mock):', err);
+    const { MOCK_CATEGORIES } = await import('@/lib/api/mock-data');
+    return MOCK_CATEGORIES;
+  }
 }
 
 export async function getCategoryById(id: string): Promise<Category | null> {

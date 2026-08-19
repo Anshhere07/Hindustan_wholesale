@@ -89,17 +89,25 @@ export async function getProducts(
         status: data.status,
         approvalStatus: data.approvalStatus,
         brand: data.brand,
+        vehicleType: data.vehicleType || '4-wheeler',
         primaryImage: primaryImg,
         categoryId: data.categoryId,
         categoryName: data.categoryName,
       } satisfies ProductListItem;
     });
 
-    // Apply remaining client-side filters (category, brand, price, rating)
+    // Apply remaining client-side filters (category, vehicleType, brand, price, rating)
     if (filters.categoryId) {
       products = products.filter(
         (p) => p.categoryId === filters.categoryId ||
           p.categoryName?.toLowerCase().includes(filters.categoryId!.toLowerCase())
+      );
+    }
+    if (filters.vehicleType && filters.vehicleType !== 'all') {
+      const vFilter = filters.vehicleType.toLowerCase();
+      products = products.filter(
+        (p) => p.vehicleType?.toLowerCase() === vFilter ||
+          (p as any).tags?.some((t: string) => t.toLowerCase().includes(vFilter))
       );
     }
     if (filters.brand?.length) {
@@ -158,6 +166,7 @@ export async function getSellerProducts(sellerId: string): Promise<ProductListIt
         status: data.status,
         approvalStatus: data.approvalStatus,
         brand: data.brand,
+        vehicleType: data.vehicleType || '4-wheeler',
         primaryImage: primaryImg,
         categoryId: data.categoryId,
         categoryName: data.categoryName,
@@ -173,8 +182,11 @@ export async function getSellerProducts(sellerId: string): Promise<ProductListIt
 export async function createProduct(
   data: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>
 ): Promise<string> {
+  const sellerPrice = data.sellerPrice || data.basePrice;
   const ref = await addDoc(collection(db, COLLECTION), {
     ...data,
+    sellerPrice,
+    basePrice: data.basePrice,
     approvalStatus: data.approvalStatus || 'pending',
     rating: 0,
     reviewCount: 0,
@@ -212,12 +224,35 @@ export async function getAllProductsAdmin(): Promise<Product[]> {
   }
 }
 
-export async function approveProductAdmin(id: string): Promise<void> {
+export async function approveProductAdmin(id: string, product?: Product): Promise<number> {
+  let prod = product;
+  if (!prod) {
+    prod = (await getProductById(id)) || undefined;
+  }
+
+  // Preserve seller price and add 10% margin for buyer price
+  const rawSellerPrice = prod?.sellerPrice || prod?.basePrice || 0;
+  // Increase price by 10% (e.g. 10 -> 11, 100 -> 110, 1250 -> 1375)
+  const approvedBuyerPrice = Math.round(rawSellerPrice * 1.10 * 100) / 100;
+
+  let updatedTiers = prod?.priceTiers;
+  if (prod?.priceTiers && prod.priceTiers.length > 0) {
+    updatedTiers = prod.priceTiers.map((t) => ({
+      ...t,
+      price: Math.round((t.price || rawSellerPrice) * 1.10 * 100) / 100,
+    }));
+  }
+
   await updateDoc(doc(db, COLLECTION, id), {
     approvalStatus: 'approved',
     status: 'active',
+    sellerPrice: rawSellerPrice,
+    basePrice: approvedBuyerPrice,
+    ...(updatedTiers ? { priceTiers: updatedTiers } : {}),
     updatedAt: serverTimestamp(),
   });
+
+  return approvedBuyerPrice;
 }
 
 export async function rejectProductAdmin(id: string): Promise<void> {
@@ -231,36 +266,54 @@ export async function rejectProductAdmin(id: string): Promise<void> {
 // ── Featured products (for buyer dashboard) ───────────────────────────────────
 
 export async function getFeaturedProducts(count = 8): Promise<ProductListItem[]> {
-  const q = query(
-    collection(db, COLLECTION),
-    where('status', '==', 'active'),
-    where('isFeatured', '==', true),
-    orderBy('rating', 'desc'),
-    limit(count)
-  );
-  const snap = await getDocs(q);
-  return snap.docs.map((d) => {
-    const data = d.data() as Product;
-    return {
-      id: d.id,
-      sku: data.sku,
-      name: data.name,
-      slug: data.slug,
-      basePrice: data.basePrice,
-      currency: data.currency,
-      moq: data.moq,
-      unit: data.unit,
-      stock: data.stock,
-      rating: data.rating,
-      reviewCount: data.reviewCount,
-      sellerName: data.sellerName,
-      sellerRating: data.sellerRating,
-      leadTimeDays: data.leadTimeDays,
-      isFeatured: data.isFeatured,
-      status: data.status,
-      brand: data.brand,
-      primaryImage: data.images.find((img) => img.isPrimary) ?? data.images[0],
-      categoryName: data.categoryName,
-    } satisfies ProductListItem;
-  });
+  try {
+    const q = query(
+      collection(db, COLLECTION),
+      where('status', '==', 'active'),
+      limit(count)
+    );
+    const snap = await getDocs(q);
+    const list = snap.docs.map((d) => {
+      const data = d.data() as Product;
+      const primaryImg = (data.images || []).find((img) => img.isPrimary) ??
+        (data.images || [])[0] ??
+        { id: 'img-1', url: 'https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?w=400&q=80', altText: data.name, isPrimary: true, order: 1 };
+      return {
+        id: d.id,
+        sku: data.sku,
+        name: data.name,
+        slug: data.slug,
+        basePrice: data.basePrice,
+        currency: data.currency,
+        moq: data.moq,
+        unit: data.unit,
+        stock: data.stock,
+        rating: data.rating ?? 4.8,
+        reviewCount: data.reviewCount ?? 1,
+        sellerName: data.sellerName,
+        sellerRating: data.sellerRating ?? 4.8,
+        leadTimeDays: data.leadTimeDays ?? 3,
+        isFeatured: data.isFeatured ?? true,
+        status: data.status,
+        approvalStatus: data.approvalStatus,
+        brand: data.brand,
+        vehicleType: data.vehicleType || '4-wheeler',
+        primaryImage: primaryImg,
+        categoryName: data.categoryName,
+        categoryId: data.categoryId,
+      } satisfies ProductListItem;
+    });
+
+    if (list.length > 0) {
+      return list;
+    }
+
+    // If Firestore has no products yet, fallback to active items
+    const { MOCK_PRODUCTS } = await import('@/lib/api/mock-data');
+    return MOCK_PRODUCTS.filter(p => p.status === 'active' || p.approvalStatus === 'approved').slice(0, count);
+  } catch (err) {
+    console.warn('getFeaturedProducts fallback:', err);
+    const { MOCK_PRODUCTS } = await import('@/lib/api/mock-data');
+    return MOCK_PRODUCTS.filter(p => p.status === 'active' || p.approvalStatus === 'approved').slice(0, count);
+  }
 }

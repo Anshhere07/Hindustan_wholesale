@@ -64,6 +64,7 @@ export interface Product {
   images: ProductImage[];
   specifications: ProductSpecification[];
   priceTiers: PriceTier[];
+  sellerPrice?: number;
   basePrice: number;
   currency: Currency;
   unit: UnitOfMeasure;
@@ -72,6 +73,7 @@ export interface Product {
   leadTimeDays: number;
   tags: string[];
   brand?: string;
+  vehicleType?: '2-wheeler' | '3-wheeler' | '4-wheeler' | 'agriculture' | 'all';
   partNumber?: string;
   compatibleVehicles?: string[];
   isGstExempt: boolean;
@@ -106,6 +108,7 @@ export interface ProductListItem
     | 'status'
     | 'approvalStatus'
     | 'brand'
+    | 'vehicleType'
   > {
   primaryImage: ProductImage;
   categoryName: string;
@@ -114,6 +117,7 @@ export interface ProductListItem
 
 export interface ProductFilter {
   categoryId?: string;
+  vehicleType?: '2-wheeler' | '3-wheeler' | '4-wheeler' | 'agriculture' | 'all' | string;
   search?: string;
   minPrice?: number;
   maxPrice?: number;

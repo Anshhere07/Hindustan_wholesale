@@ -8,6 +8,7 @@ import {
   getDocs,
   setDoc,
   updateDoc,
+  deleteDoc,
   query,
   where,
   orderBy,
@@ -23,6 +24,31 @@ export async function getUserById(uid: string): Promise<UserProfile | null> {
   const snap = await getDoc(doc(db, COLLECTION, uid));
   if (!snap.exists()) return null;
   return { id: snap.id, ...snap.data() } as UserProfile;
+}
+
+export async function getUserByEmail(email: string): Promise<UserProfile | null> {
+  const cleanEmail = email.trim().toLowerCase();
+  try {
+    const q = query(
+      collection(db, COLLECTION),
+      where('email', '==', cleanEmail)
+    );
+    const snap = await getDocs(q);
+    if (!snap.empty) {
+      const d = snap.docs[0];
+      return { id: d.id, ...d.data() } as UserProfile;
+    }
+  } catch (err) {
+    console.warn('getUserByEmail query error:', err);
+  }
+
+  // Fallback by docId
+  const docId = cleanEmail.replace(/[^a-z0-9]/gi, '_');
+  const directSnap = await getDoc(doc(db, COLLECTION, docId));
+  if (directSnap.exists()) {
+    return { id: directSnap.id, ...directSnap.data() } as UserProfile;
+  }
+  return null;
 }
 
 export async function createUser(
@@ -45,6 +71,16 @@ export async function updateUser(
     ...data,
     updatedAt: serverTimestamp(),
   });
+}
+
+export async function deleteUser(uid: string): Promise<void> {
+  await deleteDoc(doc(db, COLLECTION, uid));
+  try {
+    await deleteDoc(doc(db, 'buyer_profiles', uid));
+  } catch {}
+  try {
+    await deleteDoc(doc(db, 'seller_profiles', uid));
+  } catch {}
 }
 
 export async function getUsersByRole(role: 'buyer' | 'seller' | 'admin'): Promise<UserProfile[]> {

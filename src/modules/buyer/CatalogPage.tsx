@@ -77,6 +77,10 @@ const CatalogPage: React.FC = () => {
     let products = [...rawProducts];
     if (search) products = products.filter((p) => p.name.toLowerCase().includes(search.toLowerCase()) || p.brand?.toLowerCase().includes(search.toLowerCase()));
     if (filters.categoryId) products = products.filter((p) => p.categoryName.toLowerCase().includes(filters.categoryId!.toLowerCase()) || p.categoryId === filters.categoryId);
+    if (filters.vehicleType && filters.vehicleType !== 'all') {
+      const vFilter = filters.vehicleType.toLowerCase();
+      products = products.filter((p) => (p.vehicleType || '4-wheeler').toLowerCase() === vFilter);
+    }
     if (filters.brand?.length) products = products.filter((p) => p.brand && filters.brand!.includes(p.brand));
     if (filters.minPrice) products = products.filter((p) => p.basePrice >= filters.minPrice!);
     if (filters.maxPrice) products = products.filter((p) => p.basePrice <= filters.maxPrice!);
@@ -184,6 +188,32 @@ const CatalogPage: React.FC = () => {
         {/* Sidebar */}
         {sidebarOpen && (
           <aside className={styles.sidebar} aria-label="Filter options">
+            {/* Vehicle Type / Segment */}
+            <FilterGroup
+              label="Automobile Segment"
+              expanded={true}
+              onToggle={() => {}}
+            >
+              {[
+                { label: 'All Segments', value: 'all' },
+                { label: '🏍️ 2-Wheeler', value: '2-wheeler' },
+                { label: '🛺 3-Wheeler', value: '3-wheeler' },
+                { label: '🚗 4-Wheeler', value: '4-wheeler' },
+                { label: '🚜 Agriculture', value: 'agriculture' },
+              ].map((v) => (
+                <label key={v.value} className={styles.filterLabel}>
+                  <input
+                    type="radio"
+                    name="vehicleType"
+                    className={styles.filterInput}
+                    checked={(filters.vehicleType || 'all') === v.value}
+                    onChange={() => updateFilter('vehicleType', v.value === 'all' ? undefined : v.value)}
+                  />
+                  <span className={styles.filterText}>{v.label}</span>
+                </label>
+              ))}
+            </FilterGroup>
+
             {/* Categories */}
             <FilterGroup
               label="Categories"

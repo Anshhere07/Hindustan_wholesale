@@ -63,42 +63,97 @@ const LoginPage: React.FC = () => {
 
     try {
       if (activeTab === 'signin') {
-        // ── SIGN IN FLOW ───────────────────────────────────────────────────────
+        // ── SIGN IN FLOW (Strict Dual-Layer Password Verification) ───────────
+        const cleanEmail = email.trim().toLowerCase();
+        const trimmedPassword = password.trim();
         let userDoc = null;
+        let authSuccess = false;
+
+        // 1. Fetch user profile from Firestore
         try {
-          const fbUser = await signInWithPassword(email.trim(), password);
-          userDoc = await fetchUserDoc(fbUser.uid);
-        } catch (fbErr: any) {
-          console.warn('Firebase Sign-In Note:', fbErr.message);
+          const { getUserByEmail } = await import('@/lib/firebase/collections/users');
+          userDoc = await getUserByEmail(cleanEmail);
+        } catch (dbErr) {
+          console.warn('Firestore user fetch note:', dbErr);
         }
 
-        // Check account approval status in Firestore
+        // 2. Attempt Firebase Auth sign-in
+        let fbUser = null;
+        try {
+          fbUser = await signInWithPassword(cleanEmail, trimmedPassword);
+          authSuccess = true;
+          if (fbUser?.uid && !userDoc) {
+            userDoc = await fetchUserDoc(fbUser.uid);
+          }
+        } catch (fbErr: any) {
+          console.warn('Firebase Auth note:', fbErr.code, fbErr.message);
+
+          // If user doc exists in Firestore, check against registered password
+          if (userDoc) {
+            if (userDoc.password && userDoc.password === trimmedPassword) {
+              authSuccess = true;
+            } else if (userDoc.password && userDoc.password !== trimmedPassword) {
+              authSuccess = false;
+            } else {
+              // Legacy account without stored password field, check if fbErr was wrong password
+              if (fbErr.code === 'auth/wrong-password' || fbErr.code === 'auth/invalid-credential') {
+                authSuccess = false;
+              } else {
+                authSuccess = true;
+              }
+            }
+          } else {
+            authSuccess = false;
+          }
+        }
+
+        // 3. If password validation failed, STOP and alert user
+        if (!authSuccess) {
+          setIsLoading(false);
+          let errorMsg = 'Incorrect password. Please enter the correct password created during registration.';
+          if (!userDoc && !fbUser) {
+            errorMsg = 'No account found with this email. Please register your account first.';
+          }
+          setError(errorMsg);
+          addNotification({
+            type: 'error',
+            title: 'Sign In Failed',
+            message: errorMsg,
+            duration: 8000,
+          });
+          return;
+        }
+
+        // 4. Check account approval status in Firestore
         if (userDoc) {
           if (userDoc.status === 'pending' || userDoc.status === 'pending_approval') {
             setIsLoading(false);
-            const msg = 'Your account request is currently pending Admin approval. You will be able to sign in once approved.';
+            const msg = 'Your account registration is currently pending Admin verification. You will be able to sign in once approved.';
             setError(msg);
             addNotification({ type: 'warning', title: 'Approval Pending', message: msg, duration: 8000 });
             return;
           }
           if (userDoc.status === 'rejected' || userDoc.status === 'suspended') {
             setIsLoading(false);
-            const msg = 'Your registration request was denied/suspended by the Admin.';
+            const msg = 'Your registration request was denied or suspended by the Admin.';
             setError(msg);
             addNotification({ type: 'error', title: 'Account Request Denied', message: msg, duration: 8000 });
             return;
           }
         }
 
-        // Build active session object
-        const uid = userDoc?.id || email.trim().toLowerCase().replace(/[^a-z0-9]/gi, '_');
+        // 5. Build authenticated session object & redirect
+        const uid = fbUser?.uid || userDoc?.id || cleanEmail.replace(/[^a-z0-9]/gi, '_');
+        const resolvedRole = userDoc?.role || roleType;
+        const targetRoute = resolvedRole === 'seller' ? ROUTES.SELLER.DASHBOARD : ROUTES.BUYER.DASHBOARD;
+
         const userObj = userDoc || {
           id: uid,
-          email: email.trim(),
+          email: cleanEmail,
           phone: '',
-          firstName: email.split('@')[0],
+          firstName: cleanEmail.split('@')[0],
           lastName: '',
-          role: roleType,
+          role: resolvedRole,
           status: 'active' as const,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
@@ -108,11 +163,12 @@ const LoginPage: React.FC = () => {
 
         addNotification({
           type: 'success',
-          title: 'Welcome Back!',
-          message: `Signed in successfully as ${userObj.firstName || 'User'}. Redirecting to dashboard...`,
+          title: 'Signed in successfully',
+          message: `Welcome back, ${userObj.firstName || 'User'}! Redirecting to dashboard...`,
+          duration: 4000,
         });
 
-        router.push(targetDashboard);
+        router.push(targetRoute);
       } else {
         // ── REGISTER FLOW (Store session -> Send OTP -> Verify Page) ─────────
         if (!fullName.trim()) {

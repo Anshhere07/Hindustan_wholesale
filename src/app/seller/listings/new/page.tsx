@@ -32,6 +32,7 @@ export default function AddProductPage() {
   const [name, setName] = useState('');
   const [sku, setSku] = useState('');
   const [brand, setBrand] = useState('');
+  const [vehicleType, setVehicleType] = useState<'2-wheeler' | '3-wheeler' | '4-wheeler' | 'agriculture'>('4-wheeler');
   const [categoryName, setCategoryName] = useState('Engine Parts');
   const [basePrice, setBasePrice] = useState<number | ''>(1250);
   const [moq, setMoq] = useState<number | ''>(5);
@@ -224,14 +225,16 @@ export default function AddProductPage() {
         priceTiers: [
           { minQty: Number(moq), price: Number(basePrice), currency: 'INR' }
         ],
+        sellerPrice: Number(basePrice),
         basePrice: Number(basePrice),
         currency: 'INR',
         unit,
         moq: Number(moq),
         stock: Number(stock),
         leadTimeDays: Number(leadTimeDays) || 3,
-        tags: [brand.trim(), categoryName, 'Automotive Spares'],
+        tags: [brand.trim(), categoryName, vehicleType, 'Automotive Spares'],
         brand: brand.trim(),
+        vehicleType,
         partNumber: sku.trim().toUpperCase(),
         compatibleVehicles: compatibleVehicles.split(',').map(v => v.trim()).filter(Boolean),
         isGstExempt: false,
@@ -263,6 +266,7 @@ export default function AddProductPage() {
         status: status === 'active' ? 'active' : 'draft',
         approvalStatus: 'pending',
         brand: brand.trim(),
+        vehicleType,
         categoryName,
         primaryImage: { id: 'img-1', url: finalImg, altText: name.trim(), isPrimary: true, order: 1 },
       };
@@ -407,9 +411,28 @@ export default function AddProductPage() {
                   />
                 </div>
 
-                <div style={{ gridColumn: 'span 2' }}>
+                <div>
                   <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 6, color: 'var(--text-primary)' }}>
-                    Category *
+                    Automobile Segment / Vehicle Type *
+                  </label>
+                  <select
+                    value={vehicleType}
+                    onChange={(e) => setVehicleType(e.target.value as any)}
+                    style={{
+                      width: '100%', height: 46, border: '1.5px solid var(--border-default)',
+                      borderRadius: 10, padding: '0 14px', fontSize: 14, outline: 'none', boxSizing: 'border-box', background: '#fff',
+                    }}
+                  >
+                    <option value="2-wheeler">🏍️ 2-Wheeler (Bikes, Scooters)</option>
+                    <option value="3-wheeler">🛺 3-Wheeler (Auto Rickshaw, Cargo)</option>
+                    <option value="4-wheeler">🚗 4-Wheeler (Cars, SUVs, Commercial 4W, Trucks)</option>
+                    <option value="agriculture">🚜 Agriculture Wheeler (Tractors, Farm Equipment)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 6, color: 'var(--text-primary)' }}>
+                    Part Category *
                   </label>
                   <select
                     value={categoryName}

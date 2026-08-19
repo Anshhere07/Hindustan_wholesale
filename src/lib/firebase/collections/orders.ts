@@ -111,39 +111,52 @@ export async function placeOrder(
 // ── Get buyer orders ──────────────────────────────────────────────────────────
 
 export async function getBuyerOrders(buyerId: string, pageSize = 20): Promise<Order[]> {
-  const q = query(
-    collection(db, COLLECTION),
-    where('buyerId', '==', buyerId),
-    orderBy('createdAt', 'desc'),
-    limit(pageSize)
-  );
-  const snap = await getDocs(q);
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Order);
+  try {
+    const q = query(
+      collection(db, COLLECTION),
+      where('buyerId', '==', buyerId),
+      limit(pageSize)
+    );
+    const snap = await getDocs(q);
+    const list = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Order);
+    return list.sort((a, b) => new Date(b.createdAt as string).getTime() - new Date(a.createdAt as string).getTime());
+  } catch (err) {
+    console.warn('getBuyerOrders error:', err);
+    return [];
+  }
 }
 
 // ── Get seller orders ─────────────────────────────────────────────────────────
 
 export async function getSellerOrders(sellerId: string, pageSize = 20): Promise<Order[]> {
-  const q = query(
-    collection(db, COLLECTION),
-    where('sellerIds', 'array-contains', sellerId),
-    orderBy('createdAt', 'desc'),
-    limit(pageSize)
-  );
-  const snap = await getDocs(q);
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Order);
+  try {
+    const q = query(
+      collection(db, COLLECTION),
+      where('sellerIds', 'array-contains', sellerId),
+      limit(pageSize)
+    );
+    const snap = await getDocs(q);
+    const list = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Order);
+    return list.sort((a, b) => new Date(b.createdAt as string).getTime() - new Date(a.createdAt as string).getTime());
+  } catch (err) {
+    console.warn('getSellerOrders error:', err);
+    return [];
+  }
 }
 
 // ── Get all platform orders (admin) ──────────────────────────────────────────
 
 export async function getAllOrders(pageSize = 50): Promise<Order[]> {
-  const q = query(
-    collection(db, COLLECTION),
-    orderBy('createdAt', 'desc'),
-    limit(pageSize)
-  );
-  const snap = await getDocs(q);
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Order);
+  try {
+    const snap = await getDocs(collection(db, COLLECTION));
+    const list = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Order);
+    return list
+      .sort((a, b) => new Date(b.createdAt as string).getTime() - new Date(a.createdAt as string).getTime())
+      .slice(0, pageSize);
+  } catch (err) {
+    console.warn('getAllOrders error:', err);
+    return [];
+  }
 }
 
 // ── Get order by ID ───────────────────────────────────────────────────────────

@@ -109,19 +109,29 @@ const VerifyOtpPage: React.FC = () => {
         }
       }
 
-      // Sync user profile with status: 'pending' (Awaiting Admin Approval)
+      // Sync user profile with status: 'pending' (Awaiting Admin Approval) and store credentials
       try {
         const { createUser } = await import('@/lib/firebase/collections/users');
-        await createUser(firebaseUid, {
-          email,
+        const cleanEmail = email.trim().toLowerCase();
+        const userProfileData = {
+          email: cleanEmail,
           phone,
           firstName,
           lastName,
           role: role as 'buyer' | 'seller',
-          status: 'pending',
+          status: 'pending' as const,
+          password: password.trim(),
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
-        });
+        };
+
+        await createUser(firebaseUid, userProfileData);
+
+        // Also write to doc with email key for fast guaranteed lookup
+        const emailDocId = cleanEmail.replace(/[^a-z0-9]/gi, '_');
+        if (emailDocId !== firebaseUid) {
+          await createUser(emailDocId, userProfileData);
+        }
 
         if (role === 'buyer') {
           const { createBuyerProfile } = await import('@/lib/firebase/collections/buyer-profiles');

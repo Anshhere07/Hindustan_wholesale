@@ -15,6 +15,7 @@ export interface User {
   role: UserRole;
   avatarUrl?: string;
   status: Status;
+  password?: string;
   createdAt: Timestamp;
   updatedAt: Timestamp;
   lastLoginAt?: Timestamp;

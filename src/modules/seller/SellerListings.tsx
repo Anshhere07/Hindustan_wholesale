@@ -9,8 +9,9 @@ import Badge from '@/components/ui/Badge';
 import { MOCK_PRODUCTS } from '@/lib/api/mock-data';
 import { formatCurrency } from '@/lib/utils/format';
 import { ROUTES } from '@/lib/constants/routes';
-import { getProducts, getSellerProducts } from '@/lib/firebase/collections/products';
+import { getProducts, getSellerProducts, deleteProduct } from '@/lib/firebase/collections/products';
 import { useAuthStore } from '@/stores/auth.store';
+import { useUIStore } from '@/stores/ui.store';
 import type { ProductListItem } from '@/types/product.types';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -23,6 +24,7 @@ const SellerListings: React.FC = () => {
   const [products, setProducts] = useState<ProductListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const { user } = useAuthStore();
+  const { addNotification } = useUIStore();
 
   useEffect(() => {
     async function loadSellerProducts() {
@@ -42,6 +44,27 @@ const SellerListings: React.FC = () => {
     }
     loadSellerProducts();
   }, [user]);
+
+  const handleDelete = async (product: ProductListItem) => {
+    if (!window.confirm(`Are you sure you want to delete listing "${product.name}"?`)) {
+      return;
+    }
+    try {
+      await deleteProduct(product.id);
+      setProducts((prev) => prev.filter((p) => p.id !== product.id));
+      addNotification({
+        type: 'success',
+        title: 'Listing Deleted',
+        message: `"${product.name}" was removed successfully.`,
+      });
+    } catch (err: any) {
+      addNotification({
+        type: 'error',
+        title: 'Failed to Delete',
+        message: err.message,
+      });
+    }
+  };
 
   const filtered = products.filter((p) =>
     !search || p.name.toLowerCase().includes(search.toLowerCase()) || p.sku.toLowerCase().includes(search.toLowerCase())
@@ -140,7 +163,11 @@ const SellerListings: React.FC = () => {
                         <Edit2 size={14} />
                       </button>
                     </Link>
-                    <button className={`${styles.actionBtn} ${styles['actionBtn--danger']}`} aria-label="Delete product">
+                    <button
+                      className={`${styles.actionBtn} ${styles['actionBtn--danger']}`}
+                      aria-label="Delete product"
+                      onClick={() => handleDelete(product)}
+                    >
                       <Trash2 size={14} />
                     </button>
                   </div>

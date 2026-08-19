@@ -2,7 +2,8 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { Star, Package, Clock, ShieldCheck } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Star, Package, Clock, ShieldCheck, Store } from 'lucide-react';
 import styles from './ProductCard.module.css';
 import { cn } from '@/lib/utils/cn';
 import Badge from '@/components/ui/Badge';
@@ -14,16 +15,18 @@ import { ROUTES } from '@/lib/constants/routes';
 import type { ProductListItem } from '@/types/product.types';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// ProductCard — catalog grid/list item with add-to-cart action
+// ProductCard — catalog grid/list item with add-to-cart action & store redirect
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface ProductCardProps {
   product: ProductListItem;
   view?: 'grid' | 'list';
   className?: string;
+  hidePrice?: boolean;
 }
 
-const ProductCard: React.FC<ProductCardProps> = ({ product, view = 'grid', className }) => {
+const ProductCard: React.FC<ProductCardProps> = ({ product, view = 'grid', className, hidePrice = false }) => {
+  const router = useRouter();
   const { addItem, isInCart } = useCartStore();
   const { addNotification } = useUIStore();
   const inCart = isInCart(product.id);
@@ -36,7 +39,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, view = 'grid', class
       productName: product.name,
       productSku: product.sku,
       productImageUrl: product.primaryImage.url,
-      sellerId: 'sel-1',
+      sellerId: (product as any).sellerId || 'sel-1',
       sellerName: product.sellerName,
       quantity: product.moq,
       unitPrice: product.basePrice,
@@ -53,7 +56,14 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, view = 'grid', class
     });
   };
 
-  const productUrl = ROUTES.BUYER.PRODUCT(product.slug);
+  const handleShopClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const shopSlug = (product.sellerName || 'AutoParts Direct').trim();
+    router.push(`/shops/${encodeURIComponent(shopSlug)}`);
+  };
+
+  const productUrl = hidePrice ? ROUTES.AUTH.LOGIN : ROUTES.BUYER.PRODUCT(product.slug);
 
   if (view === 'list') {
     return (
@@ -67,11 +77,44 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, view = 'grid', class
             <div>
               <p className={styles.brand}>{product.brand}</p>
               <h3 className={styles.listName}>{product.name}</h3>
-              <p className={styles.seller}>by {product.sellerName}</p>
+              <button
+                type="button"
+                onClick={handleShopClick}
+                style={{
+                  background: '#f9fafb',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: 6,
+                  padding: '3px 8px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  fontSize: 12,
+                  fontWeight: 600,
+                  color: '#8B0000',
+                  cursor: 'pointer',
+                  margin: '4px 0',
+                  transition: 'all 0.15s',
+                }}
+                title="View all products from this shop"
+              >
+                <Store size={12} />
+                <span>{product.sellerName}</span>
+              </button>
             </div>
             <div className={styles.listPriceBlock}>
-              <p className={styles.price}>{formatCurrency(product.basePrice, product.currency)}</p>
-              <p className={styles.priceUnit}>per {product.unit}</p>
+              {!hidePrice ? (
+                <>
+                  <p className={styles.price}>{formatCurrency(product.basePrice, product.currency)}</p>
+                  <p className={styles.priceUnit}>per {product.unit}</p>
+                </>
+              ) : (
+                <div style={{ textAlign: 'right' }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: '#8B0000', background: '#fdf2f2', padding: '3px 8px', borderRadius: 6, display: 'inline-block' }}>
+                    🔒 Wholesale Only
+                  </span>
+                  <p style={{ fontSize: 11, color: 'var(--text-tertiary)', margin: '2px 0 0' }}>Login to view pricing</p>
+                </div>
+              )}
               {product.isFeatured && <Badge variant="primary" size="sm">Featured</Badge>}
             </div>
           </div>
@@ -95,13 +138,22 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, view = 'grid', class
           </div>
         </div>
         <div className={styles.listAction}>
-          <Button
-            variant={inCart ? 'secondary' : 'primary'}
-            size="sm"
-            onClick={handleAddToCart}
-          >
-            {inCart ? 'In Cart' : 'Add to Cart'}
-          </Button>
+          {!hidePrice ? (
+            <Button
+              variant={inCart ? 'secondary' : 'primary'}
+              size="sm"
+              onClick={handleAddToCart}
+            >
+              {inCart ? 'In Cart' : 'Add to Cart'}
+            </Button>
+          ) : (
+            <Button
+              variant="secondary"
+              size="sm"
+            >
+              Login to Buy
+            </Button>
+          )}
         </div>
       </Link>
     );
@@ -129,7 +181,36 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, view = 'grid', class
 
         {product.brand && <p className={styles.brand}>{product.brand}</p>}
         <h3 className={styles.name}>{product.name}</h3>
-        <p className={styles.seller}>by {product.sellerName}</p>
+        
+        {/* Clickable Shop / Seller Badge */}
+        <div style={{ margin: '3px 0 6px' }}>
+          <button
+            type="button"
+            onClick={handleShopClick}
+            style={{
+              background: '#f9fafb',
+              border: '1px solid #e5e7eb',
+              borderRadius: 6,
+              padding: '2.5px 7px',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 4,
+              fontSize: 11.5,
+              fontWeight: 600,
+              color: '#8B0000',
+              cursor: 'pointer',
+              transition: 'all 0.15s',
+              maxWidth: '100%',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}
+            title={`View all products from ${product.sellerName}`}
+          >
+            <Store size={11.5} style={{ flexShrink: 0 }} />
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{product.sellerName}</span>
+          </button>
+        </div>
 
         <div className={styles.meta}>
           <span className={styles.metaChip}>
@@ -141,18 +222,36 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, view = 'grid', class
         </div>
 
         <div className={styles.footer}>
-          <div className={styles.priceBlock}>
-            <p className={styles.price}>{formatCurrency(product.basePrice, product.currency)}</p>
-            <p className={styles.priceUnit}>/{product.unit}</p>
-          </div>
-          <Button
-            variant={inCart ? 'secondary' : 'primary'}
-            size="xs"
-            onClick={handleAddToCart}
-            aria-label={inCart ? 'Already in cart' : `Add ${product.name} to cart`}
-          >
-            {inCart ? 'In Cart' : '+ Cart'}
-          </Button>
+          {!hidePrice ? (
+            <>
+              <div className={styles.priceBlock}>
+                <p className={styles.price}>{formatCurrency(product.basePrice, product.currency)}</p>
+                <p className={styles.priceUnit}>/{product.unit}</p>
+              </div>
+              <Button
+                variant={inCart ? 'secondary' : 'primary'}
+                size="xs"
+                onClick={handleAddToCart}
+                aria-label={inCart ? 'Already in cart' : `Add ${product.name} to cart`}
+              >
+                {inCart ? 'In Cart' : '+ Cart'}
+              </Button>
+            </>
+          ) : (
+            <>
+              <div className={styles.priceBlock}>
+                <span style={{ fontSize: 11.5, fontWeight: 700, color: '#8B0000' }}>🔒 Wholesale Only</span>
+                <p className={styles.priceUnit}>Login for price</p>
+              </div>
+              <Button
+                variant="secondary"
+                size="xs"
+                aria-label="Login to view price"
+              >
+                View
+              </Button>
+            </>
+          )}
         </div>
       </div>
     </Link>
