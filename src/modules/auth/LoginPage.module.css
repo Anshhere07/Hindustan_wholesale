@@ -80,6 +80,8 @@
   padding: 36px;
   box-shadow: 0 20px 40px -15px rgba(139, 0, 0, 0.12), 0 0 0 1px rgba(212, 175, 55, 0.2);
   border: 1px solid rgba(139, 0, 0, 0.1);
+}
+
 .backHomeLink {
   display: inline-flex;
   align-items: center;

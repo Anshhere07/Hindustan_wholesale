@@ -88,8 +88,12 @@ export async function registerUser(params: {
   // 1. Create Firebase Auth account
   const { user } = await createUserWithEmailAndPassword(auth, email, password);
 
-  // 2. Non-blocking background updates for instant registration speed
-  updateProfile(user, { displayName: `${firstName} ${lastName}` }).catch(() => {});
+  // 2. Update Firebase Auth displayName
+  try {
+    await updateProfile(user, { displayName: `${firstName} ${lastName}`.trim() });
+  } catch (profErr: any) {
+    console.warn('updateProfile notice:', profErr.message);
+  }
 
   const isoNow = new Date().toISOString();
   const userDoc: Omit<User, 'id'> = {
@@ -98,16 +102,17 @@ export async function registerUser(params: {
     firstName,
     lastName,
     role,
-    status: 'active',
+    status: 'pending',
     createdAt: isoNow,
     updatedAt: isoNow,
   };
 
-  setDoc(doc(db, 'users', user.uid), {
+  await setDoc(doc(db, 'users', user.uid), {
     ...userDoc,
+    id: user.uid,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
-  }).catch((err) => console.warn('Firestore user doc write notice:', err.message));
+  });
 
   return user;
 }
