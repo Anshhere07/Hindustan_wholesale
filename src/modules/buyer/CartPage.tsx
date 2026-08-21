@@ -150,7 +150,7 @@ I would like to confirm and place a new wholesale order for my business. Please 
 
 👤 *BUYER INFORMATION:*
 • *Name:* ${buyerName}${shopName}
-• *Phone:* ${buyerPhone}
+• *WhatsApp Number:* ${buyerPhone}
 • *Email:* ${buyerEmail}
 
 📦 *ORDERED PRODUCTS (${items.length} product${items.length > 1 ? 's' : ''}, ${itemCount} units):*
@@ -170,22 +170,36 @@ Thank you!`;
       addNotification({
         type: 'success',
         title: 'Order Generated!',
-        message: `Order #${orderId} saved. Opening WhatsApp chat (+91 88002 32363) with your order details...`,
+        message: `Order #${orderId} logged. Redirecting to WhatsApp (+91 88002 32363)...`,
         duration: 8000,
       });
 
       // Clear cart
       clearCart();
 
-      // Open WhatsApp chat directly to +91 88002 32363
+      // Open WhatsApp chat directly to +91 88002 32363 from user's WhatsApp
       const encodedMsg = encodeURIComponent(messageText);
-      const whatsappUrl = `https://wa.me/918800232363?text=${encodedMsg}`;
-      window.open(whatsappUrl, '_blank');
+      const whatsappUrl = `https://api.whatsapp.com/send?phone=918800232363&text=${encodedMsg}`;
+      
+      const link = document.createElement('a');
+      link.href = whatsappUrl;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
     } catch (err: any) {
       console.error('Failed to log WhatsApp order:', err);
       // Fallback: still open WhatsApp
       const fallbackMsg = encodeURIComponent(`🙏 Namaste Hindustan Wholesale Team,\nI would like to place a new wholesale order of ${items.length} product(s) for total cart value ₹${finalPayable.toLocaleString('en-IN')}.\nPlease share order details and dispatch timeline.`);
-      window.open(`https://wa.me/918800232363?text=${fallbackMsg}`, '_blank');
+      const fallbackUrl = `https://api.whatsapp.com/send?phone=918800232363&text=${fallbackMsg}`;
+      const link = document.createElement('a');
+      link.href = fallbackUrl;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
     } finally {
       setIsWhatsapping(false);
     }
