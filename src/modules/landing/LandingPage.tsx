@@ -330,7 +330,7 @@ export const PublicHeader: React.FC = () => {
             <Search size={18} className={styles.searchIcon} />
             <input
               type="text"
-              placeholder="Search products, brands, HSN codes..."
+              placeholder="Search Products"
               className={styles.searchInput}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -501,6 +501,39 @@ export const PublicHeader: React.FC = () => {
       {/* Mobile Menu Dropdown */}
       {isMobileMenuOpen && (
         <div className={styles.mobileMenuDropdown} onClick={() => setIsMobileMenuOpen(false)}>
+          <form onSubmit={handleSearchSubmit} onClick={(e) => e.stopPropagation()} style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+            <input
+              type="text"
+              placeholder="Search Products..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              style={{
+                flex: 1,
+                height: 38,
+                borderRadius: 8,
+                border: '1px solid var(--border-default)',
+                padding: '0 12px',
+                fontSize: 14,
+                outline: 'none',
+              }}
+            />
+            <button
+              type="submit"
+              style={{
+                background: '#8B0000',
+                color: '#fff',
+                border: 'none',
+                borderRadius: 8,
+                padding: '0 16px',
+                fontWeight: 600,
+                fontSize: 13,
+                cursor: 'pointer',
+              }}
+            >
+              Search
+            </button>
+          </form>
+
           {isLoggedIn ? (
             <>
               <div style={{ padding: '10px 16px', background: '#fdf2f4', borderRadius: 8, marginBottom: 8 }}>

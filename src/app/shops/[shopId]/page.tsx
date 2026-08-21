@@ -207,7 +207,7 @@ export default function ShopDetailsPage() {
             </p>
           </div>
 
-          <div style={{ position: 'relative', width: 280 }}>
+          <div style={{ position: 'relative', width: '100%', maxWidth: 280 }}>
             <Search size={15} style={{ position: 'absolute', left: 12, top: 12, color: 'var(--text-tertiary)' }} />
             <input
               type="text"
@@ -241,7 +241,7 @@ export default function ShopDetailsPage() {
         ) : (
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
             gap: 20,
           }}>
             {filtered.map((product) => (

@@ -1573,7 +1573,7 @@
     gap: 8px;
   }
   .actionBtn, .registerBtn { display: none; }
-  .cartBtn { display: none; }
+  .cartBtn { display: flex; }
   .mobileMenuBtn {
     display: flex;
     align-items: center;

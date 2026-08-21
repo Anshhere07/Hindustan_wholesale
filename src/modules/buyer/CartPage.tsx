@@ -31,7 +31,6 @@ const CartPage: React.FC = () => {
   const { items, subtotal, grandTotal, itemCount, updateQuantity, removeItem, clearCart } = cartStore;
   const { addNotification } = useUIStore();
   const { user, isAuthenticated } = useAuthStore();
-  const [coupon, setCoupon] = useState('');
   const [isCalling, setIsCalling] = useState(false);
   const [isWhatsapping, setIsWhatsapping] = useState(false);
 
@@ -334,21 +333,6 @@ Please confirm order acceptance and dispatch timeline. Thank you!`;
                 </div>
               ))}
             </div>
-          </div>
-
-          {/* Coupon */}
-          <div className={styles.couponWrap}>
-            <div className={styles.couponInput}>
-              <Tag size={14} aria-hidden="true" />
-              <input
-                className={styles.couponField}
-                placeholder="Coupon / Promo code"
-                value={coupon}
-                onChange={(e) => setCoupon(e.target.value)}
-                aria-label="Coupon code"
-              />
-            </div>
-            <Button variant="secondary" size="sm">Apply</Button>
           </div>
 
           {/* Clean Breakdown — ZERO separate GST text */}
