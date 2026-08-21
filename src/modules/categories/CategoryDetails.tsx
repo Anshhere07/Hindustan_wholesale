@@ -2,19 +2,18 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
 import {
   Star, MapPin, ChevronRight, Shield, BadgePercent, Shirt, Scissors,
   Package, CarFront, Filter, Search, Sparkles, CheckCircle2, Lock
 } from 'lucide-react';
 import styles from './CategoryDetails.module.css';
-import landingStyles from '../landing/LandingPage.module.css';
 import { PublicHeader, PublicFooter, CATEGORIES, DEALS, BRANDS } from '../landing/LandingPage';
 import { getProducts } from '@/lib/firebase/collections/products';
 import { MOCK_PRODUCTS } from '@/lib/api/mock-data';
 import type { ProductListItem } from '@/types/product.types';
 import ProductCard from '@/components/shared/ProductCard';
 import { ROUTES } from '@/lib/constants/routes';
+import { useAuthStore } from '@/stores/auth.store';
 
 interface CategoryDetailsProps {
   categoryId: string;
@@ -36,6 +35,9 @@ const CategoryDetails: React.FC<CategoryDetailsProps> = ({ categoryId, subCatego
   const [products, setProducts] = useState<ProductListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchFilter, setSearchFilter] = useState('');
+
+  const { isAuthenticated, user } = useAuthStore();
+  const isLoggedIn = isAuthenticated && !!user;
 
   // ── Load Approved Products from Firestore ────────────────────────────────
   useEffect(() => {
@@ -139,22 +141,22 @@ const CategoryDetails: React.FC<CategoryDetailsProps> = ({ categoryId, subCatego
         </div>
 
         {/* Hero Banner */}
-        <div className={styles.hero} style={{ background: 'linear-gradient(135deg, #8B0000 0%, #4a030b 100%)', color: '#fff', borderRadius: 20, padding: '36px 32px', marginBottom: 32 }}>
+        <div className={styles.hero} style={{ background: 'linear-gradient(135deg, #8B0000 0%, #4a030b 100%)', color: '#fff', borderRadius: 20, padding: '36px 32px', marginBottom: 28 }}>
           <div className={styles.heroLeft}>
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(212, 175, 55, 0.2)', border: '1px solid rgba(212, 175, 55, 0.4)', padding: '4px 12px', borderRadius: 20, fontSize: 12, fontWeight: 700, color: '#d4af37', marginBottom: 12 }}>
               <Shield size={13} /> VERIFIED WHOLESALE CATALOG
             </div>
-            <h1 className={styles.heroTitle} style={{ color: '#ffffff', fontSize: 32, fontWeight: 800, margin: '0 0 10px' }}>
+            <h1 className={styles.heroTitle} style={{ color: '#ffffff', fontSize: 30, fontWeight: 800, margin: '0 0 10px' }}>
               {displayTitle}
             </h1>
-            <p className={styles.heroSubtitle} style={{ color: 'rgba(255, 255, 255, 0.85)', fontSize: 15, margin: 0, maxWidth: 640 }}>
+            <p className={styles.heroSubtitle} style={{ color: 'rgba(255, 255, 255, 0.85)', fontSize: 14.5, margin: 0, maxWidth: 640 }}>
               Direct factory procurement for verified retailers across India. Genuine parts, verified manufacturers, and GST invoices.
             </p>
           </div>
         </div>
 
         {/* Vehicle Category Tabs */}
-        <div style={{ marginBottom: 28, background: '#ffffff', border: '1px solid var(--border-subtle)', borderRadius: 16, padding: '16px 20px', boxShadow: '0 2px 10px rgba(0,0,0,0.03)' }}>
+        <div style={{ marginBottom: 24, background: '#ffffff', border: '1px solid var(--border-subtle)', borderRadius: 16, padding: '16px 20px', boxShadow: '0 2px 10px rgba(0,0,0,0.03)' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
             {/* Category Pills */}
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
@@ -165,7 +167,7 @@ const CategoryDetails: React.FC<CategoryDetailsProps> = ({ categoryId, subCatego
                     key={sub.id}
                     onClick={() => setActiveVehicleType(sub.id)}
                     style={{
-                      padding: '10px 18px',
+                      padding: '9px 16px',
                       borderRadius: 12,
                       border: isActive ? '1.5px solid #8B0000' : '1px solid var(--border-default)',
                       background: isActive ? '#8B0000' : '#f9fafb',
@@ -188,11 +190,11 @@ const CategoryDetails: React.FC<CategoryDetailsProps> = ({ categoryId, subCatego
             </div>
 
             {/* Quick Search */}
-            <div style={{ position: 'relative', minWidth: 240 }}>
+            <div style={{ position: 'relative', minWidth: 240, flex: '1 1 240px', maxWidth: 360 }}>
               <Search size={16} style={{ position: 'absolute', left: 12, top: 12, color: 'var(--text-tertiary)' }} />
               <input
                 type="text"
-                placeholder="Search within category..."
+                placeholder={`Search in ${activeVehicleType === 'all' ? 'Automobile' : activeVehicleType}...`}
                 value={searchFilter}
                 onChange={(e) => setSearchFilter(e.target.value)}
                 style={{
@@ -211,59 +213,61 @@ const CategoryDetails: React.FC<CategoryDetailsProps> = ({ categoryId, subCatego
           </div>
         </div>
 
-        {/* Public Notice Banner: Wholesale Price Protected */}
-        <div style={{
-          background: '#FFFBEB',
-          border: '1px solid #FDE68A',
-          borderRadius: 12,
-          padding: '12px 18px',
-          marginBottom: 24,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: 12,
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <Lock size={18} style={{ color: '#D97706', flexShrink: 0 }} />
-            <span style={{ fontSize: 13.5, color: '#92400E', fontWeight: 600 }}>
-              Wholesale pricing is exclusively accessible to verified retailers and businesses.
-            </span>
+        {/* Public Notice Banner: Wholesale Price Protected (only shown for guests) */}
+        {!isLoggedIn && (
+          <div style={{
+            background: '#FFFBEB',
+            border: '1px solid #FDE68A',
+            borderRadius: 12,
+            padding: '12px 18px',
+            marginBottom: 24,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: 12,
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <Lock size={18} style={{ color: '#D97706', flexShrink: 0 }} />
+              <span style={{ fontSize: 13.5, color: '#92400E', fontWeight: 600 }}>
+                Wholesale pricing is exclusively accessible to verified retailers and businesses.
+              </span>
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <Link
+                href={ROUTES.AUTH.LOGIN}
+                style={{
+                  background: '#8B0000',
+                  color: '#ffffff',
+                  padding: '6px 14px',
+                  borderRadius: 8,
+                  fontSize: 12.5,
+                  fontWeight: 700,
+                  textDecoration: 'none',
+                }}
+              >
+                Sign In to View Prices
+              </Link>
+              <Link
+                href={ROUTES.AUTH.REGISTER}
+                style={{
+                  background: '#ffffff',
+                  border: '1px solid #d1d5db',
+                  color: 'var(--text-primary)',
+                  padding: '6px 14px',
+                  borderRadius: 8,
+                  fontSize: 12.5,
+                  fontWeight: 600,
+                  textDecoration: 'none',
+                }}
+              >
+                Register Shop
+              </Link>
+            </div>
           </div>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <Link
-              href={ROUTES.AUTH.LOGIN}
-              style={{
-                background: '#8B0000',
-                color: '#ffffff',
-                padding: '6px 14px',
-                borderRadius: 8,
-                fontSize: 12.5,
-                fontWeight: 700,
-                textDecoration: 'none',
-              }}
-            >
-              Sign In to View Prices
-            </Link>
-            <Link
-              href={ROUTES.AUTH.REGISTER}
-              style={{
-                background: '#ffffff',
-                border: '1px solid #d1d5db',
-                color: 'var(--text-primary)',
-                padding: '6px 14px',
-                borderRadius: 8,
-                fontSize: 12.5,
-                fontWeight: 600,
-                textDecoration: 'none',
-              }}
-            >
-              Register Shop
-            </Link>
-          </div>
-        </div>
+        )}
 
-        {/* Product Grid — RENDERED WITHOUT PRICES FOR PUBLIC WEBSITE */}
+        {/* Product Grid */}
         {loading ? (
           <div style={{ padding: '60px 0', textAlign: 'center', color: 'var(--text-secondary)' }}>
             Loading verified automobile products...
@@ -310,7 +314,7 @@ const CategoryDetails: React.FC<CategoryDetailsProps> = ({ categoryId, subCatego
                 key={product.id}
                 product={product}
                 view="grid"
-                hidePrice={true} /* HIDES PRICE ON PUBLIC WEBSITE */
+                hidePrice={!isLoggedIn}
               />
             ))}
           </div>

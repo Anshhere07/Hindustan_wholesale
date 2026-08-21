@@ -226,7 +226,7 @@ export default function AddProductPage() {
           { minQty: Number(moq), price: Number(basePrice), currency: 'INR' }
         ],
         sellerPrice: Number(basePrice),
-        basePrice: Number(basePrice),
+        basePrice: Math.round(Number(basePrice) * 1.10 * (1 + 18 / 100) * 100) / 100,
         currency: 'INR',
         unit,
         moq: Number(moq),
@@ -252,7 +252,7 @@ export default function AddProductPage() {
         sku: sku.trim().toUpperCase(),
         name: name.trim(),
         slug,
-        basePrice: Number(basePrice),
+        basePrice: Math.round(Number(basePrice) * 1.10 * (1 + 18 / 100) * 100) / 100,
         currency: 'INR',
         moq: Number(moq),
         unit,

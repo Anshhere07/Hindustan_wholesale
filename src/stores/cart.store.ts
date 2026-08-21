@@ -35,9 +35,9 @@ interface CartStore extends Cart {
 
 function computeCartTotals(items: CartItem[]): Pick<Cart, 'subtotal' | 'totalGst' | 'totalDiscount' | 'grandTotal' | 'itemCount'> {
   const subtotal = items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
-  const totalGst = items.reduce((sum, item) => sum + (item.unitPrice * item.quantity * item.gstRate) / 100, 0);
-  const totalDiscount = 0; // Discount logic can be extended with coupon module
-  const grandTotal = subtotal + totalGst - totalDiscount;
+  const totalGst = 0; // Prices are all-inclusive of 10% platform margin and GST
+  const totalDiscount = 0;
+  const grandTotal = subtotal - totalDiscount;
   const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
   return { subtotal, totalGst, totalDiscount, grandTotal, itemCount };
 }

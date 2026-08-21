@@ -108,3 +108,18 @@ export async function getUsersByRole(role: 'buyer' | 'seller' | 'admin'): Promis
     }
   }
 }
+
+export async function updateUserPasswordByEmail(email: string, newPass: string): Promise<boolean> {
+  const cleanEmail = email.trim().toLowerCase();
+  const user = await getUserByEmail(cleanEmail);
+  if (!user) return false;
+
+  await updateUser(user.id, { password: newPass.trim() });
+  const emailDocId = cleanEmail.replace(/[^a-z0-9]/gi, '_');
+  if (emailDocId !== user.id) {
+    try {
+      await updateUser(emailDocId, { password: newPass.trim() });
+    } catch {}
+  }
+  return true;
+}

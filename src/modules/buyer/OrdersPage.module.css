@@ -1,12 +1,18 @@
 /* ── Orders Page ──────────────────────────────────────────────────────────── */
 
-.page { display: flex; flex-direction: column; gap: var(--space-5); }
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  width: 100%;
+}
 
 .header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: var(--space-4);
+  flex-wrap: wrap;
 }
 
 .title {
@@ -16,9 +22,13 @@
   letter-spacing: -0.02em;
 }
 
-.subtitle { font-size: var(--text-sm); color: var(--text-secondary); margin-top: var(--space-1); }
+.subtitle {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  margin-top: var(--space-1);
+}
 
-/* ── Tabs ─────────────────────────────────────────────────────────────────── */
+/* ── Tabs & Search ────────────────────────────────────────────────────────── */
 .tabsWrap {
   display: flex;
   align-items: center;
@@ -33,6 +43,8 @@
   display: flex;
   gap: var(--space-1);
   overflow-x: auto;
+  padding-bottom: 4px;
+  max-width: 100%;
 }
 
 .tab {
@@ -54,13 +66,13 @@
 .tab:hover { background: var(--bg-surface-alt); color: var(--text-primary); }
 
 .tab--active {
-  background: var(--color-brand-50);
-  color: var(--color-brand-700);
-  font-weight: var(--font-semibold);
+  background: #fdf2f4;
+  color: #8B0000;
+  font-weight: var(--font-bold);
 }
 
 .tabCount {
-  background: var(--color-brand-600);
+  background: #8B0000;
   color: #fff;
   font-size: 10px;
   font-weight: var(--font-bold);
@@ -77,6 +89,8 @@
   position: relative;
   display: flex;
   align-items: center;
+  flex: 1 1 220px;
+  max-width: 320px;
 }
 
 .searchIcon {
@@ -88,7 +102,7 @@
 
 .searchInput {
   height: 38px;
-  width: 220px;
+  width: 100%;
   background: var(--bg-surface);
   border: 1.5px solid var(--border-default);
   border-radius: var(--radius-lg);
@@ -98,14 +112,15 @@
   outline: none;
   font-family: var(--font-sans);
   transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  box-sizing: border-box;
 }
 .searchInput:focus {
-  border-color: var(--color-brand-400);
-  box-shadow: 0 0 0 3px rgba(189,27,19,0.12);
+  border-color: #8B0000;
+  box-shadow: 0 0 0 3px rgba(139,0,0,0.12);
 }
 .searchInput::placeholder { color: var(--text-tertiary); }
 
-/* ── Table ────────────────────────────────────────────────────────────────── */
+/* ── Desktop Table ────────────────────────────────────────────────────────── */
 .tableWrap {
   background: var(--bg-surface);
   border: 1px solid var(--border-subtle);
@@ -113,6 +128,7 @@
   overflow: hidden;
   box-shadow: var(--shadow-sm);
   overflow-x: auto;
+  display: block;
 }
 
 .table {
@@ -152,8 +168,8 @@
 }
 
 .orderNum {
-  font-weight: var(--font-semibold);
-  color: var(--color-brand-600);
+  font-weight: 700;
+  color: #8B0000;
   font-family: var(--font-mono);
   font-size: var(--text-xs);
 }
@@ -168,8 +184,8 @@
 }
 
 .itemThumb {
-  width: 36px;
-  height: 36px;
+  width: 38px;
+  height: 38px;
   border-radius: var(--radius-md);
   object-fit: cover;
   flex-shrink: 0;
@@ -192,7 +208,58 @@
   text-align: center;
   padding: var(--space-16) !important;
   color: var(--text-tertiary);
-  font-style: italic;
+}
+
+/* ── Mobile Card View (< 768px) ─────────────────────────────────────────── */
+.mobileCardsList {
+  display: none;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+
+.mobileCard {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 14px;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mobileCardHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  border-bottom: 1px solid var(--border-subtle);
+  padding-bottom: 10px;
+}
+
+.mobileCardBody {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.mobileCardThumb {
+  width: 52px;
+  height: 52px;
+  border-radius: 10px;
+  object-fit: cover;
+  border: 1px solid var(--border-subtle);
+  flex-shrink: 0;
+}
+
+.mobileCardFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border-top: 1px solid var(--border-subtle);
+  padding-top: 10px;
 }
 
 /* ── Tracking Banner ──────────────────────────────────────────────────────── */
@@ -200,24 +267,31 @@
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  background: linear-gradient(135deg, var(--color-brand-50), #ede9fe);
-  border: 1px solid var(--color-brand-200);
+  background: #fdf2f4;
+  border: 1px solid rgba(139, 0, 0, 0.2);
   border-radius: var(--radius-xl);
   padding: var(--space-4) var(--space-5);
   font-size: var(--text-sm);
-  color: var(--color-brand-700);
+  color: #8B0000;
 }
 
 .trackingDot {
-  width: 10px; height: 10px;
-  background: var(--color-brand-500);
+  width: 10px;
+  height: 10px;
+  background: #8B0000;
   border-radius: var(--radius-full);
   flex-shrink: 0;
   animation: pulse-soft 2s ease-in-out infinite;
 }
 
-@media (max-width: 768px) {
-  .tabsWrap { flex-direction: column; align-items: flex-start; }
-  .searchInput { width: 100%; }
+@keyframes pulse-soft {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.3); opacity: 0.6; }
 }
 
+@media (max-width: 768px) {
+  .tabsWrap { flex-direction: column; align-items: stretch; }
+  .searchWrap { max-width: 100%; width: 100%; }
+  .tableWrap { display: none; }
+  .mobileCardsList { display: flex; }
+}

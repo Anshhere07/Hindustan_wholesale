@@ -1,18 +1,20 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useAuthStore } from '@/stores/auth.store';
-import PageShell from '@/components/layout/PageShell';
+import { PublicHeader, PublicFooter } from '@/modules/landing/LandingPage';
+import NotificationToast from '@/components/layout/NotificationToast';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Buyer Layout — Auth Guard
-// Prevents unauthenticated URL access AND browser back button bypass after logout
+// Buyer Pages Layout — Unified Full-Width Public Header/Footer
+// Replaces the old buyer portal sidebar with seamless marketplace navigation
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function BuyerLayout({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, user, isLoading } = useAuthStore();
   const router = useRouter();
+  const pathname = usePathname();
   const [checked, setChecked] = useState(false);
 
   useEffect(() => {
@@ -21,37 +23,25 @@ export default function BuyerLayout({ children }: { children: React.ReactNode })
   }, []);
 
   useEffect(() => {
-    // Timeout safeguard — if auth is still loading after 3s, check current state
-    const timeout = setTimeout(() => {
-      const authState = useAuthStore.getState();
-      const authed = authState.isAuthenticated && !!authState.user;
-      if (!authed) {
-        router.replace('/auth/login');
-      } else {
-        setChecked(true);
-      }
-    }, 3000);
+    // Cart page is accessible to both guests and logged-in users
+    if (pathname === '/buyer/cart') {
+      setChecked(true);
+      return;
+    }
 
-    return () => clearTimeout(timeout);
-  }, [router]);
-
-  useEffect(() => {
     if (isLoading) return;
 
     const authState = useAuthStore.getState();
     const authed = authState.isAuthenticated && !!authState.user;
 
     if (!authed) {
-      // Replace history so back button doesn't bring them back
       router.replace('/auth/login');
-    } else if (authState.user?.role !== 'buyer' && authState.user?.role !== 'admin') {
-      // Wrong role — redirect to their portal
+    } else if (authState.user?.role === 'seller') {
       router.replace('/seller/dashboard');
     } else {
       setChecked(true);
     }
-  }, [isAuthenticated, user, isLoading, router]);
-
+  }, [isAuthenticated, user, isLoading, router, pathname]);
 
   if (!checked) {
     return (
@@ -74,5 +64,14 @@ export default function BuyerLayout({ children }: { children: React.ReactNode })
     );
   }
 
-  return <PageShell>{children}</PageShell>;
+  return (
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg-base, #f8f9fa)' }}>
+      <PublicHeader />
+      <main style={{ flex: 1, width: '100%', maxWidth: 1280, margin: '0 auto', padding: '24px 16px', boxSizing: 'border-box' }}>
+        {children}
+      </main>
+      <PublicFooter />
+      <NotificationToast />
+    </div>
+  );
 }

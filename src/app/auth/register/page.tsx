@@ -2,23 +2,35 @@
 
 export const dynamic = 'force-dynamic';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useUIStore } from '@/stores/ui.store';
-import { Building2, User, Mail, Phone, Lock, FileText, ShieldCheck, ArrowLeft } from 'lucide-react';
+import { Building2, User, Mail, Phone, Lock, FileText, ShieldCheck, ArrowLeft, Eye, EyeOff } from 'lucide-react';
 
-export default function RegisterPage() {
+function RegisterFormContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { addNotification } = useUIStore();
 
+  const roleParam = searchParams.get('role');
   const [role, setRole] = useState<'buyer' | 'seller'>('buyer');
+
+  useEffect(() => {
+    if (roleParam === 'seller') {
+      setRole('seller');
+    } else {
+      setRole('buyer');
+    }
+  }, [roleParam]);
+
   const [fullName, setFullName] = useState('');
   const [businessName, setBusinessName] = useState('');
   const [gstNumber, setGstNumber] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -158,61 +170,13 @@ export default function RegisterPage() {
               <ShieldCheck size={16} /> B2B Verified Registration
             </span>
             <h1 style={{ fontSize: 24, fontWeight: 800, color: 'var(--text-primary)', marginBottom: 6 }}>
-              {role === 'buyer' ? 'Create Retailer Account' : 'Create Seller / Manufacturer Account'}
+              {role === 'seller' ? 'Create Seller / Manufacturer Account' : 'Create Retailer Account'}
             </h1>
             <p style={{ color: 'var(--text-secondary)', fontSize: 13.5 }}>
-              {role === 'buyer'
-                ? 'Join 10,000+ verified auto retailers on Hindustan Wholesale'
-                : 'Start selling wholesale auto parts to verified retailers across India'}
+              {role === 'seller'
+                ? 'Start selling wholesale auto parts to verified retailers across India'
+                : 'Join 10,000+ verified auto retailers on Hindustan Wholesale'}
             </p>
-          </div>
-
-          {/* Role Switcher */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr 1fr',
-            gap: 8,
-            background: 'var(--bg-base)',
-            padding: 4,
-            borderRadius: 12,
-            marginBottom: 24,
-          }}>
-            <button
-              type="button"
-              onClick={() => { setRole('buyer'); setError(null); }}
-              style={{
-                height: 42,
-                border: 'none',
-                borderRadius: 9,
-                fontWeight: 600,
-                fontSize: 14,
-                cursor: 'pointer',
-                background: role === 'buyer' ? '#ffffff' : 'transparent',
-                color: role === 'buyer' ? '#8B0000' : 'var(--text-secondary)',
-                boxShadow: role === 'buyer' ? '0 2px 8px rgba(0,0,0,0.08)' : 'none',
-                transition: 'all 0.2s',
-              }}
-            >
-              Retailer / Buyer
-            </button>
-            <button
-              type="button"
-              onClick={() => { setRole('seller'); setError(null); }}
-              style={{
-                height: 42,
-                border: 'none',
-                borderRadius: 9,
-                fontWeight: 600,
-                fontSize: 14,
-                cursor: 'pointer',
-                background: role === 'seller' ? '#ffffff' : 'transparent',
-                color: role === 'seller' ? '#8B0000' : 'var(--text-secondary)',
-                boxShadow: role === 'seller' ? '0 2px 8px rgba(0,0,0,0.08)' : 'none',
-                transition: 'all 0.2s',
-              }}
-            >
-              Manufacturer / Seller
-            </button>
           </div>
 
           {error && (
@@ -258,10 +222,10 @@ export default function RegisterPage() {
               </div>
             </div>
 
-            {/* Business Name */}
+            {/* Business / Shop Name */}
             <div style={{ marginBottom: 16 }}>
               <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 6, color: 'var(--text-primary)' }}>
-                {role === 'buyer' ? 'Shop / Business Name' : 'Company / Factory Name'}
+                {role === 'seller' ? 'Company / Manufacturer Name' : 'Shop / Business Name'}
               </label>
               <div style={{ position: 'relative' }}>
                 <Building2 size={18} style={{ position: 'absolute', left: 14, top: 14, color: '#9CA3AF' }} />
@@ -271,7 +235,7 @@ export default function RegisterPage() {
                   required
                   value={businessName}
                   onChange={(e) => setBusinessName(e.target.value)}
-                  placeholder={role === 'buyer' ? 'e.g. Sharma Auto Parts' : 'e.g. Sharma Auto Components Pvt. Ltd.'}
+                  placeholder={role === 'seller' ? 'e.g. Acme Auto Components Pvt Ltd' : 'e.g. Sharma Auto Spares'}
                   style={{
                     width: '100%',
                     height: 46,
@@ -288,14 +252,17 @@ export default function RegisterPage() {
               </div>
             </div>
 
-            {/* GST Number */}
+            {/* GSTIN */}
             <div style={{ marginBottom: 16 }}>
-              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 6, color: 'var(--text-primary)' }}>GSTIN (Optional)</label>
+              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 6, color: 'var(--text-primary)' }}>
+                GSTIN / Trade License {role === 'seller' ? '(Required)' : '(Optional)'}
+              </label>
               <div style={{ position: 'relative' }}>
                 <FileText size={18} style={{ position: 'absolute', left: 14, top: 14, color: '#9CA3AF' }} />
                 <input
                   id="gstInput"
                   type="text"
+                  required={role === 'seller'}
                   value={gstNumber}
                   onChange={(e) => setGstNumber(e.target.value)}
                   placeholder="e.g. 07AAACA9999A1Z9"
@@ -377,7 +344,7 @@ export default function RegisterPage() {
                 <Lock size={18} style={{ position: 'absolute', left: 14, top: 14, color: '#9CA3AF' }} />
                 <input
                   id="passwordInput"
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -388,13 +355,34 @@ export default function RegisterPage() {
                     border: '1.5px solid var(--border-default)',
                     borderRadius: 10,
                     paddingLeft: 42,
-                    paddingRight: 14,
+                    paddingRight: 40,
                     fontSize: 14,
                     fontFamily: 'inherit',
                     outline: 'none',
                     boxSizing: 'border-box',
                   }}
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  style={{
+                    position: 'absolute',
+                    right: 12,
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: 'var(--text-tertiary)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: 0,
+                  }}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
               </div>
             </div>
 
@@ -434,5 +422,13 @@ export default function RegisterPage() {
         </div>
       </main>
     </div>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={<div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8B0000', fontWeight: 600 }}>Loading registration...</div>}>
+      <RegisterFormContent />
+    </Suspense>
   );
 }

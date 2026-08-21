@@ -51,7 +51,8 @@ export default function AdminProductsPage() {
   const handleApprove = async (prod: Product) => {
     try {
       const rawSellerPrice = prod.sellerPrice || prod.basePrice;
-      const approvedBuyerPrice = Math.round(rawSellerPrice * 1.10 * 100) / 100;
+      const gstRate = prod.gstRate || 18;
+      const approvedBuyerPrice = Math.round(rawSellerPrice * 1.10 * (1 + gstRate / 100) * 100) / 100;
 
       await approveProductAdmin(prod.id, prod);
       setProducts((prev) =>
@@ -76,8 +77,8 @@ export default function AdminProductsPage() {
       }
       addNotification({
         type: 'success',
-        title: 'Product Approved (+10% Margin Added)!',
-        message: `"${prod.name}" approved. Buyer price is set to ₹${approvedBuyerPrice.toLocaleString('en-IN')} (Seller price: ₹${rawSellerPrice.toLocaleString('en-IN')} + 10% platform margin).`,
+        title: 'Product Approved (10% Margin + GST Included)!',
+        message: `"${prod.name}" approved. Buyer price is set to ₹${approvedBuyerPrice.toLocaleString('en-IN')} (Seller price: ₹${rawSellerPrice.toLocaleString('en-IN')} + 10% margin + ${gstRate}% GST).`,
         duration: 7000,
       });
     } catch (err: any) {

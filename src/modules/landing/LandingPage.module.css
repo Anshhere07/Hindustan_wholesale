@@ -246,6 +246,128 @@
   border-radius: 50%;
 }
 
+/* Flipkart-style Profile Dropdown */
+.profileContainer {
+  position: relative;
+}
+
+.profileTriggerBtn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #fdf2f4;
+  color: #8B0000;
+  border: 1.5px solid rgba(139, 0, 0, 0.2);
+  padding: 6px 14px;
+  border-radius: 24px;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.profileTriggerBtn:hover {
+  background: #8B0000;
+  color: #ffffff;
+  border-color: #8B0000;
+  box-shadow: 0 4px 12px rgba(139, 0, 0, 0.2);
+}
+
+.profileAvatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #8B0000;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.profileTriggerBtn:hover .profileAvatar {
+  background: white;
+  color: #8B0000;
+}
+
+.profileDropdownMenu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 240px;
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid var(--border-subtle);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.12);
+  padding: 8px 0;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+}
+
+.profileDropdownHeader {
+  padding: 10px 16px 12px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.profileDropdownName {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+
+.profileDropdownEmail {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.profileDropdownRole {
+  display: inline-block;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  background: #fdf2f4;
+  color: #8B0000;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-top: 6px;
+  letter-spacing: 0.04em;
+}
+
+.profileDropdownLink {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--text-primary);
+  text-decoration: none;
+  transition: all 0.15s ease;
+  cursor: pointer;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+}
+
+.profileDropdownLink:hover {
+  background: #fdf2f4;
+  color: #8B0000;
+}
+
+.profileDropdownDivider {
+  height: 1px;
+  background: var(--border-subtle);
+  margin: 6px 0;
+}
+
 /* Bottom Bar */
 .headerBottomBar {
   background: var(--bg-surface-alt);

@@ -230,16 +230,17 @@ export async function approveProductAdmin(id: string, product?: Product): Promis
     prod = (await getProductById(id)) || undefined;
   }
 
-  // Preserve seller price and add 10% margin for buyer price
+  // Preserve raw seller price and calculate all-inclusive buyer price (10% platform margin + applicable GST)
   const rawSellerPrice = prod?.sellerPrice || prod?.basePrice || 0;
-  // Increase price by 10% (e.g. 10 -> 11, 100 -> 110, 1250 -> 1375)
-  const approvedBuyerPrice = Math.round(rawSellerPrice * 1.10 * 100) / 100;
+  const gstRate = prod?.gstRate || 18;
+  const totalMultiplier = 1.10 * (1 + gstRate / 100);
+  const approvedBuyerPrice = Math.round(rawSellerPrice * totalMultiplier * 100) / 100;
 
   let updatedTiers = prod?.priceTiers;
   if (prod?.priceTiers && prod.priceTiers.length > 0) {
     updatedTiers = prod.priceTiers.map((t) => ({
       ...t,
-      price: Math.round((t.price || rawSellerPrice) * 1.10 * 100) / 100,
+      price: Math.round((t.price || rawSellerPrice) * totalMultiplier * 100) / 100,
     }));
   }
 
@@ -248,6 +249,7 @@ export async function approveProductAdmin(id: string, product?: Product): Promis
     status: 'active',
     sellerPrice: rawSellerPrice,
     basePrice: approvedBuyerPrice,
+    gstRate: gstRate,
     ...(updatedTiers ? { priceTiers: updatedTiers } : {}),
     updatedAt: serverTimestamp(),
   });

@@ -2,8 +2,9 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
-  ShoppingCart, Trash2, Plus, Minus, ArrowRight, Package, Tag, PhoneCall, MessageCircle, AlertCircle
+  ShoppingCart, Trash2, Plus, Minus, ArrowRight, Package, Tag, PhoneCall, MessageCircle, AlertCircle, ShieldCheck
 } from 'lucide-react';
 import styles from './CartPage.module.css';
 import Button from '@/components/ui/Button';
@@ -15,7 +16,8 @@ import { ROUTES } from '@/lib/constants/routes';
 import { placeOrder } from '@/lib/firebase/collections/orders';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Cart Page — line items, live quantity controls, exact itemized summary, Call & WhatsApp checkout
+// Cart Page — line items, live quantity controls, exact itemized summary
+// Clean All-Inclusive Pricing (zero separate GST jargon), Call & WhatsApp checkout
 // Direct Call & WhatsApp order routing to +91 88002 32363
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -23,11 +25,12 @@ const ORDER_PHONE_NUMBER = '+91 88002 32363';
 const ORDER_PHONE_CLEAN = '918800232363';
 
 const CartPage: React.FC = () => {
+  const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const cartStore = useCartStore();
-  const { items, subtotal, totalGst, grandTotal, itemCount, updateQuantity, removeItem, clearCart } = cartStore;
+  const { items, subtotal, grandTotal, itemCount, updateQuantity, removeItem, clearCart } = cartStore;
   const { addNotification } = useUIStore();
-  const { user } = useAuthStore();
+  const { user, isAuthenticated } = useAuthStore();
   const [coupon, setCoupon] = useState('');
   const [isCalling, setIsCalling] = useState(false);
   const [isWhatsapping, setIsWhatsapping] = useState(false);
@@ -36,16 +39,29 @@ const CartPage: React.FC = () => {
     setMounted(true);
   }, []);
 
-  const shippingFree = grandTotal >= 50000;
-  const finalPayable = items.length > 0 ? grandTotal + (shippingFree ? 0 : 750) : 0;
+  const shippingFree = subtotal >= 50000;
+  const shippingCharge = items.length > 0 ? (shippingFree ? 0 : 750) : 0;
+  const finalPayable = items.length > 0 ? subtotal + shippingCharge : 0;
 
   // ── Place Order on Call ──────────────────────────────────────────────────
   const handlePlaceOrderOnCall = async () => {
     if (items.length === 0) return;
+
+    if (!isAuthenticated || !user) {
+      addNotification({
+        type: 'info',
+        title: 'Sign In Required',
+        message: 'Please sign in to your retailer account to place your order.',
+        duration: 6000,
+      });
+      router.push('/auth/login');
+      return;
+    }
+
     setIsCalling(true);
     try {
-      const buyerId = user?.id || 'ANONYMOUS_BUYER';
-      const buyerName = user ? `${user.firstName} ${user.lastName}`.trim() : 'Verified Retailer';
+      const buyerId = user.id || 'ANONYMOUS_BUYER';
+      const buyerName = `${user.firstName} ${user.lastName || ''}`.trim() || 'Verified Retailer';
 
       // Save order in Firestore
       const orderId = await placeOrder(
@@ -82,12 +98,24 @@ const CartPage: React.FC = () => {
   // ── Confirm Order on WhatsApp ───────────────────────────────────────────
   const handleConfirmOnWhatsApp = async () => {
     if (items.length === 0) return;
+
+    if (!isAuthenticated || !user) {
+      addNotification({
+        type: 'info',
+        title: 'Sign In Required',
+        message: 'Please sign in to your retailer account to confirm your order on WhatsApp.',
+        duration: 6000,
+      });
+      router.push('/auth/login');
+      return;
+    }
+
     setIsWhatsapping(true);
     try {
-      const buyerId = user?.id || 'ANONYMOUS_BUYER';
-      const buyerName = user ? `${user.firstName} ${user.lastName}`.trim() : 'Retail Buyer';
-      const buyerEmail = user?.email || 'N/A';
-      const buyerPhone = user?.phone || 'N/A';
+      const buyerId = user.id || 'ANONYMOUS_BUYER';
+      const buyerName = `${user.firstName} ${user.lastName || ''}`.trim() || 'Retail Buyer';
+      const buyerEmail = user.email || 'N/A';
+      const buyerPhone = user.phone || 'N/A';
 
       // Save order in Firestore
       const orderId = await placeOrder(
@@ -100,7 +128,7 @@ const CartPage: React.FC = () => {
         'whatsapp'
       );
 
-      // Build structured message for WhatsApp
+      // Build clean structured message for WhatsApp (Zero separate GST tax line)
       const dateStr = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
       
       const itemRows = items.map((item, idx) => {
@@ -120,13 +148,12 @@ Date: ${dateStr}
 ${itemRows}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━
-💰 *Subtotal:* ₹${subtotal.toLocaleString('en-IN')}
-📊 *GST (18%):* ₹${totalGst.toLocaleString('en-IN')}
-🚚 *Shipping:* ${shippingFree ? 'FREE' : '₹750'}
-🏷️ *GRAND TOTAL:* ₹${finalPayable.toLocaleString('en-IN')}
+💰 *Items Total:* ₹${subtotal.toLocaleString('en-IN')}
+🚚 *Delivery / Shipping:* ${shippingFree ? 'FREE' : '₹750'}
+🏷️ *GRAND TOTAL AMOUNT:* ₹${finalPayable.toLocaleString('en-IN')}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Please confirm order acceptance, GST invoice generation, and dispatch timeline. Thank you!`;
+Please confirm order acceptance and dispatch timeline. Thank you!`;
 
       addNotification({
         type: 'success',
@@ -138,35 +165,35 @@ Please confirm order acceptance, GST invoice generation, and dispatch timeline. 
       // Clear cart
       clearCart();
 
-      // Open WhatsApp Web / App
-      const whatsappUrl = `https://api.whatsapp.com/send?phone=${ORDER_PHONE_CLEAN}&text=${encodeURIComponent(messageText)}`;
+      // Open WhatsApp chat
+      const encodedMsg = encodeURIComponent(messageText);
+      const whatsappUrl = `https://wa.me/${ORDER_PHONE_CLEAN}?text=${encodedMsg}`;
       window.open(whatsappUrl, '_blank');
     } catch (err: any) {
       console.error('Failed to log WhatsApp order:', err);
-      const fallbackMsg = `Hello Hindustan Wholesale (+91 88002 32363), I want to confirm my wholesale order of ${items.length} products worth ₹${finalPayable.toLocaleString('en-IN')}.`;
-      window.open(`https://api.whatsapp.com/send?phone=${ORDER_PHONE_CLEAN}&text=${encodeURIComponent(fallbackMsg)}`, '_blank');
+      // Fallback: still open WhatsApp
+      const fallbackMsg = encodeURIComponent(`Hi Hindustan Wholesale, I would like to place an order of ${items.length} product(s) for total ₹${finalPayable.toLocaleString('en-IN')}.`);
+      window.open(`https://wa.me/${ORDER_PHONE_CLEAN}?text=${fallbackMsg}`, '_blank');
     } finally {
       setIsWhatsapping(false);
     }
   };
 
-  if (!mounted) {
-    return (
-      <div style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <p style={{ color: 'var(--text-secondary)', fontSize: 14 }}>Loading your cart...</p>
-      </div>
-    );
-  }
+  if (!mounted) return null;
 
   if (items.length === 0) {
     return (
       <div className={styles.empty}>
-        <div className={styles.emptyIcon}><ShoppingCart size={48} /></div>
-        <h1 className={styles.emptyTitle}>Your cart is empty</h1>
-        <p className={styles.emptySub}>You have not added any products to your cart yet. Browse the catalog to start ordering.</p>
-        <Link href={ROUTES.BUYER.CATALOG}>
-          <Button variant="primary" size="lg" rightIcon={<ArrowRight size={18} />}>
-            Browse Catalog
+        <div className={styles.emptyIcon}>
+          <ShoppingCart size={48} />
+        </div>
+        <h2 className={styles.emptyTitle}>Your Wholesale Cart is Empty</h2>
+        <p className={styles.emptyDesc}>
+          Browse genuine automobile parts from verified manufacturers and add inventory to your cart.
+        </p>
+        <Link href="/categories/automobile">
+          <Button variant="primary" size="md" rightIcon={<ArrowRight size={16} />}>
+            Explore Automobile Categories
           </Button>
         </Link>
       </div>
@@ -177,90 +204,107 @@ Please confirm order acceptance, GST invoice generation, and dispatch timeline. 
     <div className={styles.page}>
       <div className={styles.header}>
         <div>
-          <h1 className={styles.title}>My Cart</h1>
+          <h1 className={styles.title}>My Wholesale Cart</h1>
           <p className={styles.subtitle}>
-            {items.length} product{items.length !== 1 ? 's' : ''} ({itemCount} total units) from {new Set(items.map((i) => i.sellerName)).size} seller{new Set(items.map((i) => i.sellerName)).size !== 1 ? 's' : ''}
+            {items.length} product{items.length > 1 ? 's' : ''} ({itemCount} units) · Direct B2B Wholesale Procurement
           </p>
         </div>
-        <button className={styles.clearBtn} onClick={clearCart}>
-          <Trash2 size={14} /> Clear all items
-        </button>
+        <Button variant="ghost" size="sm" leftIcon={<Trash2 size={15} />} onClick={clearCart}>
+          Clear all items
+        </Button>
       </div>
 
       <div className={styles.layout}>
-        {/* Items List */}
+        {/* ── Line Items ─────────────────────────────────────────────── */}
         <div className={styles.itemsList}>
-          {Array.from(new Set(items.map((i) => i.sellerId))).map((sellerId) => {
-            const sellerItems = items.filter((i) => i.sellerId === sellerId);
-            const sellerName = sellerItems[0].sellerName;
+          {items.map((item) => {
+            const lineTotal = item.unitPrice * item.quantity;
             return (
-              <div key={sellerId} className={styles.sellerGroup}>
-                <div className={styles.sellerHeader}>
-                  <Package size={14} aria-hidden="true" />
-                  <span>Sold by <strong>{sellerName}</strong></span>
+              <div key={item.productId} className={styles.itemCard}>
+                <div className={styles.itemImageWrap}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={item.productImageUrl}
+                    alt={item.productName}
+                    className={styles.itemImage}
+                  />
                 </div>
-                {sellerItems.map((item) => (
-                  <div key={item.productId} className={styles.cartItem}>
-                    <div className={styles.itemImageWrap}>
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={item.productImageUrl} alt={item.productName} className={styles.itemImage} />
+
+                <div className={styles.itemDetails}>
+                  <div className={styles.itemHeader}>
+                    <div>
+                      <span className={styles.sellerName}>Sold by: {item.sellerName}</span>
+                      <h3 className={styles.itemName}>
+                        <Link href={ROUTES.BUYER.PRODUCT(item.productId)} className={styles.itemLink}>
+                          {item.productName}
+                        </Link>
+                      </h3>
+                      <span className={styles.itemSku}>SKU: {item.productSku}</span>
                     </div>
-                    <div className={styles.itemInfo}>
-                      <p className={styles.itemSku}>SKU: {item.productSku}</p>
-                      <h3 className={styles.itemName}>{item.productName}</h3>
-                      <p className={styles.itemPrice}>
-                        {formatCurrency(item.unitPrice, item.currency)} / {item.unit}
-                      </p>
-                      <p className={styles.itemGst}>+ GST {item.gstRate}%</p>
-                    </div>
-                    <div className={styles.itemActions}>
-                      <div className={styles.qtyControl} role="group" aria-label={`Quantity for ${item.productName}`}>
-                        <button
-                          className={styles.qtyBtn}
-                          onClick={() => updateQuantity(item.productId, item.quantity - 1)}
-                          aria-label="Decrease quantity"
-                          disabled={item.quantity <= item.moq}
-                        >
-                          <Minus size={13} />
-                        </button>
-                        <span className={styles.qtyValue}>{item.quantity}</span>
-                        <button
-                          className={styles.qtyBtn}
-                          onClick={() => updateQuantity(item.productId, item.quantity + 1)}
-                          aria-label="Increase quantity"
-                          disabled={item.quantity >= item.stock}
-                        >
-                          <Plus size={13} />
-                        </button>
-                      </div>
-                      <p className={styles.itemTotal}>
-                        {formatCurrency(item.unitPrice * item.quantity, item.currency)}
-                      </p>
+                    <button
+                      className={styles.removeBtn}
+                      onClick={() => removeItem(item.productId)}
+                      aria-label="Remove item"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+
+                  <div className={styles.itemFooter}>
+                    {/* Quantity Controls */}
+                    <div className={styles.qtyControl}>
                       <button
-                        className={styles.removeBtn}
-                        onClick={() => removeItem(item.productId)}
-                        aria-label={`Remove ${item.productName} from cart`}
-                        title="Remove product from cart"
+                        className={styles.qtyBtn}
+                        onClick={() => updateQuantity(item.productId, item.quantity - item.moq)}
+                        disabled={item.quantity <= item.moq}
+                        aria-label="Decrease quantity"
                       >
-                        <Trash2 size={14} />
+                        <Minus size={14} />
+                      </button>
+                      <span className={styles.qtyValue}>
+                        {item.quantity} {item.unit}s
+                      </span>
+                      <button
+                        className={styles.qtyBtn}
+                        onClick={() => updateQuantity(item.productId, item.quantity + item.moq)}
+                        disabled={item.quantity + item.moq > item.stock}
+                        aria-label="Increase quantity"
+                      >
+                        <Plus size={14} />
                       </button>
                     </div>
+
+                    <div className={styles.itemPricing}>
+                      <span className={styles.unitPrice}>
+                        {formatCurrency(item.unitPrice, item.currency)}/{item.unit}
+                      </span>
+                      <span className={styles.lineTotal}>
+                        {formatCurrency(lineTotal, item.currency)}
+                      </span>
+                    </div>
                   </div>
-                ))}
+
+                  {item.quantity < item.moq && (
+                    <div className={styles.moqWarning}>
+                      Minimum order quantity is {item.moq} {item.unit}s
+                    </div>
+                  )}
+                </div>
               </div>
             );
           })}
         </div>
 
-        {/* Order Summary */}
-        <div className={styles.summary}>
+        {/* ── Order Summary Sidebar (Pure Itemized & Shipping Only) ────────────────────── */}
+        <div className={styles.sidebar}>
           <h2 className={styles.summaryTitle}>Order Summary</h2>
 
-          {/* Itemized Cart List Preview */}
+          {/* Itemized List */}
           <div style={{
-            background: 'var(--bg-surface-alt)',
-            borderRadius: 12,
+            background: 'var(--bg-base)',
+            borderRadius: 10,
             padding: '12px 14px',
+            marginBottom: 16,
             border: '1px solid var(--border-subtle)',
           }}>
             <p style={{
@@ -307,25 +351,21 @@ Please confirm order acceptance, GST invoice generation, and dispatch timeline. 
             <Button variant="secondary" size="sm">Apply</Button>
           </div>
 
-          {/* Breakdown */}
+          {/* Clean Breakdown — ZERO separate GST text */}
           <div className={styles.breakdown}>
             <div className={styles.breakdownRow}>
-              <span>Subtotal ({items.length} product{items.length > 1 ? 's' : ''}, {itemCount} units)</span>
+              <span>Items Total ({items.length} product{items.length > 1 ? 's' : ''}, {itemCount} units)</span>
               <span>{formatCurrency(subtotal, 'INR')}</span>
             </div>
             <div className={styles.breakdownRow}>
-              <span>GST (avg. 18%)</span>
-              <span>{formatCurrency(totalGst, 'INR')}</span>
-            </div>
-            <div className={styles.breakdownRow}>
-              <span>Shipping</span>
+              <span>Delivery / Shipping</span>
               <span className={shippingFree ? styles.free : ''}>
                 {shippingFree ? 'FREE' : formatCurrency(750, 'INR')}
               </span>
             </div>
             {!shippingFree && (
               <p className={styles.shippingNote}>
-                Add {formatCurrency(50000 - grandTotal, 'INR')} more for free shipping
+                Add {formatCurrency(50000 - subtotal, 'INR')} more for free delivery
               </p>
             )}
             <div className={styles.divider} />
@@ -333,7 +373,6 @@ Please confirm order acceptance, GST invoice generation, and dispatch timeline. 
               <span>Grand Total</span>
               <span>{formatCurrency(finalPayable, 'INR')}</span>
             </div>
-            <p className={styles.gstNote}>Calculated dynamically for your selected products</p>
           </div>
 
           {/* Direct Order Actions: Call & WhatsApp */}
@@ -384,33 +423,19 @@ Please confirm order acceptance, GST invoice generation, and dispatch timeline. 
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: 10,
-                boxShadow: '0 4px 14px rgba(139, 0, 0, 0.25)',
+                boxShadow: '0 4px 14px rgba(139, 0, 0, 0.3)',
                 transition: 'all 0.2s ease',
               }}
             >
               <PhoneCall size={18} />
               <span>Place order on call</span>
             </button>
-
-            <div style={{
-              textAlign: 'center',
-              fontSize: 12,
-              color: 'var(--text-secondary)',
-              marginTop: 4,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 6,
-            }}>
-              <span>Direct Wholesale Desk:</span>
-              <strong style={{ color: '#8B0000' }}>{ORDER_PHONE_NUMBER}</strong>
-            </div>
           </div>
 
-          <p className={styles.terms}>
-            By placing an order you agree to our <Link href="#">Terms of Service</Link> and{' '}
-            <Link href="#">Privacy Policy</Link>.
-          </p>
+          <div className={styles.securityBadge}>
+            <ShieldCheck size={16} />
+            <span>Official dispatch &amp; billing via Hindustan Wholesale Support (+91 88002 32363)</span>
+          </div>
         </div>
       </div>
     </div>

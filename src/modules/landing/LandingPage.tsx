@@ -6,11 +6,13 @@ import {
   ArrowRight, CheckCircle, TrendingUp, Shield, Zap,
   Package, Truck, Award, ChevronRight, ChevronDown, Building2, Menu, Image as ImageIcon,
   Search, User, ShoppingCart, Wallet, Headset, Star, MapPin, IndianRupee, Store,
-  Phone, Mail, FileText
+  Phone, Mail, FileText, LogOut, Heart, PackageCheck, UserCheck
 } from 'lucide-react';
 import styles from './LandingPage.module.css';
 import Button from '@/components/ui/Button';
 import { ROUTES } from '@/lib/constants/routes';
+import { useAuthStore } from '@/stores/auth.store';
+import { useCartStore } from '@/stores/cart.store';
 
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -252,7 +254,26 @@ import { resolveSearchRoute } from '@/lib/utils/searchRouter';
 export const PublicHeader: React.FC = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
   const [isDesktopMenuOpen, setIsDesktopMenuOpen] = React.useState(false);
+  const [isProfileOpen, setIsProfileOpen] = React.useState(false);
   const [searchQuery, setSearchQuery] = React.useState('');
+  const profileDropdownRef = React.useRef<HTMLDivElement>(null);
+
+  const { user, isAuthenticated, logout } = useAuthStore();
+  const { items } = useCartStore();
+  const cartCount = items.reduce((acc, item) => acc + item.quantity, 0);
+
+  // Close dropdown on outside click
+  React.useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (profileDropdownRef.current && !profileDropdownRef.current.contains(event.target as Node)) {
+        setIsProfileOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -261,6 +282,14 @@ export const PublicHeader: React.FC = () => {
       window.location.href = targetUrl;
     }
   };
+
+  const handleLogout = () => {
+    logout();
+    setIsProfileOpen(false);
+    window.location.href = '/';
+  };
+
+  const isLoggedIn = isAuthenticated && !!user;
 
   return (
     <div className={styles.headerWrapper}>
@@ -274,7 +303,9 @@ export const PublicHeader: React.FC = () => {
             <a href="tel:+918800232363" className={styles.orderByCallBtnHeader}>
               <Phone size={13} /> Order by Call
             </a>
-            <Link href={ROUTES.AUTH.LOGIN} className={styles.topBarLink}>Become a retailer</Link>
+            {!isLoggedIn && (
+              <Link href="/auth/register?role=seller" className={styles.topBarLink}>Become a seller</Link>
+            )}
           </div>
         </div>
       </div>
@@ -308,17 +339,124 @@ export const PublicHeader: React.FC = () => {
           </form>
 
           <div className={styles.headerActions}>
-            <Link href={ROUTES.AUTH.LOGIN} className={styles.actionBtn}>
-              <User size={20} />
-              <span>Sign in</span>
-            </Link>
-            <Link href={ROUTES.AUTH.REGISTER} className={styles.registerBtn}>
-              Register
-            </Link>
-            <div className={styles.cartBtn}>
+            {isLoggedIn ? (
+              /* Flipkart-style Profile Icon & Dropdown */
+              <div className={styles.profileContainer} ref={profileDropdownRef}>
+                <button
+                  type="button"
+                  onClick={() => setIsProfileOpen((prev) => !prev)}
+                  className={styles.profileTriggerBtn}
+                  aria-expanded={isProfileOpen}
+                >
+                  <div className={styles.profileAvatar}>
+                    {(user.firstName || 'U')[0].toUpperCase()}
+                  </div>
+                  <span>{user.firstName || 'My Account'}</span>
+                  <ChevronDown size={14} style={{ transform: isProfileOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+                </button>
+
+                {isProfileOpen && (
+                  <div className={styles.profileDropdownMenu}>
+                    <div className={styles.profileDropdownHeader}>
+                      <div className={styles.profileDropdownName}>
+                        {user.firstName} {user.lastName || ''}
+                      </div>
+                      <div className={styles.profileDropdownEmail}>
+                        {user.email}
+                      </div>
+                      <span className={styles.profileDropdownRole}>
+                        {user.role === 'seller' ? '🏢 Verified Seller' : user.role === 'admin' ? '🛡️ Admin' : '🏪 Verified Retailer'}
+                      </span>
+                    </div>
+
+                    <Link
+                      href="/buyer/profile"
+                      className={styles.profileDropdownLink}
+                      onClick={() => setIsProfileOpen(false)}
+                    >
+                      <User size={16} color="#8B0000" />
+                      <span>My Profile &amp; Edit</span>
+                    </Link>
+
+                    {user.role === 'seller' ? (
+                      <Link
+                        href="/seller/dashboard"
+                        className={styles.profileDropdownLink}
+                        onClick={() => setIsProfileOpen(false)}
+                      >
+                        <Building2 size={16} color="#8B0000" />
+                        <span>Seller Dashboard</span>
+                      </Link>
+                    ) : (
+                      <>
+                        <Link
+                          href="/buyer/orders"
+                          className={styles.profileDropdownLink}
+                          onClick={() => setIsProfileOpen(false)}
+                        >
+                          <PackageCheck size={16} color="#8B0000" />
+                          <span>Past Orders</span>
+                        </Link>
+                        <Link
+                          href="/buyer/wishlist"
+                          className={styles.profileDropdownLink}
+                          onClick={() => setIsProfileOpen(false)}
+                        >
+                          <Heart size={16} color="#8B0000" />
+                          <span>My Wishlist</span>
+                        </Link>
+                        <Link
+                          href="/buyer/rfq"
+                          className={styles.profileDropdownLink}
+                          onClick={() => setIsProfileOpen(false)}
+                        >
+                          <FileText size={16} color="#8B0000" />
+                          <span>Request Bulk RFQ</span>
+                        </Link>
+                      </>
+                    )}
+
+                    <a
+                      href="tel:+918800232363"
+                      className={styles.profileDropdownLink}
+                      onClick={() => setIsProfileOpen(false)}
+                    >
+                      <Phone size={16} color="#8B0000" />
+                      <span>Order on Call</span>
+                    </a>
+
+                    <div className={styles.profileDropdownDivider} />
+
+                    <button
+                      type="button"
+                      onClick={handleLogout}
+                      className={styles.profileDropdownLink}
+                      style={{ color: '#DC2626' }}
+                    >
+                      <LogOut size={16} color="#DC2626" />
+                      <span>Sign Out</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              /* Public / Guest Sign In Buttons */
+              <>
+                <Link href={ROUTES.AUTH.LOGIN} className={styles.actionBtn}>
+                  <User size={20} />
+                  <span>Sign in</span>
+                </Link>
+                <Link href={ROUTES.AUTH.REGISTER} className={styles.registerBtn}>
+                  Register
+                </Link>
+              </>
+            )}
+
+            <Link href="/buyer/cart" className={styles.cartBtn} title="My Wholesale Cart" style={{ textDecoration: 'none', color: 'inherit' }}>
               <ShoppingCart size={22} />
-              <span className={styles.cartBadge}>0</span>
-            </div>
+              {cartCount > 0 && <span className={styles.cartBadge}>{cartCount}</span>}
+            </Link>
+
             <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className={styles.mobileMenuBtn}>
               <Menu size={24} />
             </button>
@@ -348,7 +486,6 @@ export const PublicHeader: React.FC = () => {
               </div>
               {isDesktopMenuOpen && (
                 <div className={styles.navDropdownMenuOpen}>
-
                   <Link href="/categories/automobile/2-wheeler" className={styles.navDropdownLink} onClick={() => setIsDesktopMenuOpen(false)}>2-wheeler</Link>
                   <Link href="/categories/automobile/3-wheeler" className={styles.navDropdownLink} onClick={() => setIsDesktopMenuOpen(false)}>3-wheeler</Link>
                   <Link href="/categories/automobile/4-wheeler" className={styles.navDropdownLink} onClick={() => setIsDesktopMenuOpen(false)}>4-wheeler</Link>
@@ -364,8 +501,33 @@ export const PublicHeader: React.FC = () => {
       {/* Mobile Menu Dropdown */}
       {isMobileMenuOpen && (
         <div className={styles.mobileMenuDropdown} onClick={() => setIsMobileMenuOpen(false)}>
-          <Link href={ROUTES.AUTH.LOGIN} className={styles.mobileMenuLink}>Sign in</Link>
-          <Link href={ROUTES.AUTH.REGISTER} className={styles.mobileMenuLink}>Register</Link>
+          {isLoggedIn ? (
+            <>
+              <div style={{ padding: '10px 16px', background: '#fdf2f4', borderRadius: 8, marginBottom: 8 }}>
+                <div style={{ fontWeight: 700, color: '#8B0000' }}>{user.firstName} {user.lastName || ''}</div>
+                <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{user.email}</div>
+              </div>
+              <Link href="/buyer/profile" className={styles.mobileMenuLink}>👤 My Profile &amp; Edit</Link>
+              <Link href="/buyer/orders" className={styles.mobileMenuLink}>📦 Past Orders</Link>
+              <Link href="/buyer/wishlist" className={styles.mobileMenuLink}>❤️ Wishlist</Link>
+              <Link href="/buyer/rfq" className={styles.mobileMenuLink}>💬 Request Bulk RFQ</Link>
+              <Link href="/buyer/cart" className={styles.mobileMenuLink}>🛒 My Cart ({cartCount})</Link>
+              <button
+                type="button"
+                onClick={handleLogout}
+                className={styles.mobileMenuLink}
+                style={{ color: '#DC2626', background: 'none', border: 'none', textAlign: 'left', width: '100%', cursor: 'pointer', padding: '12px 16px', fontSize: 14 }}
+              >
+                🚪 Sign Out
+              </button>
+            </>
+          ) : (
+            <>
+              <Link href={ROUTES.AUTH.LOGIN} className={styles.mobileMenuLink}>Sign in</Link>
+              <Link href={ROUTES.AUTH.REGISTER} className={styles.mobileMenuLink}>Register</Link>
+            </>
+          )}
+
           <a href="tel:+918800232363" className={styles.mobileMenuLink}>
             📞 Order by Call
           </a>
