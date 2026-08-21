@@ -110,13 +110,14 @@ const CartPage: React.FC = () => {
     }
 
     setIsWhatsapping(true);
-    try {
-      const buyerId = user.id || 'ANONYMOUS_BUYER';
-      const buyerName = `${user.firstName} ${user.lastName || ''}`.trim() || 'Verified Retailer';
-      const shopName = (user as any)?.businessName ? ` (${(user as any).businessName})` : '';
-      const buyerEmail = user.email || 'N/A';
-      const buyerPhone = user.phone || 'N/A';
+    const buyerId = user.id || 'ANONYMOUS_BUYER';
+    const buyerName = `${user.firstName} ${user.lastName || ''}`.trim() || 'Verified Retailer';
+    const shopName = (user as any)?.businessName ? ` (${(user as any).businessName})` : '';
+    const buyerEmail = user.email || 'N/A';
+    const buyerPhone = user.phone || 'N/A';
+    const customerContact = [buyerPhone, buyerEmail].filter(c => c && c !== 'N/A').join(' / ') || buyerPhone || 'N/A';
 
+    try {
       // Save order in Firestore
       const orderId = await placeOrder(
         cartStore,
@@ -128,44 +129,23 @@ const CartPage: React.FC = () => {
         'whatsapp'
       );
 
-      // Build rich, elegant, professional WhatsApp message
-      const dateStr = new Date().toLocaleDateString('en-IN', {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      });
-      
-      const itemRows = items.map((item, idx) => {
+      // Build exact requested WhatsApp message format
+      const productBlock = items.map((item, idx) => {
         const lineTotal = item.unitPrice * item.quantity;
-        return `${idx + 1}️⃣ *${item.productName}*\n   ▫️ *SKU:* \`${item.productSku}\`\n   ▫️ *Shop/Seller:* ${item.sellerName || 'Hindustan Wholesale'}\n   ▫️ *Quantity:* ${item.quantity} ${item.unit || 'piece'}s\n   ▫️ *Rate:* ₹${item.unitPrice.toLocaleString('en-IN')}/${item.unit || 'piece'}\n   ▫️ *Item Total:* ₹${lineTotal.toLocaleString('en-IN')}`;
+        const details = `SKU: ${item.productSku}${item.sellerName ? ', Seller: ' + item.sellerName : ''}`;
+        const prefix = items.length > 1 ? `${idx + 1}. ` : '';
+        return `${prefix}${item.productName} (${details}) (x${item.quantity} ${item.unit || 'unit'}s)\nProduct Price: ₹${lineTotal.toLocaleString('en-IN')}`;
       }).join('\n\n');
 
-      const messageText = `🙏 *NAMASTE HINDUSTAN WHOLESALE TEAM*
-I would like to confirm and place a new wholesale order for my business. Please find my order details below:
+      const messageText = `Hello Hindustan Wholesale!
+I am ${buyerName}${shopName}, and I would like to Confirm the following Order:
 
-📋 *ORDER ID:* #${orderId}
-📅 *DATE:* ${dateStr}
+${productBlock}
 
-👤 *BUYER INFORMATION:*
-• *Name:* ${buyerName}${shopName}
-• *WhatsApp Number:* ${buyerPhone}
-• *Email:* ${buyerEmail}
+Total Estimate: ₹${finalPayable.toLocaleString('en-IN')}
 
-📦 *ORDERED PRODUCTS (${items.length} product${items.length > 1 ? 's' : ''}, ${itemCount} units):*
-━━━━━━━━━━━━━━━━━━━━━━━━━━
-${itemRows}
-━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-💰 *ORDER VALUE SUMMARY:*
-• *Total Cart Value:* ₹${subtotal.toLocaleString('en-IN')}
-• *Delivery / Logistics:* ${shippingFree ? 'FREE Delivery' : '₹750'}
-🏷️ *GRAND TOTAL PAYABLE:* ₹${finalPayable.toLocaleString('en-IN')}
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━
-✅ *Please confirm order availability, dispatch schedule, and wholesale GST bill.*
-Thank you!`;
+Customer Contact: ${customerContact}
+Please Confirm My Order!!`;
 
       addNotification({
         type: 'success',
@@ -191,7 +171,7 @@ Thank you!`;
     } catch (err: any) {
       console.error('Failed to log WhatsApp order:', err);
       // Fallback: still open WhatsApp
-      const fallbackMsg = encodeURIComponent(`🙏 Namaste Hindustan Wholesale Team,\nI would like to place a new wholesale order of ${items.length} product(s) for total cart value ₹${finalPayable.toLocaleString('en-IN')}.\nPlease share order details and dispatch timeline.`);
+      const fallbackMsg = encodeURIComponent(`Hello Hindustan Wholesale!\nI am ${buyerName}${shopName}, and I would like to Confirm the following Order:\n\nTotal Estimate: ₹${finalPayable.toLocaleString('en-IN')}\n\nCustomer Contact: ${customerContact}\nPlease Confirm My Order!!`);
       const fallbackUrl = `https://api.whatsapp.com/send?phone=918800232363&text=${fallbackMsg}`;
       const link = document.createElement('a');
       link.href = fallbackUrl;
