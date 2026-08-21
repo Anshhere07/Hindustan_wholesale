@@ -117,8 +117,27 @@ const CartPage: React.FC = () => {
     const buyerPhone = user.phone || 'N/A';
     const customerContact = [buyerPhone, buyerEmail].filter(c => c && c !== 'N/A').join(' / ') || buyerPhone || 'N/A';
 
+    // 1. Build exact requested WhatsApp message with product details, quantity & price
+    const productBlock = items.map((item, idx) => {
+      const lineTotal = (item.unitPrice || 0) * (item.quantity || 1);
+      const name = item.productName || 'Automobile Spare Part';
+      const details = `SKU: ${item.productSku || 'N/A'}${item.sellerName ? ', Seller: ' + item.sellerName : ''}`;
+      const prefix = items.length > 1 ? `${idx + 1}. ` : '';
+      return `${prefix}${name} (${details}) (x${item.quantity} ${item.unit || 'unit'}${item.quantity > 1 ? 's' : ''})\nProduct Price: ₹${lineTotal.toLocaleString('en-IN')}`;
+    }).join('\n\n');
+
+    const messageText = `Hello Hindustan Wholesale!
+I am ${buyerName}${shopName}, and I would like to Confirm the following Order:
+
+${productBlock}
+
+Total Estimate: ₹${finalPayable.toLocaleString('en-IN')}
+
+Customer Contact: ${customerContact}
+Please Confirm My Order!!`;
+
     try {
-      // Save order in Firestore
+      // 2. Save order in Firestore
       const orderId = await placeOrder(
         cartStore,
         buyerId,
@@ -128,24 +147,6 @@ const CartPage: React.FC = () => {
         { id: 'addr-1', line1: 'Primary Business Address', city: 'Delhi / NCR', state: 'Delhi', pincode: '110001', country: 'India' },
         'whatsapp'
       );
-
-      // Build exact requested WhatsApp message format
-      const productBlock = items.map((item, idx) => {
-        const lineTotal = item.unitPrice * item.quantity;
-        const details = `SKU: ${item.productSku}${item.sellerName ? ', Seller: ' + item.sellerName : ''}`;
-        const prefix = items.length > 1 ? `${idx + 1}. ` : '';
-        return `${prefix}${item.productName} (${details}) (x${item.quantity} ${item.unit || 'unit'}s)\nProduct Price: ₹${lineTotal.toLocaleString('en-IN')}`;
-      }).join('\n\n');
-
-      const messageText = `Hello Hindustan Wholesale!
-I am ${buyerName}${shopName}, and I would like to Confirm the following Order:
-
-${productBlock}
-
-Total Estimate: ₹${finalPayable.toLocaleString('en-IN')}
-
-Customer Contact: ${customerContact}
-Please Confirm My Order!!`;
 
       addNotification({
         type: 'success',
@@ -170,8 +171,8 @@ Please Confirm My Order!!`;
       document.body.removeChild(link);
     } catch (err: any) {
       console.error('Failed to log WhatsApp order:', err);
-      // Fallback: still open WhatsApp
-      const fallbackMsg = encodeURIComponent(`Hello Hindustan Wholesale!\nI am ${buyerName}${shopName}, and I would like to Confirm the following Order:\n\nTotal Estimate: ₹${finalPayable.toLocaleString('en-IN')}\n\nCustomer Contact: ${customerContact}\nPlease Confirm My Order!!`);
+      // Fallback: still open WhatsApp with the complete product details and price
+      const fallbackMsg = encodeURIComponent(messageText);
       const fallbackUrl = `https://api.whatsapp.com/send?phone=918800232363&text=${fallbackMsg}`;
       const link = document.createElement('a');
       link.href = fallbackUrl;
