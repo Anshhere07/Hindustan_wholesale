@@ -112,7 +112,8 @@ const CartPage: React.FC = () => {
     setIsWhatsapping(true);
     try {
       const buyerId = user.id || 'ANONYMOUS_BUYER';
-      const buyerName = `${user.firstName} ${user.lastName || ''}`.trim() || 'Retail Buyer';
+      const buyerName = `${user.firstName} ${user.lastName || ''}`.trim() || 'Verified Retailer';
+      const shopName = (user as any)?.businessName ? ` (${(user as any).businessName})` : '';
       const buyerEmail = user.email || 'N/A';
       const buyerPhone = user.phone || 'N/A';
 
@@ -127,52 +128,64 @@ const CartPage: React.FC = () => {
         'whatsapp'
       );
 
-      // Build clean structured message for WhatsApp (Zero separate GST tax line)
-      const dateStr = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+      // Build rich, elegant, professional WhatsApp message
+      const dateStr = new Date().toLocaleDateString('en-IN', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
       
       const itemRows = items.map((item, idx) => {
-        return `${idx + 1}. *${item.productName}*\n   • SKU: \`${item.productSku}\`\n   • Qty: ${item.quantity} ${item.unit}s × ₹${item.unitPrice.toLocaleString('en-IN')}\n   • Seller: ${item.sellerName}\n   • Item Total: ₹${(item.unitPrice * item.quantity).toLocaleString('en-IN')}`;
+        const lineTotal = item.unitPrice * item.quantity;
+        return `${idx + 1}️⃣ *${item.productName}*\n   ▫️ *SKU:* \`${item.productSku}\`\n   ▫️ *Shop/Seller:* ${item.sellerName || 'Hindustan Wholesale'}\n   ▫️ *Quantity:* ${item.quantity} ${item.unit || 'piece'}s\n   ▫️ *Rate:* ₹${item.unitPrice.toLocaleString('en-IN')}/${item.unit || 'piece'}\n   ▫️ *Item Total:* ₹${lineTotal.toLocaleString('en-IN')}`;
       }).join('\n\n');
 
-      const messageText = `🛒 *NEW B2B WHOLESALE ORDER - HINDUSTAN WHOLESALE*
-Order ID: #${orderId}
-Date: ${dateStr}
+      const messageText = `🙏 *NAMASTE HINDUSTAN WHOLESALE TEAM*
+I would like to confirm and place a new wholesale order for my business. Please find my order details below:
 
-👤 *BUYER DETAILS:*
-• Name: ${buyerName}
-• Email: ${buyerEmail}
-• Phone: ${buyerPhone}
+📋 *ORDER ID:* #${orderId}
+📅 *DATE:* ${dateStr}
 
-📦 *ORDERED PRODUCTS (${items.length} products, ${itemCount} units):*
+👤 *BUYER INFORMATION:*
+• *Name:* ${buyerName}${shopName}
+• *Phone:* ${buyerPhone}
+• *Email:* ${buyerEmail}
+
+📦 *ORDERED PRODUCTS (${items.length} product${items.length > 1 ? 's' : ''}, ${itemCount} units):*
+━━━━━━━━━━━━━━━━━━━━━━━━━━
 ${itemRows}
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━
-💰 *Items Total:* ₹${subtotal.toLocaleString('en-IN')}
-🚚 *Delivery / Shipping:* ${shippingFree ? 'FREE' : '₹750'}
-🏷️ *GRAND TOTAL AMOUNT:* ₹${finalPayable.toLocaleString('en-IN')}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Please confirm order acceptance and dispatch timeline. Thank you!`;
+💰 *ORDER VALUE SUMMARY:*
+• *Total Cart Value:* ₹${subtotal.toLocaleString('en-IN')}
+• *Delivery / Logistics:* ${shippingFree ? 'FREE Delivery' : '₹750'}
+🏷️ *GRAND TOTAL PAYABLE:* ₹${finalPayable.toLocaleString('en-IN')}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅ *Please confirm order availability, dispatch schedule, and wholesale GST bill.*
+Thank you!`;
 
       addNotification({
         type: 'success',
         title: 'Order Generated!',
-        message: `Order #${orderId} saved. Opening WhatsApp with order summary for +91 88002 32363...`,
+        message: `Order #${orderId} saved. Opening WhatsApp chat (+91 88002 32363) with your order details...`,
         duration: 8000,
       });
 
       // Clear cart
       clearCart();
 
-      // Open WhatsApp chat
+      // Open WhatsApp chat directly to +91 88002 32363
       const encodedMsg = encodeURIComponent(messageText);
-      const whatsappUrl = `https://wa.me/${ORDER_PHONE_CLEAN}?text=${encodedMsg}`;
+      const whatsappUrl = `https://wa.me/918800232363?text=${encodedMsg}`;
       window.open(whatsappUrl, '_blank');
     } catch (err: any) {
       console.error('Failed to log WhatsApp order:', err);
       // Fallback: still open WhatsApp
-      const fallbackMsg = encodeURIComponent(`Hi Hindustan Wholesale, I would like to place an order of ${items.length} product(s) for total ₹${finalPayable.toLocaleString('en-IN')}.`);
-      window.open(`https://wa.me/${ORDER_PHONE_CLEAN}?text=${fallbackMsg}`, '_blank');
+      const fallbackMsg = encodeURIComponent(`🙏 Namaste Hindustan Wholesale Team,\nI would like to place a new wholesale order of ${items.length} product(s) for total cart value ₹${finalPayable.toLocaleString('en-IN')}.\nPlease share order details and dispatch timeline.`);
+      window.open(`https://wa.me/918800232363?text=${fallbackMsg}`, '_blank');
     } finally {
       setIsWhatsapping(false);
     }
