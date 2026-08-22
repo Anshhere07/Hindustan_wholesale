@@ -21,6 +21,7 @@ export default function ShopDetailsPage() {
 
   const [products, setProducts] = useState<ProductListItem[]>([]);
   const [shopName, setShopName] = useState<string>(shopIdParam || 'Wholesale Auto Store');
+  const [shopLocation, setShopLocation] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
 
@@ -29,6 +30,13 @@ export default function ShopDetailsPage() {
       setLoading(true);
       try {
         const { products: liveProducts } = await getProducts();
+        const { getUsersByRole } = await import('@/lib/firebase/collections/users');
+        const { getSellerProfile } = await import('@/lib/firebase/collections/seller-profiles');
+
+        const [allSellers] = await Promise.all([
+          getUsersByRole('seller').catch(() => []),
+        ]);
+
         const all = [...liveProducts, ...MOCK_PRODUCTS];
 
         // Filter products matching this seller / shop
@@ -46,12 +54,37 @@ export default function ShopDetailsPage() {
           );
         });
 
+        // Match seller in Firestore to extract actual user location
+        const matchedSeller = allSellers.find((s) => {
+          const sName = ((s as any).businessName || `${s.firstName} ${s.lastName || ''}'s Shop`).toLowerCase().trim();
+          const querySlug = shopIdParam.toLowerCase().trim();
+          return sName === querySlug || s.id === querySlug || sName.includes(querySlug) || querySlug.includes(sName);
+        });
+
+        if (matchedSeller) {
+          const sellerAny = matchedSeller as any;
+          const locParts = [sellerAny.city, sellerAny.state].filter(Boolean);
+          if (locParts.length > 0) {
+            setShopLocation(locParts.join(', '));
+          } else {
+            // Check seller profile warehouse
+            const profile = await getSellerProfile(matchedSeller.id, matchedSeller.email);
+            if (profile?.warehouseAddresses?.[0]?.city) {
+              const wh = profile.warehouseAddresses[0];
+              const whLoc = [wh.city, wh.state].filter(Boolean).join(', ');
+              if (whLoc && !whLoc.toLowerCase().includes('new delhi')) {
+                setShopLocation(whLoc);
+              }
+            }
+          }
+        }
+
         // Deduplicate
         const map = new Map<string, ProductListItem>();
         matching.forEach((item) => map.set(item.id, item));
         const list = Array.from(map.values());
 
-        setProducts(list.length > 0 ? list : all.slice(0, 4));
+        setProducts(list);
         if (matching.length > 0 && matching[0].sellerName) {
           setShopName(matching[0].sellerName);
         }
@@ -157,35 +190,16 @@ export default function ShopDetailsPage() {
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                   <Star size={14} fill="#F59E0B" color="#F59E0B" /> <strong>4.8</strong> (140+ reviews)
                 </span>
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                  <MapPin size={14} /> Delhi NCR / Mumbai Hub
-                </span>
+                {shopLocation ? (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                    <MapPin size={14} /> {shopLocation}
+                  </span>
+                ) : null}
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                   <Package size={14} /> <strong>{products.length}</strong> Listed Products
                 </span>
               </div>
             </div>
-          </div>
-
-          <div style={{ display: 'flex', gap: 10 }}>
-            <a
-              href="tel:+918800232363"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 6,
-                background: '#ffffff',
-                border: '1.5px solid #8B0000',
-                color: '#8B0000',
-                padding: '10px 18px',
-                borderRadius: 10,
-                fontSize: 13,
-                fontWeight: 700,
-                textDecoration: 'none',
-              }}
-            >
-              <Phone size={14} /> Contact Store
-            </a>
           </div>
         </div>
 

@@ -67,54 +67,55 @@ const LoginPage: React.FC = () => {
 
     try {
       if (activeTab === 'signin') {
-        // ── SIGN IN FLOW (Strict Dual-Layer Password Verification) ───────────
+        // ── SIGN IN FLOW (Multi-Role Password-Specific Account Resolution) ──
         const trimmedPassword = password.trim();
         let userDoc = null;
         let authSuccess = false;
+        let matchingRole: 'buyer' | 'seller' | 'admin' = 'buyer';
 
-        // 1. Fetch user profile from Firestore
+        // 1. Fetch all user accounts associated with this email from Firestore
+        let userAccounts: any[] = [];
         try {
-          const { getUserByEmail } = await import('@/lib/firebase/collections/users');
-          userDoc = await getUserByEmail(cleanEmail);
+          const { getAllUsersByEmail } = await import('@/lib/firebase/collections/users');
+          userAccounts = await getAllUsersByEmail(cleanEmail);
         } catch (dbErr) {
           console.warn('Firestore user fetch note:', dbErr);
         }
 
-        // 2. Attempt Firebase Auth sign-in
-        let fbUser = null;
-        try {
-          fbUser = await signInWithPassword(cleanEmail, trimmedPassword);
-          authSuccess = true;
-          if (fbUser?.uid && !userDoc) {
-            userDoc = await fetchUserDoc(fbUser.uid);
-          }
-        } catch (fbErr: any) {
-          console.warn('Firebase Auth note:', fbErr.code, fbErr.message);
+        // 2. Check if entered password matches the Buyer or Seller account
+        const matchedAccount = userAccounts.find(
+          (acc) => acc.password && acc.password.trim() === trimmedPassword
+        );
 
-          // If user doc exists in Firestore, check against registered password
-          if (userDoc) {
-            if (userDoc.password && userDoc.password === trimmedPassword) {
+        if (matchedAccount) {
+          userDoc = matchedAccount;
+          matchingRole = matchedAccount.role || 'buyer';
+          authSuccess = true;
+        } else {
+          // 3. Fallback check with Firebase Auth
+          try {
+            const fbUser = await signInWithPassword(cleanEmail, trimmedPassword);
+            if (fbUser) {
               authSuccess = true;
-            } else if (userDoc.password && userDoc.password !== trimmedPassword) {
-              authSuccess = false;
-            } else {
-              // Legacy account without stored password field, check if fbErr was wrong password
-              if (fbErr.code === 'auth/wrong-password' || fbErr.code === 'auth/invalid-credential') {
-                authSuccess = false;
+              if (userAccounts.length > 0) {
+                userDoc = userAccounts[0];
+                matchingRole = userDoc.role || 'buyer';
               } else {
-                authSuccess = true;
+                userDoc = await fetchUserDoc(fbUser.uid);
+                if (userDoc) matchingRole = userDoc.role || 'buyer';
               }
             }
-          } else {
+          } catch (fbErr: any) {
+            console.warn('Firebase Auth note:', fbErr?.code, fbErr?.message);
             authSuccess = false;
           }
         }
 
-        // 3. If password validation failed, STOP and alert user
-        if (!authSuccess) {
+        // 4. If password or email validation failed, STOP and alert user
+        if (!authSuccess || !userDoc) {
           setIsLoading(false);
-          let errorMsg = 'Incorrect password. Please enter the correct password created during registration.';
-          if (!userDoc && !fbUser) {
+          let errorMsg = 'Incorrect password. Please enter the valid password created during registration.';
+          if (userAccounts.length === 0) {
             errorMsg = 'No account found with this email. Please register your account first.';
           }
           setError(errorMsg);
@@ -127,53 +128,44 @@ const LoginPage: React.FC = () => {
           return;
         }
 
-        // 4. Check account approval status in Firestore
-        if (userDoc) {
-          if (userDoc.status === 'pending' || userDoc.status === 'pending_approval') {
-            setIsLoading(false);
-            const msg = 'Your account registration is currently pending Admin verification. You will be able to sign in once approved.';
-            setError(msg);
-            addNotification({ type: 'warning', title: 'Approval Pending', message: msg, duration: 8000 });
-            return;
-          }
-          if (userDoc.status === 'rejected' || userDoc.status === 'suspended') {
-            setIsLoading(false);
-            const msg = 'Your registration request was denied or suspended by the Admin.';
-            setError(msg);
-            addNotification({ type: 'error', title: 'Account Request Denied', message: msg, duration: 8000 });
-            return;
-          }
+        // 5. Check account approval status for the specific matched role
+        const roleLabel = matchingRole === 'seller' ? 'Seller' : 'Buyer';
+        if (userDoc.status === 'pending' || userDoc.status === 'pending_approval') {
+          setIsLoading(false);
+          const msg = `Your ${roleLabel} account registration is currently pending Admin verification. You will be able to sign in once approved.`;
+          setError(msg);
+          addNotification({ type: 'warning', title: `${roleLabel} Approval Pending`, message: msg, duration: 8000 });
+          return;
+        }
+        if (userDoc.status === 'rejected' || userDoc.status === 'suspended') {
+          setIsLoading(false);
+          const msg = `Your ${roleLabel} account registration request was denied or suspended by the Admin.`;
+          setError(msg);
+          addNotification({ type: 'error', title: `${roleLabel} Request Denied`, message: msg, duration: 8000 });
+          return;
         }
 
-        // 5. Automatically resolve role & redirect to corresponding dashboard
-        const uid = fbUser?.uid || userDoc?.id || cleanEmail.replace(/[^a-z0-9]/gi, '_');
-        const resolvedRole = userDoc?.role || 'buyer';
+        // 6. Set user state with the exact matched role and redirect to corresponding portal
         const targetRoute =
-          resolvedRole === 'seller'
+          matchingRole === 'seller'
             ? ROUTES.SELLER.DASHBOARD
-            : resolvedRole === 'admin'
+            : matchingRole === 'admin'
             ? ROUTES.ADMIN.DASHBOARD
             : '/';
 
-        const userObj = userDoc || {
-          id: uid,
-          email: cleanEmail,
-          phone: '',
-          firstName: cleanEmail.split('@')[0],
-          lastName: '',
-          role: resolvedRole,
-          status: 'active' as const,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        };
+        setUser(userDoc);
 
-        setUser(userObj);
+        const welcomeTitle = matchingRole === 'seller' ? 'Signed in as Verified Seller' : 'Signed in as Retailer / Buyer';
+        const welcomeMessage =
+          matchingRole === 'seller'
+            ? `Welcome to your Seller Dashboard, ${userDoc.firstName || 'Seller'}! You can manage your listings and orders.`
+            : `Welcome back, ${userDoc.firstName || 'Buyer'}! You can now browse wholesale prices and order in bulk.`;
 
         addNotification({
           type: 'success',
-          title: 'Signed in successfully',
-          message: `Welcome back, ${userObj.firstName || 'User'}! You can now browse wholesale prices and add products to your cart.`,
-          duration: 4000,
+          title: welcomeTitle,
+          message: welcomeMessage,
+          duration: 5000,
         });
 
         router.push(targetRoute);

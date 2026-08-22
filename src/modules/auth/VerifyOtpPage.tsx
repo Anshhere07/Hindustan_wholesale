@@ -113,50 +113,64 @@ const VerifyOtpPage: React.FC = () => {
       try {
         const { createUser } = await import('@/lib/firebase/collections/users');
         const cleanEmail = email.trim().toLowerCase();
+        const userRole = (role as 'buyer' | 'seller') || 'buyer';
+        const baseDocId = cleanEmail.replace(/[^a-z0-9]/gi, '_');
+        const roleDocId = `${baseDocId}_${userRole}`;
+
         const userProfileData = {
           email: cleanEmail,
           phone,
           firstName,
           lastName,
-          role: role as 'buyer' | 'seller',
+          role: userRole,
           status: 'pending' as const,
           password: password.trim(),
+          businessName: businessName || `${firstName}'s ${userRole === 'seller' ? 'Company' : 'Shop'}`,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         };
 
-        await createUser(firebaseUid, userProfileData);
+        // 1. Write to role-specific document ID (e.g. user_gmail_com_buyer / user_gmail_com_seller)
+        await createUser(roleDocId, userProfileData);
 
-        // Also write to doc with email key for fast guaranteed lookup
-        const emailDocId = cleanEmail.replace(/[^a-z0-9]/gi, '_');
-        if (emailDocId !== firebaseUid) {
-          await createUser(emailDocId, userProfileData);
+        // 2. Also write to firebaseUid if distinct
+        if (firebaseUid && firebaseUid !== roleDocId) {
+          await createUser(firebaseUid, userProfileData);
         }
 
-        if (role === 'buyer') {
+        // 3. Create respective buyer or seller profile
+        if (userRole === 'buyer') {
           const { createBuyerProfile } = await import('@/lib/firebase/collections/buyer-profiles');
-          await createBuyerProfile(firebaseUid, {
+          const buyerPayload = {
             companyName: businessName || `${firstName}'s Shop`,
             businessName: businessName || `${firstName}'s Shop`,
             gstNumber: gstNumber || 'UNVERIFIED',
-            businessType: 'proprietorship',
+            businessType: 'proprietorship' as const,
             industryType: 'Automotive Spares',
-            primaryContact: { name: `${firstName} ${lastName}`.trim(), email, phone },
-            billingAddress: { id: 'addr-1', line1: 'Main Market', city: 'New Delhi', state: 'Delhi', pincode: '110001', country: 'India', isDefault: true },
-            shippingAddresses: [{ id: 'addr-1', line1: 'Main Market', city: 'New Delhi', state: 'Delhi', pincode: '110001', country: 'India', isDefault: true }],
+            primaryContact: { name: `${firstName} ${lastName}`.trim(), email: cleanEmail, phone },
+            billingAddress: { id: 'addr-1', line1: '', city: '', state: '', pincode: '', country: 'India', isDefault: true },
+            shippingAddresses: [],
             creditLimit: 100000,
-          });
+          };
+          await createBuyerProfile(roleDocId, buyerPayload);
+          if (firebaseUid && firebaseUid !== roleDocId) {
+            await createBuyerProfile(firebaseUid, buyerPayload).catch(() => {});
+          }
         } else {
           const { createSellerProfile } = await import('@/lib/firebase/collections/seller-profiles');
-          await createSellerProfile(firebaseUid, {
+          const sellerPayload = {
             businessName: businessName || `${firstName}'s Company`,
             gstNumber: gstNumber || 'UNVERIFIED',
             panNumber: 'UNVERIFIED',
-            businessType: 'trader',
+            businessType: 'trader' as const,
             categories: ['Automotive Parts'],
-            primaryContact: { name: `${firstName} ${lastName}`.trim(), email, phone },
-            warehouseAddresses: [{ id: 'wh-1', line1: 'Industrial Area', city: 'New Delhi', state: 'Delhi', pincode: '110020', country: 'India' }],
-          });
+            primaryContact: { name: `${firstName} ${lastName}`.trim(), email: cleanEmail, phone },
+            warehouseAddresses: [],
+          };
+          await createSellerProfile(roleDocId, sellerPayload);
+          if (firebaseUid && firebaseUid !== roleDocId) {
+            await createSellerProfile(firebaseUid, sellerPayload).catch(() => {});
+          }
         }
       } catch (dbErr) {
         console.warn('Firestore creation note:', dbErr);

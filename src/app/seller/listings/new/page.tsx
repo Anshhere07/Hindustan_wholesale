@@ -239,14 +239,14 @@ export default function AddProductPage() {
         compatibleVehicles: compatibleVehicles.split(',').map(v => v.trim()).filter(Boolean),
         isGstExempt: false,
         gstRate: 18,
-        status: status === 'active' ? 'active' : 'draft',
+        status: 'draft',
         approvalStatus: 'pending',
         isFeatured: false,
         rating: 4.8,
         reviewCount: 1,
       });
 
-      // 2. Prepend to local mock/in-memory array for instant seller UI feedback
+      // 2. Prepend to local mock/in-memory array for instant seller UI feedback (Pending Admin Approval)
       const newListItem: ProductListItem = {
         id: createdDocId,
         sku: sku.trim().toUpperCase(),
@@ -263,7 +263,7 @@ export default function AddProductPage() {
         sellerRating: 4.8,
         leadTimeDays: Number(leadTimeDays) || 3,
         isFeatured: false,
-        status: status === 'active' ? 'active' : 'draft',
+        status: 'draft',
         approvalStatus: 'pending',
         brand: brand.trim(),
         vehicleType,
@@ -276,9 +276,9 @@ export default function AddProductPage() {
       // 3. Trigger Toast Notification to Seller
       addNotification({
         type: 'success',
-        title: 'Product Added Successfully!',
-        message: `"${name.trim()}" with custom image saved to database and submitted to Admin for verification.`,
-        duration: 8000,
+        title: 'Product Submitted for Approval!',
+        message: `"${name.trim()}" has been submitted to Admin. It will be verified and published to the marketplace after approval.`,
+        duration: 7000,
       });
 
       // 4. Redirect back to Seller Listings

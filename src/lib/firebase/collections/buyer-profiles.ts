@@ -22,9 +22,12 @@ export async function getBuyerProfile(uid: string, email?: string): Promise<Buye
     }
     if (email) {
       const emailUid = email.replace(/[^a-z0-9]/gi, '_');
-      const altSnap = await getDoc(doc(db, COLLECTION, emailUid));
-      if (altSnap.exists()) {
-        return { userId: altSnap.id, ...altSnap.data() } as BuyerProfile;
+      const candidateIds = [`${emailUid}_buyer`, emailUid];
+      for (const cId of candidateIds) {
+        const altSnap = await getDoc(doc(db, COLLECTION, cId));
+        if (altSnap.exists()) {
+          return { userId: altSnap.id, ...altSnap.data() } as BuyerProfile;
+        }
       }
     }
   } catch (err) {

@@ -26,29 +26,68 @@ export async function getUserById(uid: string): Promise<UserProfile | null> {
   return { id: snap.id, ...snap.data() } as UserProfile;
 }
 
-export async function getUserByEmail(email: string): Promise<UserProfile | null> {
+export async function getAllUsersByEmail(email: string): Promise<UserProfile[]> {
   const cleanEmail = email.trim().toLowerCase();
+  const found: UserProfile[] = [];
+  const seenIds = new Set<string>();
+
   try {
     const q = query(
       collection(db, COLLECTION),
       where('email', '==', cleanEmail)
     );
     const snap = await getDocs(q);
-    if (!snap.empty) {
-      const d = snap.docs[0];
-      return { id: d.id, ...d.data() } as UserProfile;
-    }
+    snap.docs.forEach((d) => {
+      if (!seenIds.has(d.id)) {
+        seenIds.add(d.id);
+        found.push({ id: d.id, ...d.data() } as UserProfile);
+      }
+    });
   } catch (err) {
-    console.warn('getUserByEmail query error:', err);
+    console.warn('getAllUsersByEmail query error:', err);
   }
 
-  // Fallback by docId
-  const docId = cleanEmail.replace(/[^a-z0-9]/gi, '_');
-  const directSnap = await getDoc(doc(db, COLLECTION, docId));
-  if (directSnap.exists()) {
-    return { id: directSnap.id, ...directSnap.data() } as UserProfile;
+  // Fallback check direct role-based IDs
+  const baseDocId = cleanEmail.replace(/[^a-z0-9]/gi, '_');
+  const candidateIds = [`${baseDocId}_buyer`, `${baseDocId}_seller`, `${baseDocId}_admin`, baseDocId];
+
+  for (const docId of candidateIds) {
+    if (!seenIds.has(docId)) {
+      try {
+        const directSnap = await getDoc(doc(db, COLLECTION, docId));
+        if (directSnap.exists()) {
+          seenIds.add(docId);
+          found.push({ id: directSnap.id, ...directSnap.data() } as UserProfile);
+        }
+      } catch {}
+    }
   }
-  return null;
+
+  return found;
+}
+
+export async function getUserByEmail(email: string): Promise<UserProfile | null> {
+  const users = await getAllUsersByEmail(email);
+  return users.length > 0 ? users[0] : null;
+}
+
+export async function getUserByEmailAndRole(
+  email: string,
+  role: 'buyer' | 'seller' | 'admin'
+): Promise<UserProfile | null> {
+  const users = await getAllUsersByEmail(email);
+  const matched = users.find((u) => u.role === role);
+  return matched || null;
+}
+
+export async function getUserByEmailAndPassword(
+  email: string,
+  password: string
+): Promise<UserProfile | null> {
+  const users = await getAllUsersByEmail(email);
+  const trimmed = password.trim();
+  const matched = users.find((u) => u.password && u.password.trim() === trimmed);
+  return matched || null;
 }
 
 export async function createUser(

@@ -151,7 +151,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, view = 'grid', class
             </span>
             <span className={styles.metaItem}>
               <ShieldCheck size={13} aria-hidden="true" />
-              {product.stock} in stock
+              GST Invoice
             </span>
           </div>
         </div>
@@ -242,37 +242,37 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, view = 'grid', class
 
         <div className={styles.footer}>
           {!isPriceHidden ? (
-            <>
+            <div className={styles.priceRowActive}>
               <div className={styles.priceBlock}>
                 <p className={styles.price}>{formatCurrency(product.basePrice, product.currency)}</p>
                 <p className={styles.priceUnit}>/{product.unit}</p>
               </div>
-              <Button
-                variant={inCart ? 'secondary' : 'primary'}
-                size="xs"
+              <button
+                type="button"
+                className={cn(styles.cartBtn, inCart && styles.cartBtnActive)}
                 onClick={handleAddToCart}
                 aria-label={inCart ? 'Already in cart' : `Add ${product.name} to cart`}
               >
-                {inCart ? 'In Cart' : '+ Cart'}
-              </Button>
-            </>
+                {inCart ? 'In Cart ✓' : '+ Cart'}
+              </button>
+            </div>
           ) : (
-            <>
-              <div className={styles.priceBlock}>
-                <span style={{ fontSize: 11.5, fontWeight: 700, color: '#8B0000', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+            <div className={styles.lockedPriceRow}>
+              <div className={styles.lockedPriceInfo}>
+                <span className={styles.lockedBadge}>
                   <Lock size={11} /> Wholesale Price
                 </span>
-                <p className={styles.priceUnit}>Login to view price</p>
+                <span className={styles.lockedPrompt}>Login to view price</span>
               </div>
-              <Button
-                variant="secondary"
-                size="xs"
+              <button
+                type="button"
+                className={styles.loginBtn}
                 onClick={handleAddToCart}
                 aria-label="Login to view price"
               >
-                Login to Buy
-              </Button>
-            </>
+                Login &rarr;
+              </button>
+            </div>
           )}
         </div>
       </div>

@@ -1565,43 +1565,91 @@
     display: none;
   }
   .headerMiddleBarInner {
-    padding: 10px 12px;
+    padding: 8px 12px;
     gap: 8px;
     justify-content: space-between;
+    align-items: center;
   }
   .headerActions {
-    gap: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
   }
   .actionBtn, .registerBtn { display: none; }
-  .cartBtn { display: flex; }
+  .cartBtn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    padding: 0;
+  }
+  .profileTriggerBtn {
+    padding: 4px 8px;
+    font-size: 12px;
+    gap: 5px;
+    border-radius: 20px;
+    max-width: 120px;
+  }
+  .profileTriggerBtn span:first-of-type {
+    max-width: 55px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    display: inline-block;
+  }
+  .profileAvatar {
+    width: 22px;
+    height: 22px;
+    font-size: 11px;
+    flex-shrink: 0;
+  }
+  .profileDropdownMenu {
+    position: fixed;
+    top: 56px;
+    right: 8px;
+    left: auto;
+    width: calc(100vw - 16px);
+    max-width: 300px;
+    z-index: 1100;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.22);
+  }
   .mobileMenuBtn {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 40px;
-    height: 40px;
+    width: 38px;
+    height: 38px;
     border-radius: 8px;
     background: var(--color-brand-50, #fef2f2);
     border: 1px solid var(--color-brand-200, #fca5a5);
     color: var(--color-brand-800, #8B0000);
+    padding: 0;
+    flex-shrink: 0;
   }
   .headerLogo {
-    gap: 8px;
+    gap: 6px;
+    flex-shrink: 1;
+    min-width: 0;
   }
   .headerLogoIcon {
-    width: 42px; height: 28px;
+    width: 36px;
+    height: 26px;
+    flex-shrink: 0;
   }
   .headerLogoIcon span {
-    font-size: 18px;
+    font-size: 15px;
   }
   .headerLogoTextWrap {
-    padding-left: 8px;
+    padding-left: 6px;
   }
   .headerLogoText {
-    font-size: 16px;
+    font-size: 13.5px;
+    line-height: 1.1;
   }
   .headerLogoSubtext {
-    font-size: 7px;
+    display: none;
   }
   
   .hero {

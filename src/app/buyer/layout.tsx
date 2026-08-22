@@ -23,8 +23,14 @@ export default function BuyerLayout({ children }: { children: React.ReactNode })
   }, []);
 
   useEffect(() => {
-    // Cart page is accessible to both guests and logged-in users
-    if (pathname === '/buyer/cart') {
+    // Public buyer routes that any guest can browse without signing in
+    const isPublicRoute =
+      pathname === '/buyer/cart' ||
+      pathname === '/buyer/catalog' ||
+      pathname.startsWith('/buyer/catalog/') ||
+      pathname.startsWith('/products/');
+
+    if (isPublicRoute) {
       setChecked(true);
       return;
     }

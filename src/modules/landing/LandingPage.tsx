@@ -6,13 +6,14 @@ import {
   ArrowRight, CheckCircle, TrendingUp, Shield, Zap,
   Package, Truck, Award, ChevronRight, ChevronDown, Building2, Menu, Image as ImageIcon,
   Search, User, ShoppingCart, Wallet, Headset, Star, MapPin, IndianRupee, Store,
-  Phone, Mail, FileText, LogOut, Heart, PackageCheck, UserCheck
+  Phone, Mail, FileText, LogOut, Heart, PackageCheck, UserCheck, ShieldCheck
 } from 'lucide-react';
 import styles from './LandingPage.module.css';
 import Button from '@/components/ui/Button';
 import { ROUTES } from '@/lib/constants/routes';
 import { useAuthStore } from '@/stores/auth.store';
 import { useCartStore } from '@/stores/cart.store';
+import { MOCK_PRODUCTS } from '@/lib/api/mock-data';
 
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -583,7 +584,144 @@ export const PublicHeader: React.FC = () => {
 };
 
 // ── Main Landing Page ─────────────────────────────────────────────────────────
+interface VerifiedShopItem {
+  id: string;
+  name: string;
+  location: string;
+  productCount: number;
+  rating: number;
+  initials: string;
+  bgColor: string;
+  category: string;
+}
+
+const DEFAULT_VERIFIED_SHOPS: VerifiedShopItem[] = [
+  {
+    id: 'AutoParts Direct',
+    name: 'AutoParts Direct Pvt Ltd',
+    location: '',
+    productCount: 2,
+    rating: 4.9,
+    initials: 'AD',
+    bgColor: '#8B0000',
+    category: 'Automotive Spares & Electricals',
+  },
+  {
+    id: 'BrakeMaster Co.',
+    name: 'BrakeMaster Co.',
+    location: '',
+    productCount: 1,
+    rating: 4.8,
+    initials: 'BM',
+    bgColor: '#0B2C6A',
+    category: 'Clutch, Brakes & Transmission',
+  },
+  {
+    id: 'LightZone India',
+    name: 'LightZone India',
+    location: '',
+    productCount: 1,
+    rating: 4.8,
+    initials: 'LZ',
+    bgColor: '#065F46',
+    category: 'Engine & Suspension Parts',
+  },
+  {
+    id: 'TyreWorld Hub',
+    name: 'TyreWorld Hub',
+    location: '',
+    productCount: 1,
+    rating: 4.7,
+    initials: 'TW',
+    bgColor: '#7C2D12',
+    category: 'Fasteners, Cables & Filters',
+  },
+];
+
 const LandingPage: React.FC = () => {
+  const [verifiedShops, setVerifiedShops] = React.useState<VerifiedShopItem[]>(DEFAULT_VERIFIED_SHOPS);
+  const [loadingShops, setLoadingShops] = React.useState(true);
+
+  React.useEffect(() => {
+    async function loadRealShops() {
+      try {
+        const { getUsersByRole } = await import('@/lib/firebase/collections/users');
+        const { getProducts } = await import('@/lib/firebase/collections/products');
+        const [sellers, { products: liveProds }] = await Promise.all([
+          getUsersByRole('seller'),
+          getProducts({}, 100),
+        ]);
+
+        const allAvailableProds = [...liveProds, ...MOCK_PRODUCTS];
+
+        const activeSellers = sellers.filter((s) => s.status === 'active');
+        if (activeSellers.length > 0) {
+          const colors = ['#8B0000', '#0B2C6A', '#065F46', '#7C2D12', '#4C1D95', '#B45309'];
+          const mapped: VerifiedShopItem[] = activeSellers.map((seller, idx) => {
+            const sellerAny = seller as any;
+            const sName = (sellerAny.businessName || `${seller.firstName} ${seller.lastName || ''}'s Shop`).trim();
+            const sId = (seller.id || '').toLowerCase().trim();
+            const sEmail = (seller.email || '').toLowerCase().trim();
+            const sEmailKey = sEmail.replace(/[^a-z0-9]/gi, '_');
+
+            // Count EXACT actual products listed by this seller (live + assigned)
+            const pCount = allAvailableProds.filter((p) => {
+              const pSellerName = (p.sellerName || '').toLowerCase().trim();
+              const pSellerId = ((p as any).sellerId || '').toLowerCase().trim();
+              const targetName = sName.toLowerCase().trim();
+
+              return (
+                pSellerId === sId ||
+                pSellerId === sEmail ||
+                pSellerId === `${sEmailKey}_seller` ||
+                pSellerId === sEmailKey ||
+                pSellerName === targetName ||
+                (targetName && pSellerName.includes(targetName)) ||
+                (pSellerName && targetName.includes(pSellerName))
+              );
+            }).length;
+
+            const initials =
+              sName
+                .split(' ')
+                .map((w: string) => w[0])
+                .join('')
+                .slice(0, 2)
+                .toUpperCase() || 'HW';
+            const locParts = [sellerAny.city, sellerAny.state].filter(Boolean);
+            const loc = locParts.length > 0 ? locParts.join(', ') : (sellerAny.location || '');
+
+            return {
+              id: sName,
+              name: sName,
+              location: loc,
+              productCount: pCount,
+              rating: 4.8,
+              initials,
+              bgColor: colors[idx % colors.length],
+              category: 'Direct Verified Manufacturer & Distributor',
+            };
+          });
+          setVerifiedShops(mapped.slice(0, 6));
+        } else {
+          // Compute exact counts for default shops from mock catalog
+          const updatedDefaults = DEFAULT_VERIFIED_SHOPS.map((shop) => {
+            const count = allAvailableProds.filter(
+              (p) => (p.sellerName || '').toLowerCase().trim() === shop.id.toLowerCase().trim()
+            ).length;
+            return { ...shop, productCount: count };
+          });
+          setVerifiedShops(updatedDefaults);
+        }
+      } catch (err) {
+        console.warn('Real shop fetch note:', err);
+      } finally {
+        setLoadingShops(false);
+      }
+    }
+    loadRealShops();
+  }, []);
+
   return (
     <div className={styles.page}>
       <PublicHeader />
@@ -611,7 +749,6 @@ const LandingPage: React.FC = () => {
                 Start buying — free registration
                 <ArrowRight size={18} />
               </Link>
-
             </div>
 
             <div className={styles.heroStats}>
@@ -699,8 +836,6 @@ const LandingPage: React.FC = () => {
         </div>
       </section>
 
-
-
       {/* ── Brands ────────────────────────────────────────────────────────── */}
       <section id="brands" className={styles.section} style={{ background: '#F8FAFC' }}>
         <div className={styles.sectionInner}>
@@ -729,52 +864,105 @@ const LandingPage: React.FC = () => {
         </div>
       </section>
 
-      {/* ── Trending ──────────────────────────────────────────────────────── */}
+      {/* ── Trending Verified Shops from Database ─────────────────────────── */}
       <section id="trending" className={styles.section} style={{ background: '#FFFFFF' }}>
         <div className={styles.sectionInner}>
           <div className={styles.categorySectionHeader}>
             <div className={styles.categoryHeaderLeft}>
-              <span className={styles.sectionEyebrowPill}>TRENDING</span>
-              <h2 className={styles.sectionTitle}>Trending this week</h2>
-              <p className={styles.sectionSubtitle}>Fast-moving SKUs that retailers are buying in bulk right now.</p>
+              <span className={styles.sectionEyebrowPill}>VERIFIED STORES</span>
+              <h2 className={styles.sectionTitle}>Trending Verified Shops</h2>
+              <p className={styles.sectionSubtitle}>Procure directly from authentic, GST-registered auto parts manufacturers &amp; master distributors.</p>
             </div>
-            <Link href="#" className={styles.categoryAllBtn}>
-              View all trending &rarr;
+            <Link href="/categories" className={styles.categoryAllBtn}>
+              Browse all shops &rarr;
             </Link>
           </div>
-          <div className={styles.dealsGrid}>
-            {DEALS.slice(0, 4).map((deal) => (
-              <Link key={deal.id + '-trending'} href={`/products/${deal.id}`} className={styles.dealCard} style={{ textDecoration: 'none', color: 'inherit' }}>
-                <div className={styles.dealImageWrap} style={{ background: deal.bgColor }}>
-                  {deal.badgeLeft && <div className={styles.dealBadgeLeft}>{deal.badgeLeft}</div>}
-                  {deal.badgeRight && <div className={styles.dealBadgeRight}>{deal.badgeRight}</div>}
-                  <div className={styles.dealBrandInitials}>{deal.brandInitials}</div>
+
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+            gap: 20,
+          }}>
+            {verifiedShops.map((shop) => (
+              <Link
+                key={shop.id}
+                href={`/shops/${encodeURIComponent(shop.id)}`}
+                style={{
+                  background: '#FFFFFF',
+                  border: '1.5px solid var(--border-subtle)',
+                  borderRadius: 16,
+                  padding: 24,
+                  textDecoration: 'none',
+                  color: 'inherit',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                  gap: 16,
+                  boxShadow: '0 2px 10px rgba(0,0,0,0.03)',
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16 }}>
+                  <div style={{
+                    width: 52,
+                    height: 52,
+                    borderRadius: 12,
+                    background: shop.bgColor,
+                    color: '#ffffff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: 18,
+                    fontWeight: 800,
+                    flexShrink: 0,
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                  }}>
+                    {shop.initials}
+                  </div>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>
+                        {shop.name}
+                      </span>
+                    </div>
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: '#059669', fontSize: 11.5, fontWeight: 700, marginTop: 3 }}>
+                      <ShieldCheck size={13} /> Verified Supplier
+                    </div>
+                    {shop.location ? (
+                      <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <MapPin size={12} /> {shop.location}
+                      </div>
+                    ) : null}
+                  </div>
                 </div>
-                <div className={styles.dealContent}>
-                  <div className={styles.dealBrandRow}>
-                    <span className={styles.dealBrandName}>{deal.brandName}</span>
-                    <CheckCircle size={14} className={styles.dealBrandVerified} />
-                  </div>
-                  <div className={styles.dealProductName}>{deal.productName}</div>
-                  <div className={styles.dealPriceRow}>
-                    <span className={styles.dealPrice}>{deal.price}</span>
-                    <span className={styles.dealOriginalPrice}>{deal.originalPrice}</span>
-                    <span className={styles.dealUnit}>{deal.unit}</span>
-                  </div>
-                  <div className={styles.dealTagsRow}>
-                    <span className={styles.dealTagMoq}>{deal.moq}</span>
-                    <span className={styles.dealTagHsn}>{deal.hsn}</span>
-                  </div>
-                  <div className={styles.dealFooter}>
-                    <div className={styles.dealRatingRow}>
-                      <Star size={12} fill="#F59E0B" color="#F59E0B" />
-                      <span className={styles.dealRatingText}>{deal.rating} · {deal.reviews}</span>
-                    </div>
-                    <div className={styles.dealLocationRow}>
-                      <MapPin size={12} />
-                      <span className={styles.dealLocationText}>{deal.location}</span>
-                    </div>
-                  </div>
+
+                <div style={{
+                  background: 'var(--bg-surface-alt, #F8FAFC)',
+                  borderRadius: 12,
+                  padding: '12px 14px',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  fontSize: 12.5,
+                  marginTop: 8,
+                }}>
+                  <span style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>
+                    📦 <strong>{shop.productCount}</strong> {shop.productCount === 1 ? 'Product' : 'Products'} Listed
+                  </span>
+                  <span style={{
+                    background: '#8B0000',
+                    color: '#ffffff',
+                    fontWeight: 700,
+                    fontSize: 12,
+                    padding: '6px 12px',
+                    borderRadius: 8,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 4,
+                    boxShadow: '0 2px 6px rgba(139,0,0,0.2)',
+                  }}>
+                    Visit Store &rarr;
+                  </span>
                 </div>
               </Link>
             ))}
@@ -911,7 +1099,7 @@ export const PublicFooter: React.FC = () => {
             <Link href="/" className={styles.footerLink}>Home</Link>
             <Link href="/categories" className={styles.footerLink}>All categories</Link>
             <Link href="/brands" className={styles.footerLink}>Brands</Link>
-            <Link href="/auth/register" className={styles.footerLink}>Become a seller</Link>
+            <Link href="/auth/register?role=seller" className={styles.footerLink}>Become a seller</Link>
           </div>
 
           <div className={styles.footerLinkCol}>
